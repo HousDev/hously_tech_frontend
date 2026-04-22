@@ -1,0 +1,176 @@
+/* styles/globals.css - Add these to existing styles */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+@tailwind utilities;
+@tailwind utilities;
+
+/* Custom animation classes */
+.text-anim {
+  animation: slideInUp 900ms ease forwards;
+}
+
+.text-anim2 {
+  animation: slideInUp 900ms ease forwards;
+}
+
+.scroll-to-zoom {
+  transition: transform 0.3s ease;
+}
+
+.scroll-to-zoom:hover {
+  transform: scale(1.05);
+}
+
+/* Color masking effect for icons */
+.color-masking {
+  position: relative;
+  display: inline-block;
+}
+
+.color-masking .masking-src {
+  position: absolute;
+  inset: 0;
+  background: #6D30FB;
+  mix-blend-mode: color;
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  mask-position: center;
+}
+
+/* Link hover effects */
+.link-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: #051600;
+  text-decoration: none;
+  transition: color 0.4s ease;
+}
+
+.link-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: #6D30FB;
+  transition: width 0.4s ease;
+}
+
+.link-btn:hover {
+  color: #6D30FB;
+}
+
+.link-btn:hover::after {
+  width: 100%;
+}
+
+.link-btn:hover i {
+  transform: translateX(4px);
+}
+
+/* Service card hover effects */
+.service-card {
+  transition: all 0.3s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 60px rgba(0, 0, 0, 0.1) !important;
+}
+
+.service-card:hover .box-icon img {
+  transform: scale(1.1);
+}
+
+/* Container styling */
+.container {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  max-width: calc(1464px + 24px);
+  padding-left: calc(24px/2);
+  padding-right: calc(24px/2);
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 1280px) {
+  .xl\:w-1\/4 {
+    width: 33.333%;
+  }
+}
+
+@media (max-width: 1024px) {
+  .lg\:w-1\/2 {
+    width: 50%;
+  }
+}
+
+@media (max-width: 768px) {
+  .lg\:w-1\/2,
+  .xl\:w-1\/4 {
+    width: 100%;
+  }
+}
+
+/* Base styles */
+html {
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  font-family: "DM Sans", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #6F756D;
+  line-height: 26px;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Shadow title responsive adjustments */
+@media (max-width: 1536px) {
+  .shadow-title {
+    font-size: 300px !important;
+  }
+}
+
+@media (max-width: 1280px) {
+  .shadow-title {
+    font-size: 250px !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .shadow-title {
+    font-size: 200px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .shadow-title {
+    font-size: 150px !important;
+  }
+  
+  .sec-title {
+    font-size: 48px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .shadow-title {
+    font-size: 100px !important;
+  }
+  
+  .sec-title {
+    font-size: 36px !important;
+  }
+}
