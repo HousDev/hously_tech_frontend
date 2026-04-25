@@ -1,28 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Plus, Edit, Trash2, MoveUp, MoveDown, Save, X, 
-  Image as ImageIcon, Eye, EyeOff, Upload, Link as LinkIcon, 
-  Search, Filter, ChevronLeft, ChevronRight, Home, Check, Menu, Grid, List,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-react';
+  Plus, Edit, Trash2, MoveUp, MoveDown, X, 
+  Image as ImageIcon, Eye, EyeOff, 
+  Search, Filter, ChevronLeft, ChevronRight, Home, Check, Grid, List} from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import api from '../../services/authService';
-import type { ApiResponse } from '../../types/auth.types';
-import axios from 'axios';
+import { homeApi, type Slide } from '../../lib/homeApi';
 
-interface Slide {
-  id: number;
-  title: string;
-  subtitle: string;
-  description: string;
-  image_url: string;
-  bg_gradient: string;
-  display_order: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+
 
 interface HomeCMSProps {
   isSidebarOpen?: boolean;
@@ -38,7 +22,6 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
   const [activeTab, setActiveTab] = useState<'url' | 'upload'>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // New states for search, filter and pagination
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,34 +47,23 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
     fetchSlides();
   }, []);
 
-  const fetchSlides = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get<ApiResponse<Slide[]>>('/home/slides?active=false');
-      if (response.data.success && response.data.data) {
-        const sortedSlides = response.data.data.sort((a, b) => a.display_order - b.display_order);
-        setSlides(sortedSlides);
-        validateOrders(sortedSlides);
-      }
-    } catch (err) {
-      toast.error('Failed to load slides');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+ const fetchSlides = async () => {
+  try {
+    setLoading(true);
+    const data = await homeApi.getAll();
+    const sorted = [...data].sort((a, b) => a.display_order - b.display_order);
+    setSlides(sorted);
+    validateOrders(sorted);
+  } catch {
+    toast.error('Failed to load slides');
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const debugSlides = () => {
-    console.log('🔍 DEBUG - Current slides:', slides.map(s => ({
-      id: s.id,
-      title: s.title,
-      order: s.display_order
-    })));
-  };
+  
 
-  useEffect(() => {
-    debugSlides();
-  }, [slides]);
+ 
 
   const validateOrders = (slidesList: Slide[]) => {
     const errors: {[key: number]: string} = {};
@@ -118,36 +90,8 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
   };
 
   const uploadImageToServer = async (file: File): Promise<string> => {
-    const uploadFormData = new FormData();
-    uploadFormData.append('image', file);
-    uploadFormData.append('type', 'home');
-    
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-      
-      const response = await axios.post('http://localhost:5000/api/upload/image', uploadFormData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.data.success) {
-        console.log('✅ Image uploaded successfully:', response.data.data.url);
-        return response.data.data.url;
-      }
-      throw new Error('Upload failed');
-    } catch (error: any) {
-      console.error('Upload error:', error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      }
-      throw error;
-    }
-  };
+  return homeApi.uploadImage(file);
+};
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -245,28 +189,21 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
         display_order: requestedOrder
       };
       
-      console.log('📤 Sending slide data:', slideData);
       
-      if (editingSlide) {
-        const response = await api.put(`/home/slides/${editingSlide.id}`, slideData);
-        toast.success('Slide updated successfully');
-      } else {
-        const response = await api.post('/home/slides', slideData);
-        toast.success('Slide created successfully');
-      }
-      
-      fetchSlides();
-      handleCloseModal();
-    } catch (err: unknown) {
-      console.error('Error saving slide:', err);
-      
-      if (axios.isAxiosError(err)) {
-        console.error('Axios error details:', err.response?.data);
-        toast.error('Failed to save slide: ' + (err.response?.data?.message || 'Unknown error'));
-      } else {
-        toast.error('Failed to save slide');
-      }
-    }
+      // REPLACE WITH:
+if (editingSlide) {
+  await homeApi.update(editingSlide.id, slideData);
+  toast.success('Slide updated successfully');
+} else {
+  await homeApi.create(slideData);
+  toast.success('Slide created successfully');
+}
+
+fetchSlides();
+handleCloseModal();
+} catch (err: any) {
+  toast.error('Failed to save slide: ' + (err.message || 'Unknown error'));
+}
   };
 
   const handleEdit = (slide: Slide) => {
@@ -297,125 +234,64 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
   };
 
 const handleDelete = async (id: number) => {
-  const deleteToast = toast.loading('Deleting slide...');
-
+  const t = toast.loading('Deleting slide...');
   try {
-    await api.delete(`/home/slides/${id}`);
-
-    setSlides(prev =>
-      prev.filter(slide => slide.id !== id)
-    );
-
-    toast.success('Slide deleted successfully', {
-      id: deleteToast,
-    });
-  } catch (error: any) {
-    console.error(error);
-    toast.error('Failed to delete slide', {
-      id: deleteToast,
-    });
+    await homeApi.delete(id);
+    setSlides(prev => prev.filter(s => s.id !== id));
+    toast.success('Slide deleted successfully', { id: t });
+  } catch {
+    toast.error('Failed to delete slide', { id: t });
   }
 };
 
 
 
- const handleBulkDelete = async () => {
-  if (selectedSlides.length === 0) {
-    toast.error('Please select slides');
-    return;
-  }
-
-  // 🔵 default loading toast
-  const loadingToast = toast.loading(
-    `Deleting ${selectedSlides.length} slide(s)...`
-  );
-
+const handleBulkDelete = async () => {
+  if (!selectedSlides.length) { toast.error('Please select slides'); return; }
+  const t = toast.loading(`Deleting ${selectedSlides.length} slide(s)...`);
   try {
-    for (const id of selectedSlides) {
-      await api.delete(`/home/slides/${id}`);
-    }
-
-    // 🟢 default success toast (same as deactivate)
-    toast.success(
-      `${selectedSlides.length} slide(s) deleted successfully`,
-      { id: loadingToast }
-    );
-
+    await homeApi.bulkDelete(selectedSlides);
+    toast.success(`${selectedSlides.length} slide(s) deleted successfully`, { id: t });
     setSelectedSlides([]);
     fetchSlides();
-  } catch (error) {
-    console.error(error);
-    toast.error('Failed to delete slides', {
-      id: loadingToast,
-    });
+  } catch {
+    toast.error('Failed to delete slides', { id: t });
   }
 };
 
 
 
   const handleToggleActive = async (slideId: number, currentStatus: boolean) => {
-    const toggleToast = toast.loading(currentStatus ? 'Deactivating slide...' : 'Activating slide...');
-    
-    try {
-      const response = await api.put(`/home/slides/${slideId}`, {
-        is_active: !currentStatus
-      });
-      
-      if (response.data.success) {
-        setSlides(prevSlides => 
-          prevSlides.map(slide => 
-            slide.id === slideId 
-              ? { ...slide, is_active: !currentStatus }
-              : slide
-          )
-        );
-        
-        toast.success(`Slide ${!currentStatus ? 'activated' : 'deactivated'} successfully`, { id: toggleToast });
-      } else {
-        throw new Error(response.data.message);
-      }
-    } catch (error: any) {
-      console.error('Toggle error:', error);
-      toast.error(error.response?.data?.message || 'Failed to toggle slide status', { id: toggleToast });
-    }
-  };
+  const t = toast.loading(currentStatus ? 'Deactivating slide...' : 'Activating slide...');
+  try {
+    await homeApi.update(slideId, { is_active: !currentStatus });
+    setSlides(prev =>
+      prev.map(s => s.id === slideId ? { ...s, is_active: !currentStatus } : s)
+    );
+    toast.success(`Slide ${!currentStatus ? 'activated' : 'deactivated'} successfully`, { id: t });
+  } catch (err: any) {
+    toast.error(err.message || 'Failed to toggle slide status', { id: t });
+  }
+};
 
-  const handleBulkToggleActive = async (activate: boolean) => {
-    if (selectedSlides.length === 0) {
-      toast.error('Please select slides to update');
-      return;
-    }
-
-    const toggleToast = toast.loading(`${activate ? 'Activating' : 'Deactivating'} ${selectedSlides.length} slide(s)...`);
-    
-    try {
-      // Update slides one by one
-      for (const id of selectedSlides) {
-        await api.put(`/home/slides/${id}`, {
-          is_active: activate
-        });
-      }
-      
-      setSlides(prevSlides => 
-        prevSlides.map(slide => 
-          selectedSlides.includes(slide.id)
-            ? { ...slide, is_active: activate }
-            : slide
-        )
-      );
-      
-      toast.success(`Successfully ${activate ? 'activated' : 'deactivated'} ${selectedSlides.length} slide(s)`, { id: toggleToast });
-    } catch (error: any) {
-      console.error('Bulk toggle error:', error);
-      toast.error(error.response?.data?.message || 'Failed to update slides', { id: toggleToast });
-    }
-  };
+ const handleBulkToggleActive = async (activate: boolean) => {
+  if (!selectedSlides.length) { toast.error('Please select slides to update'); return; }
+  const t = toast.loading(`${activate ? 'Activating' : 'Deactivating'} ${selectedSlides.length} slide(s)...`);
+  try {
+    await homeApi.bulkToggleActive(selectedSlides, activate);
+    setSlides(prev =>
+      prev.map(s => selectedSlides.includes(s.id) ? { ...s, is_active: activate } : s)
+    );
+    toast.success(`Successfully ${activate ? 'activated' : 'deactivated'} ${selectedSlides.length} slide(s)`, { id: t });
+  } catch {
+    toast.error('Failed to update slides', { id: t });
+  }
+};
 
   const handleReorder = async (slideId: number, direction: 'up' | 'down') => {
     const reorderToast = toast.loading('Moving slide...');
     
     try {
-      console.log(`🔄 Reordering slide ${slideId} ${direction}`);
       
       const currentIndex = slides.findIndex(s => s.id === slideId);
       if (currentIndex === -1) {
@@ -429,31 +305,21 @@ const handleDelete = async (id: number) => {
       const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
       const swapSlideId = slides[swapIndex].id;
       
-      console.log(`🔄 Swapping slide ${slideId} with ${swapSlideId}`);
       
-      const response = await api.post('/home/slides/swap', {
-        slide1Id: slideId,
-        slide2Id: swapSlideId
-      });
-      
-      if (response.data.success) {
-        const newSlides = [...slides];
-        [newSlides[currentIndex], newSlides[swapIndex]] = 
-          [newSlides[swapIndex], newSlides[currentIndex]];
-        
-        newSlides.forEach((slide, index) => {
-          slide.display_order = index;
-        });
-        
-        setSlides(newSlides);
-        validateOrders(newSlides);
-        toast.success('Slide moved successfully!', { id: reorderToast });
-        
-        console.log('✅ Swap successful, local state updated');
-      } else {
-        throw new Error(response.data.message);
-      }
-      
+    // REPLACE WITH:
+await homeApi.swap(slideId, swapSlideId);
+
+const newSlides = [...slides];
+[newSlides[currentIndex], newSlides[swapIndex]] = 
+  [newSlides[swapIndex], newSlides[currentIndex]];
+
+newSlides.forEach((slide, index) => {
+  slide.display_order = index;
+});
+
+setSlides(newSlides);
+validateOrders(newSlides);
+toast.success('Slide moved successfully!', { id: reorderToast });
     } catch (error: any) {
       console.error('❌ Swap error:', error.response?.data || error.message);
       toast.error(error.response?.data?.message || 'Failed to move slide', { id: reorderToast });
@@ -569,19 +435,7 @@ const handleDelete = async (id: number) => {
   }));
 };
 
-const incrementDisplayOrder = () => {
-  setFormData(prev => ({
-    ...prev,
-    display_order: prev.display_order + 1
-  }));
-};
 
-const decrementDisplayOrder = () => {
-  setFormData(prev => ({
-    ...prev,
-    display_order: Math.max(1, prev.display_order - 1)
-  }));
-};
 
   // Pagination controls
   const nextPage = () => {

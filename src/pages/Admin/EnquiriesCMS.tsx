@@ -2,106 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, Filter, Eye, MessageSquare, Phone, Mail, 
   Calendar, AlertCircle, CheckCircle, Clock, User, 
-  Building, DollarSign, Trash2, Edit, MoreVertical,
-  Download, Upload, RefreshCw, FileText, Star, TrendingUp,
-  Activity, Inbox, Video, PhoneCall, MapPin, Users,
-  ThumbsUp, ThumbsDown, MessageCircle, CalendarCheck,
-  PhoneOutgoing, PhoneIncoming, History, Tag,
-  Send, Paperclip, Smile, Frown, Meh,
-  Grid, List, Home, Check, Plus,
-  CheckSquare, Square,
+  Building, DollarSign, Trash2, Edit, 
+  Download, Upload, FileText, Star, TrendingUp,
+  Activity, Inbox, Video, PhoneCall, MapPin, 
+  ThumbsUp, ThumbsDown, CalendarCheck,
+  Meh,
+  Grid, List, Check, 
+  
   ChevronLeft,
   ChevronRight,
   X
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import axios from 'axios';
+// ADD this:
+import { enquiryApi, type Enquiry, type EnquiryStats } from '../../lib/enquiryApi';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-interface Enquiry {
-  id: number;
-  full_name: string;
-  company_name: string | null;
-  email: string;
-  phone_number: string | null;
-  inquiry_type: string;
-  service_type: string | null;
-  project_budget: string | null;
-  message: string;
-  status: 'new' | 'in_progress' | 'contacted' | 'closed' | 'converted';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  ip_address: string | null;
-  assigned_to: number | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-  interaction_history?: Interaction[];
-  scheduled_meetings?: Meeting[];
-  follow_up_actions?: FollowUpAction[];
-}
 
-interface Interaction {
-  id: number;
-  enquiry_id: number;
-  type: 'call' | 'email' | 'meeting' | 'note';
-  direction: 'outgoing' | 'incoming';
-  subject: string;
-  content: string;
-  duration?: number;
-  sentiment?: 'positive' | 'neutral' | 'negative';
-  created_by: number;
-  created_at: string;
-  metadata?: {
-    call_type?: 'cold' | 'follow_up' | 'discovery' | 'closing';
-    email_subject?: string;
-    meeting_type?: 'virtual' | 'in_person';
-  };
-}
 
-interface Meeting {
-  id: number;
-  enquiry_id: number;
-  title: string;
-  description: string;
-  meeting_type: 'virtual' | 'in_person';
-  platform?: string;
-  location?: string;
-  start_time: string;
-  end_time: string;
-  status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
-  participants: string[];
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface FollowUpAction {
-  id: number;
-  enquiry_id: number;
-  type: 'call' | 'email' | 'meeting' | 'task';
-  title: string;
-  description: string;
-  due_date: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'pending' | 'in_progress' | 'completed' | 'overdue';
-  assigned_to: number | null;
-  completed_at: string | null;
-  created_at: string;
-}
-
-interface EnquiryStats {
-  total: number;
-  new: number;
-  in_progress: number;
-  contacted: number;
-  closed: number;
-  converted: number;
-  urgent: number;
-  today: number;
-  meetings_today: number;
-  follow_ups_overdue: number;
-}
 
 interface EnquiriesCMSProps {
   isSidebarOpen?: boolean;
@@ -165,75 +83,41 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
     fetchStats();
   }, [filters]);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-      headers: { 
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    };
-  };
+  
 
-  const fetchEnquiries = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      
-      if (filters.status !== 'all') params.append('status', filters.status);
-      if (filters.priority !== 'all') params.append('priority', filters.priority);
-      if (filters.search) params.append('search', filters.search);
-      if (filters.dateRange !== 'all') params.append('dateRange', filters.dateRange);
-      if (filters.hasFollowUp !== 'all') params.append('hasFollowUp', filters.hasFollowUp);
-      
-      const response = await axios.get(
-        `${API_BASE_URL}/enquiries?${params}`,
-        getAuthHeaders()
-      );
+ // REPLACE with:
+const fetchEnquiries = async () => {
+  try {
+    setLoading(true);
+    const data = await enquiryApi.getAll(filters);
+    setEnquiries(data);
+  } catch (error: any) {
+    console.error('Failed to fetch enquiries:', error);
+    toast.error(error.message || 'Failed to load enquiries');
+  } finally {
+    setLoading(false);
+  }
+};
 
-      if (response.data.success) {
-        setEnquiries(response.data.data);
-      } else {
-        toast.error(response.data.message || 'Failed to fetch enquiries');
-      }
-    } catch (error) {
-      console.error('Failed to fetch enquiries:', error);
-      toast.error('Failed to load enquiries');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchEnquiryDetails = async (id: number) => {
-    try {
-      const response = await axios.get(
-        `${API_BASE_URL}/enquiries/${id}/details`,
-        getAuthHeaders()
-      );
-
-      if (response.data.success) {
-        return response.data.data;
-      }
-    } catch (error) {
-      console.error('Failed to fetch enquiry details:', error);
-    }
+  // REPLACE with:
+const fetchEnquiryDetails = async (id: number) => {
+  try {
+    return await enquiryApi.getDetails(id);
+  } catch (error) {
+    console.error('Failed to fetch enquiry details:', error);
     return null;
-  };
+  }
+};
 
-  const fetchStats = async () => {
-    try {
-      const response = await axios.get(
-        `${API_BASE_URL}/enquiries/stats`,
-        getAuthHeaders()
-      );
-
-      if (response.data.success) {
-        setStats(response.data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch stats:', error);
-    }
-  };
+  // REPLACE with:
+const fetchStats = async () => {
+  try {
+    const data = await enquiryApi.getStats();
+    setStats(data);
+  } catch (error) {
+    console.error('Failed to fetch stats:', error);
+  }
+};
 
   const handleViewDetails = async (enquiry: Enquiry) => {
     try {
@@ -250,332 +134,245 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
     }
   };
 
-  const handleUpdateStatus = async (id: number, status: string) => {
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          await axios.put(
-            `${API_BASE_URL}/enquiries/${id}/status`,
-            { status },
-            getAuthHeaders()
-          );
-          
-          setEnquiries(enquiries.map(e => 
-            e.id === id ? { ...e, status: status as Enquiry['status'] } : e
-          ));
-          
-          if (selectedEnquiry?.id === id) {
-            setSelectedEnquiry(prev => prev ? { ...prev, status: status as Enquiry['status'] } : null);
-          }
-          
-          fetchStats();
-          resolve(true);
-        } catch (error) {
-          reject(error);
+  // REPLACE with:
+const handleUpdateStatus = async (id: number, status: string) => {
+  toast.promise(
+    enquiryApi.updateStatus(id, status as Enquiry['status']),
+    {
+      loading: 'Updating status...',
+      success: () => {
+        setEnquiries(enquiries.map(e => 
+          e.id === id ? { ...e, status: status as Enquiry['status'] } : e
+        ));
+        if (selectedEnquiry?.id === id) {
+          setSelectedEnquiry(prev => prev ? { ...prev, status: status as Enquiry['status'] } : null);
         }
-      }),
-      {
-        loading: 'Updating status...',
-        success: 'Status updated successfully!',
-        error: 'Failed to update status',
-      }
-    );
-  };
-
-  const handleAddNote = async () => {
-    if (!selectedEnquiry || !newNote.trim()) {
-      toast.error('Please enter a note');
-      return;
+        fetchStats();
+        return 'Status updated successfully!';
+      },
+      error: 'Failed to update status',
     }
+  );
+};
 
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          const response = await axios.post(
-            `${API_BASE_URL}/enquiries/${selectedEnquiry.id}/interactions`,
-            {
-              type: 'note',
-              direction: 'outgoing',
-              subject: `Note added to enquiry #${selectedEnquiry.id}`,
-              content: newNote.trim(),
-              sentiment: 'neutral',
-              metadata: {}
-            },
-            getAuthHeaders()
-          );
+  // REPLACE with:
+const handleAddNote = async () => {
+  if (!selectedEnquiry || !newNote.trim()) {
+    toast.error('Please enter a note');
+    return;
+  }
 
-          if (response.data.success) {
-            const updatedInteraction = response.data.data;
-            setEnquiries(enquiries.map(e => 
-              e.id === selectedEnquiry.id ? {
-                ...e,
-                interaction_history: [...(e.interaction_history || []), updatedInteraction]
-              } : e
-            ));
-
-            if (selectedEnquiry) {
-              setSelectedEnquiry({
-                ...selectedEnquiry,
-                interaction_history: [...(selectedEnquiry.interaction_history || []), updatedInteraction]
-              });
-            }
-
-            setNewNote('');
-            setIsNoteModalOpen(false);
-            resolve(true);
-          } else {
-            reject(new Error(response.data.message));
-          }
-        } catch (error: any) {
-          console.error('Note error:', error.response?.data || error.message);
-          reject(error);
+  toast.promise(
+    enquiryApi.addInteraction(selectedEnquiry.id, {
+      type: 'note',
+      direction: 'outgoing',
+      subject: `Note added to enquiry #${selectedEnquiry.id}`,
+      content: newNote.trim(),
+      sentiment: 'neutral',
+      metadata: {}
+    }),
+    {
+      loading: 'Adding note...',
+      success: (updatedInteraction) => {
+        setEnquiries(enquiries.map(e => 
+          e.id === selectedEnquiry.id ? {
+            ...e,
+            interaction_history: [...(e.interaction_history || []), updatedInteraction]
+          } : e
+        ));
+        if (selectedEnquiry) {
+          setSelectedEnquiry({
+            ...selectedEnquiry,
+            interaction_history: [...(selectedEnquiry.interaction_history || []), updatedInteraction]
+          });
         }
-      }),
-      {
-        loading: 'Adding note...',
-        success: 'Note added successfully!',
-        error: (err) => err.response?.data?.message || 'Failed to add note',
-      }
-    );
-  };
-
-  const handleScheduleMeeting = async () => {
-    if (!selectedEnquiry) return;
-
-    if (!newMeeting.title.trim()) {
-      toast.error('Meeting title is required');
-      return;
+        setNewNote('');
+        setIsNoteModalOpen(false);
+        return 'Note added successfully!';
+      },
+      error: (err) => err.message || 'Failed to add note',
     }
-    
-    if (!newMeeting.start_time || !newMeeting.end_time) {
-      toast.error('Start and end times are required');
-      return;
-    }
-    
-    const start = new Date(newMeeting.start_time);
-    const end = new Date(newMeeting.end_time);
-    
-    if (start >= end) {
-      toast.error('End time must be after start time');
-      return;
-    }
-    
-    const formatForBackend = (datetimeLocal: string) => {
-      if (!datetimeLocal) return '';
-      const date = new Date(datetimeLocal);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      
-      return `${year}-${month}-${day} ${hours}:${minutes}:00`;
-    };
+  );
+};
 
-    const meetingData = {
-      ...newMeeting,
-      start_time: formatForBackend(newMeeting.start_time),
-      end_time: formatForBackend(newMeeting.end_time),
-      participants: newMeeting.participants,
+ // REPLACE with:
+const handleScheduleMeeting = async () => {
+  if (!selectedEnquiry) return;
+
+  if (!newMeeting.title.trim()) {
+    toast.error('Meeting title is required');
+    return;
+  }
+  
+  if (!newMeeting.start_time || !newMeeting.end_time) {
+    toast.error('Start and end times are required');
+    return;
+  }
+  
+  const start = new Date(newMeeting.start_time);
+  const end = new Date(newMeeting.end_time);
+  
+  if (start >= end) {
+    toast.error('End time must be after start time');
+    return;
+  }
+
+  toast.promise(
+    enquiryApi.scheduleMeeting(selectedEnquiry.id, {
+      title: newMeeting.title,
+      description: newMeeting.description,
+      meeting_type: newMeeting.meeting_type,
       platform: newMeeting.meeting_type === 'virtual' ? newMeeting.platform : undefined,
-      location: newMeeting.meeting_type === 'in_person' ? newMeeting.location : undefined
-    };
-
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          const response = await axios.post(
-            `${API_BASE_URL}/enquiries/${selectedEnquiry.id}/meetings`,
-            meetingData,
-            getAuthHeaders()
-          );
-          
-          if (response.data.success) {
-            const newMeetingData = response.data.data;
-            
-            setEnquiries(enquiries.map(e => 
-              e.id === selectedEnquiry.id ? {
-                ...e,
-                scheduled_meetings: [...(e.scheduled_meetings || []), newMeetingData]
-              } : e
-            ));
-
-            if (selectedEnquiry) {
-              setSelectedEnquiry({
-                ...selectedEnquiry,
-                scheduled_meetings: [...(selectedEnquiry.scheduled_meetings || []), newMeetingData]
-              });
-            }
-
-            setNewMeeting({
-              title: '',
-              description: '',
-              meeting_type: 'virtual',
-              platform: 'Zoom',
-              location: '',
-              start_time: '',
-              end_time: '',
-              participants: [],
-              notes: ''
-            });
-            setIsMeetingModalOpen(false);
-            resolve(true);
-          } else {
-            reject(new Error(response.data.message));
-          }
-        } catch (error: any) {
-          console.error('Meeting error:', error.response?.data || error.message);
-          reject(error);
+      location: newMeeting.meeting_type === 'in_person' ? newMeeting.location : undefined,
+      start_time: newMeeting.start_time,
+      end_time: newMeeting.end_time,
+      participants: newMeeting.participants,
+      notes: newMeeting.notes,
+      status: 'scheduled'
+    }),
+    {
+      loading: 'Scheduling meeting...',
+      success: (newMeetingData) => {
+        setEnquiries(enquiries.map(e => 
+          e.id === selectedEnquiry.id ? {
+            ...e,
+            scheduled_meetings: [...(e.scheduled_meetings || []), newMeetingData]
+          } : e
+        ));
+        if (selectedEnquiry) {
+          setSelectedEnquiry({
+            ...selectedEnquiry,
+            scheduled_meetings: [...(selectedEnquiry.scheduled_meetings || []), newMeetingData]
+          });
         }
-      }),
-      {
-        loading: 'Scheduling meeting...',
-        success: 'Meeting scheduled successfully!',
-        error: (err) => err.response?.data?.message || 'Failed to schedule meeting',
-      }
-    );
-  };
-
-  const handleLogCall = async () => {
-    if (!selectedEnquiry) return;
-
-    if (!newCallLog.content.trim()) {
-      toast.error('Call summary is required');
-      return;
+        setNewMeeting({
+          title: '',
+          description: '',
+          meeting_type: 'virtual',
+          platform: 'Zoom',
+          location: '',
+          start_time: '',
+          end_time: '',
+          participants: [],
+          notes: ''
+        });
+        setIsMeetingModalOpen(false);
+        return 'Meeting scheduled successfully!';
+      },
+      error: (err) => err.message || 'Failed to schedule meeting',
     }
+  );
+};
 
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          const response = await axios.post(
-            `${API_BASE_URL}/enquiries/${selectedEnquiry.id}/interactions`,
-            {
-              type: 'call',
-              direction: newCallLog.type,
-              subject: `Call with ${selectedEnquiry.full_name}`,
-              content: newCallLog.content.trim(),
-              duration: newCallLog.duration || 0,
-              sentiment: newCallLog.sentiment,
-              metadata: {
-                call_type: newCallLog.metadata.call_type
-              }
-            },
-            getAuthHeaders()
-          );
+ // REPLACE with:
+const handleLogCall = async () => {
+  if (!selectedEnquiry) return;
 
-          if (response.data.success) {
-            const newInteraction = response.data.data;
-            
-            setEnquiries(enquiries.map(e => 
-              e.id === selectedEnquiry.id ? {
-                ...e,
-                interaction_history: [...(e.interaction_history || []), newInteraction]
-              } : e
-            ));
+  if (!newCallLog.content.trim()) {
+    toast.error('Call summary is required');
+    return;
+  }
 
-            if (selectedEnquiry) {
-              setSelectedEnquiry({
-                ...selectedEnquiry,
-                interaction_history: [...(selectedEnquiry.interaction_history || []), newInteraction]
-              });
-            }
-
-            setNewCallLog({
-              type: 'outgoing',
-              subject: '',
-              content: '',
-              duration: 0,
-              sentiment: 'neutral',
-              metadata: {
-                call_type: 'follow_up'
-              }
-            });
-            setIsCallLogModalOpen(false);
-            resolve(true);
-          } else {
-            reject(new Error(response.data.message || 'Failed to log call'));
-          }
-        } catch (error: any) {
-          console.error('Error logging call:', error);
-          const errorMessage = error.response?.data?.message || error.message || 'Failed to log call';
-          reject(new Error(errorMessage));
-        }
-      }),
-      {
-        loading: 'Logging call...',
-        success: 'Call logged successfully!',
-        error: (err) => err.message || 'Failed to log call',
+  toast.promise(
+    enquiryApi.addInteraction(selectedEnquiry.id, {
+      type: 'call',
+      direction: newCallLog.type,
+      subject: `Call with ${selectedEnquiry.full_name}`,
+      content: newCallLog.content.trim(),
+      duration: newCallLog.duration || 0,
+      sentiment: newCallLog.sentiment,
+      metadata: {
+        call_type: newCallLog.metadata.call_type
       }
-    );
-  };
-
-  const handleCreateFollowUp = async () => {
-    if (!selectedEnquiry) return;
-
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          const response = await axios.post(
-            `${API_BASE_URL}/enquiries/${selectedEnquiry.id}/follow-ups`,
-            newFollowUp,
-            getAuthHeaders()
-          );
-
-          if (response.data.success) {
-            const newFollowUpData = response.data.data;
-            
-            setEnquiries(enquiries.map(e => 
-              e.id === selectedEnquiry.id ? {
-                ...e,
-                follow_up_actions: [...(e.follow_up_actions || []), newFollowUpData]
-              } : e
-            ));
-
-            if (selectedEnquiry) {
-              setSelectedEnquiry({
-                ...selectedEnquiry,
-                follow_up_actions: [...(selectedEnquiry.follow_up_actions || []), newFollowUpData]
-              });
-            }
-
-            setNewFollowUp({
-              type: 'call',
-              title: '',
-              description: '',
-              due_date: '',
-              priority: 'medium'
-            });
-            setIsFollowUpModalOpen(false);
-            resolve(true);
-          } else {
-            reject(new Error(response.data.message));
-          }
-        } catch (error) {
-          reject(error);
+    }),
+    {
+      loading: 'Logging call...',
+      success: (newInteraction) => {
+        setEnquiries(enquiries.map(e => 
+          e.id === selectedEnquiry.id ? {
+            ...e,
+            interaction_history: [...(e.interaction_history || []), newInteraction]
+          } : e
+        ));
+        if (selectedEnquiry) {
+          setSelectedEnquiry({
+            ...selectedEnquiry,
+            interaction_history: [...(selectedEnquiry.interaction_history || []), newInteraction]
+          });
         }
-      }),
-      {
-        loading: 'Creating follow-up...',
-        success: 'Follow-up created successfully!',
-        error: 'Failed to create follow-up',
-      }
-    );
-  };
+        setNewCallLog({
+          type: 'outgoing',
+          subject: '',
+          content: '',
+          duration: 0,
+          sentiment: 'neutral',
+          metadata: { call_type: 'follow_up' }
+        });
+        setIsCallLogModalOpen(false);
+        return 'Call logged successfully!';
+      },
+      error: (err) => err.message || 'Failed to log call',
+    }
+  );
+};
 
-  const handleDeleteEnquiry = async (id: number) => {
+  // REPLACE with:
+const handleCreateFollowUp = async () => {
+  if (!selectedEnquiry) return;
+
+  toast.promise(
+    enquiryApi.createFollowUp(selectedEnquiry.id, {
+      type: newFollowUp.type,
+      title: newFollowUp.title,
+      description: newFollowUp.description,
+      due_date: newFollowUp.due_date,
+      priority: newFollowUp.priority
+    }),
+    {
+      loading: 'Creating follow-up...',
+      success: (newFollowUpData) => {
+        setEnquiries(enquiries.map(e => 
+          e.id === selectedEnquiry.id ? {
+            ...e,
+            follow_up_actions: [...(e.follow_up_actions || []), newFollowUpData]
+          } : e
+        ));
+        if (selectedEnquiry) {
+          setSelectedEnquiry({
+            ...selectedEnquiry,
+            follow_up_actions: [...(selectedEnquiry.follow_up_actions || []), newFollowUpData]
+          });
+        }
+        setNewFollowUp({
+          type: 'call',
+          title: '',
+          description: '',
+          due_date: '',
+          priority: 'medium'
+        });
+        setIsFollowUpModalOpen(false);
+        return 'Follow-up created successfully!';
+      },
+      error: 'Failed to create follow-up',
+    }
+  );
+};
+
+ // REPLACE with:
+const handleDeleteEnquiry = async (id: number) => {
   const deleteToast = toast.loading('Deleting enquiry...');
 
   try {
-    await axios.delete(`${API_BASE_URL}/enquiries/${id}`, getAuthHeaders());
+    await enquiryApi.delete(id);
     setEnquiries(enquiries.filter(e => e.id !== id));
     fetchStats();
-
     toast.success('Deleted successfully', { id: deleteToast });
-  } catch (error) {
-    toast.error('Failed to delete enquiry', { id: deleteToast });
+  } catch (error: any) {
+    toast.error(error.message || 'Failed to delete enquiry', { id: deleteToast });
   }
 };
 
+// REPLACE with:
 const handleBulkDelete = async () => {
   if (selectedEnquiries.length === 0) {
     toast.error('Please select enquiries to delete');
@@ -585,26 +382,18 @@ const handleBulkDelete = async () => {
   const deleteToast = toast.loading(`Deleting ${selectedEnquiries.length} enquiry(s)...`);
 
   try {
-    const token = localStorage.getItem('token');
-    await Promise.all(
-      selectedEnquiries.map(id =>
-        axios.delete(`${API_BASE_URL}/enquiries/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-      )
-    );
-
+    await enquiryApi.bulkDelete(selectedEnquiries);
     toast.success('Deleted successfully', { id: deleteToast });
     setSelectedEnquiries([]);
     fetchEnquiries();
     fetchStats();
   } catch (error: any) {
-    toast.error('Failed to delete enquiries', { id: deleteToast });
+    toast.error(error.message || 'Failed to delete enquiries', { id: deleteToast });
   }
 };
 
 // Add state for export options
-const [exportOptions, setExportOptions] = useState({
+const [exportOptions, ] = useState({
   mode: 'selected', // 'selected', 'filtered', or 'all'
   includeInteractions: false,
   includeMeetings: false,
@@ -612,7 +401,7 @@ const [exportOptions, setExportOptions] = useState({
   dateFormat: 'MM/DD/YYYY'
 });
 
-// Updated export function
+
 const handleExportCSV = () => {
   let dataToExport: Enquiry[];
   
@@ -741,7 +530,6 @@ const handleExportCSV = () => {
   window.URL.revokeObjectURL(url);
   
   toast.success(`Exported ${dataToExport.length} enquiry(s)`);
-  setIsNoteModalOpen(false);
 };
 
 // Helper function for date formatting
@@ -778,47 +566,26 @@ const formatDateForCSV = (dateString: string, format: string) => {
   </button>
 </div>
 
-  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // REPLACE with:
+const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
+  toast.promise(
+    enquiryApi.importCSV(file),
+    {
+      loading: 'Importing CSV...',
+      success: (result:any) => {
+        fetchEnquiries();
+        fetchStats();
+        return result.message || `Successfully imported ${result.successful} enquiries`;
+      },
+      error: 'Failed to import CSV',
+    }
+  );
 
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          const response = await axios.post(
-            `${API_BASE_URL}/enquiries/import`,
-            formData,
-            {
-              headers: {
-                ...getAuthHeaders().headers,
-                'Content-Type': 'multipart/form-data',
-              }
-            }
-          );
-
-          if (response.data.success) {
-            fetchEnquiries();
-            fetchStats();
-            resolve(response.data.message);
-          } else {
-            reject(new Error(response.data.message));
-          }
-        } catch (error) {
-          reject(error);
-        }
-      }),
-      {
-        loading: 'Importing CSV...',
-        success: (message) => message || 'CSV imported successfully!',
-        error: 'Failed to import CSV',
-      }
-    );
-
-    e.target.value = '';
-  };
+  e.target.value = '';
+};
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -851,13 +618,6 @@ const formatDateForCSV = (dateString: string, format: string) => {
     return colors[status] || 'bg-gray-100 text-gray-700 border-gray-300';
   };
 
-  const getSentimentIcon = (sentiment?: string) => {
-    switch (sentiment) {
-      case 'positive': return <Smile className="w-4 h-4 text-green-500" />;
-      case 'negative': return <Frown className="w-4 h-4 text-red-500" />;
-      default: return <Meh className="w-4 h-4 text-yellow-500" />;
-    }
-  };
 
   // Filter enquiries
   const filteredEnquiries = enquiries.filter(e => {

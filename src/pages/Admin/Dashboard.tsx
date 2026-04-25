@@ -9,23 +9,14 @@ import {
   Settings,
   MessageSquare,
   Bell,
-  ChevronDown,
   ChevronRight,
   X,
   User,
   LogOut,
   Menu,
-  Users as UsersIcon,
-  Eye,
   Plus,
   AlertCircle,
   MessageCircle,
-  ArrowLeft,
-  Mail,
-  Clock,
-  Phone,
-  Download,
-  RefreshCw,
   ThumbsUp,
   User2,
   Users,
@@ -38,10 +29,7 @@ import DashboardAnalytics from '../../components/admin/DashboardAnalytics'; // �
 
 // Environment variables
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const SITE_NAME = import.meta.env.VITE_SITE_NAME || 'Hously Finntech Realty';
-const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || 'info@hously.in';
-const CONTACT_PHONE = import.meta.env.VITE_CONTACT_PHONE || '+91 9371 00 9381';
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || 'admin@houslytech.com';
+
 
 // Interfaces
 interface EnquiryNotification {
@@ -85,7 +73,8 @@ const AdminDashboard = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const [activeMessageTab, setActiveMessageTab] = useState('chat');
-  
+  const [careerNotifications, setCareerNotifications] = useState<any[]>([]);
+const [unreadCareerCount, setUnreadCareerCount] = useState(0);
   // New state variables for real enquiry notifications
   const [enquiryNotifications, setEnquiryNotifications] = useState<EnquiryNotification[]>([]);
   const [unreadEnquiryCount, setUnreadEnquiryCount] = useState(0);
@@ -221,6 +210,27 @@ const AdminDashboard = () => {
     }
   };
 
+  // Fetch career notifications
+const fetchCareerNotifications = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    const [notifRes, countRes] = await Promise.all([
+      axios.get(`${API_BASE_URL}/career/notifications/all`, { 
+        headers: { Authorization: `Bearer ${token}` } 
+      }),
+      axios.get(`${API_BASE_URL}/career/notifications/unread-count`, { 
+        headers: { Authorization: `Bearer ${token}` } 
+      })
+    ]);
+    setCareerNotifications(notifRes.data.data);
+    setUnreadCareerCount(countRes.data.data.count);
+  } catch (error) {
+    console.error('Failed to fetch career notifications:', error);
+  }
+};
+
+
+
   // Fetch recent enquiries
   const fetchRecentEnquiries = async () => {
     try {
@@ -274,19 +284,7 @@ const AdminDashboard = () => {
   };
 
   // Handle enquiry status update
-  const handleUpdateEnquiryStatus = async (enquiryId: number, status: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.put(`${API_BASE_URL}/enquiries/${enquiryId}/status`, 
-        { status }, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      fetchRecentEnquiries();
-      fetchDashboardStats();
-    } catch (error) {
-      console.error('Failed to update enquiry status:', error);
-    }
-  };
+ 
 
   // Format date/time
   const formatDateTime = (dateString: string) => {
@@ -308,27 +306,9 @@ const AdminDashboard = () => {
     });
   };
 
-  // Get priority color
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-800 border-red-200';
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
 
-  // Get status color
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'new': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'in_progress': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'contacted': return 'bg-green-100 text-green-800 border-green-200';
-      case 'closed': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+
+  // Get status colo
 
   // Get notification icon
   const getNotificationIcon = (type: string) => {
@@ -350,11 +330,12 @@ const AdminDashboard = () => {
     fetchEnquiryNotifications();
     fetchRecentEnquiries();
     fetchDashboardStats();
+    fetchCareerNotifications(); 
 
     // Set up polling for real-time updates
     const notificationInterval = setInterval(fetchEnquiryNotifications, 10000); // Every 10 seconds
     const statsInterval = setInterval(fetchDashboardStats, 30000); // Every 30 seconds
-
+const careerInterval = setInterval(fetchCareerNotifications, 10000);
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false);
@@ -372,6 +353,7 @@ const AdminDashboard = () => {
     return () => {
       clearInterval(notificationInterval);
       clearInterval(statsInterval);
+       clearInterval(careerInterval);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [navigate]);
@@ -380,10 +362,7 @@ const AdminDashboard = () => {
     logout();
     navigate('/');
   }
-
-  // Get unread counts
-  const unreadNotifications = notifications.filter(n => !n.read).length;
-  const unreadMessages = messages.filter(m => m.unread).length;
+const totalUnread = unreadEnquiryCount + unreadCareerCount; // ✅ ADD THIS LINE
 
   // Get current page info
   const isDashboard = location.pathname === '/admin';
@@ -392,8 +371,8 @@ const AdminDashboard = () => {
     const pathnames = location.pathname.split('/').filter(Boolean);
     const crumbs = [{ label: 'Dashboard', url: '/admin' }];
 
-    pathnames.forEach((path, index) => {
-      const url = '/' + pathnames.slice(0, index + 1).join('/');
+    pathnames.forEach(( index) => {
+      const url = '/' + pathnames.slice(0, Number(index) + 1).join('/');
       const navItem = navItems.find(item => item.path === url);
 
       if (navItem && navItem.path !== '/admin') {
@@ -410,9 +389,6 @@ const AdminDashboard = () => {
   const breadcrumbs = getBreadcrumbs();
   const pageTitle = breadcrumbs[breadcrumbs.length - 1]?.label || 'Dashboard';
 
-  const handleBackToWebsite = () => {
-    navigate('/');
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -519,7 +495,7 @@ const AdminDashboard = () => {
         
         {/* Top Navigation Bar - Header */}
         <header
-          className={`sticky top-0 z-[60] h-16 bg-white text-gray-900 border-b border-gray-200 transition-all duration-300 ease-in-out overflow-visible
+          className={`sticky top-0 z-[50] h-16 bg-white text-gray-900 border-b border-gray-200 transition-all duration-300 ease-in-out overflow-visible
             ${sidebarOpen ? 'lg:ml-0' : 'lg:ml-0'}`}
         >
           <div className="px-4 h-full">
@@ -556,11 +532,11 @@ const AdminDashboard = () => {
 
               {/* RIGHT SIDE */}
               <div className="flex items-center space-x-3">
-              <button
+    <button
   onClick={() => {
     const baseUrl = window.location.origin;
-    // Open home page WITHOUT welcome parameter to skip welcome page
-    window.open(`${baseUrl}/`, '_blank');
+    // Open home page with fromAdmin=true to skip welcome page
+    window.open(`${baseUrl}/?fromAdmin=true`, '_blank');
   }}
   className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition text-sm"
 >
@@ -570,22 +546,22 @@ const AdminDashboard = () => {
 
                 {/* Notifications with Real-time Enquiry Updates */}
                 <div className="relative" ref={notificationsRef}>
-                  <button
-                    onClick={() => setShowNotifications(!showNotifications)}
-                    className="p-2 rounded-lg hover:bg-gray-200 transition relative"
-                  >
-                    <Bell className="w-5 h-5 text-gray-800" />
-                    {unreadEnquiryCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                        {unreadEnquiryCount}
-                      </span>
-                    )}
-                    {loadingNotifications && (
-                      <span className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center">
-                        <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                      </span>
-                    )}
-                  </button>
+                 <button
+  onClick={() => setShowNotifications(!showNotifications)}
+  className="p-2 rounded-lg hover:bg-gray-200 transition relative"
+>
+  <Bell className="w-5 h-5 text-gray-800" />
+  {totalUnread > 0 && ( // ✅ CHANGE this line from unreadEnquiryCount to totalUnread
+    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+      {totalUnread} {/* ✅ CHANGE this line */}
+    </span>
+  )}
+  {loadingNotifications && (
+    <span className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center">
+      <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+    </span>
+  )}
+</button>
 
                   {/* Notifications Dropdown */}
                   {showNotifications && (
@@ -659,6 +635,8 @@ const AdminDashboard = () => {
                             )}
                           </>
                         )}
+
+                        
                       </div>
                       
                       {/* Quick Actions */}

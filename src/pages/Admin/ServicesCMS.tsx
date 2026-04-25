@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, Edit, Trash2, MoveUp, MoveDown, Save, X, 
   Eye, EyeOff, Search, Filter, Upload, 
@@ -6,31 +6,15 @@ import {
   CheckCircle, XCircle, Check, Grid, List,
   Server
 } from 'lucide-react';
-import api from '../../services/authService';
-import type { ApiResponse } from '../../types/auth.types';
 import toast, { Toaster } from 'react-hot-toast';
+import { servicesApi, type Service } from '../../lib/servicesApi';
+
 
 // Import ALL Lucide icons dynamically
 import * as LucideIcons from 'lucide-react';
 
-interface Service {
-  description: any;
-  id: number;
-  title: string;
-  short_description: string;
-  full_description: string;
-  icon_type: 'lucide' | 'custom';
-  icon_name: string | null;
-  icon_url: string | null;
-  display_order: number;
-  is_featured: boolean;
-  is_active: boolean;
-  slug: string;
-  meta_title: string;
-  meta_description: string;
-  created_at: string;
-  updated_at: string;
-}
+
+
 
 // Get all Lucide icon names from the library
 const allLucideIcons = Object.keys(LucideIcons).filter(
@@ -78,22 +62,18 @@ const ServicesCMS = () => {
     fetchServices();
   }, []);
 
-  const fetchServices = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get<ApiResponse<Service[]>>('/services?active=false');
-      
-      if (response.data.success && response.data.data) {
-        const sortedServices = response.data.data.sort((a, b) => a.display_order - b.display_order);
-        setServices(sortedServices);
-      }
-    } catch (err) {
-      toast.error('Failed to load services');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+ const fetchServices = async () => {
+  try {
+    setLoading(true);
+    const data = await servicesApi.getAll();
+    setServices([...data].sort((a, b) => a.display_order - b.display_order));
+  } catch (err) {
+    toast.error('Failed to load services');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,13 +121,13 @@ const ServicesCMS = () => {
           .replace(/\s+/g, '-');
       }
 
-      if (editingService) {
-        await api.put(`/services/${editingService.id}`, serviceData);
-        toast.success('Service updated successfully!');
-      } else {
-        await api.post('/services', serviceData);
-        toast.success('Service created successfully!');
-      }
+     if (editingService) {
+  await servicesApi.update(editingService.id, serviceData);
+  toast.success('Service updated successfully!');
+} else {
+  await servicesApi.create(serviceData);
+  toast.success('Service created successfully!');
+}
       
       fetchServices();
       handleCloseModal();
@@ -185,7 +165,7 @@ const handleDelete = async (id: number) => {
   const deleteToast = toast.loading('Deleting service...');
 
   try {
-    await api.delete(`/services/${id}`);
+await servicesApi.delete(id);
 
     // 🟢 default green success toast
     toast.success('Service deleted successfully', {
@@ -216,11 +196,7 @@ const handleDelete = async (id: number) => {
   );
 
   try {
-    await Promise.all(
-      selectedServices.map(id =>
-        api.delete(`/services/${id}`)
-      )
-    );
+    await servicesApi.bulkDelete(selectedServices);
 
     toast.success(
       `Successfully deleted ${selectedServices.length} service(s)`,
@@ -237,41 +213,29 @@ const handleDelete = async (id: number) => {
 };
 
 
-  const handleReorder = async (index: number, direction: 'up' | 'down') => {
-    const service = services[index];
-    const reorderToast = toast.loading('Moving service...');
+ const handleReorder = async (index: number, direction: 'up' | 'down') => {
+  const service = services[index];
+  const reorderToast = toast.loading('Moving service...');
+  
+  try {
+    const swapData = await servicesApi.simpleSwap(service.id, direction);
     
-    try {
-      const response = await api.post('/services/simple-swap', {
-        serviceId: service.id,
-        direction: direction
-      });
-      
-      if (response.data.success) {
-        const newServices = [...services];
-        const currentIndex = index;
-        const swapIndex = direction === 'up' ? index - 1 : index + 1;
-        
-        [newServices[currentIndex], newServices[swapIndex]] = 
-          [newServices[swapIndex], newServices[currentIndex]];
-        
-        if (response.data.data) {
-          newServices[currentIndex].display_order = response.data.data.currentOrder;
-          newServices[swapIndex].display_order = response.data.data.swapOrder;
-        }
-        
-        const sortedServices = newServices.sort((a, b) => a.display_order - b.display_order);
-        
-        setServices(sortedServices);
-        toast.success('Service moved successfully!', { id: reorderToast });
-      } else {
-        throw new Error(response.data.message);
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to move service', { id: reorderToast });
-      fetchServices();
-    }
-  };
+    const newServices = [...services];
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    [newServices[index], newServices[swapIndex]] = 
+      [newServices[swapIndex], newServices[index]];
+    
+    newServices[index].display_order = swapData.currentOrder;
+    newServices[swapIndex].display_order = swapData.swapOrder;
+    
+    setServices([...newServices].sort((a, b) => a.display_order - b.display_order));
+    toast.success('Service moved successfully!', { id: reorderToast });
+  } catch (error: any) {
+    toast.error(error?.message || 'Failed to move service', { id: reorderToast });
+    fetchServices();
+  }
+};
 
   const handleToggleActive = async (id: number, currentStatus: boolean) => {
     const toggleToast = toast.loading(currentStatus ? 'Deactivating service...' : 'Activating service...');
@@ -280,17 +244,11 @@ const handleDelete = async (id: number) => {
       const service = services.find(s => s.id === id);
       if (!service) return;
 
-      const updatedService = {
-        ...service,
-        is_active: !currentStatus,
-        updated_at: new Date().toISOString()
-      };
 
-      await api.put(`/services/${id}`, updatedService);
+await servicesApi.update(id, { is_active: !currentStatus });
       
-      setServices(prev => prev.map(s => 
-        s.id === id ? updatedService : s
-      ));
+      setServices(prev => prev.map(s => s.id === id ? { ...s, is_active: !currentStatus } : s));
+
       
       toast.success(`Service ${!currentStatus ? 'activated' : 'deactivated'} successfully`, { id: toggleToast });
     } catch (err) {
@@ -308,15 +266,8 @@ const handleDelete = async (id: number) => {
     const toggleToast = toast.loading(`${activate ? 'Activating' : 'Deactivating'} ${selectedServices.length} service(s)...`);
     
     try {
-      for (const id of selectedServices) {
-        const service = services.find(s => s.id === id);
-        if (service) {
-          await api.put(`/services/${id}`, {
-            ...service,
-            is_active: activate
-          });
-        }
-      }
+     await servicesApi.bulkToggleActive(selectedServices, activate, services);
+
       
       setServices(prev => prev.map(service => 
         selectedServices.includes(service.id)
@@ -330,36 +281,25 @@ const handleDelete = async (id: number) => {
     }
   };
 
-  const handleIconUpload = async (file: File) => {
-    setUploading(true);
+ const handleIconUpload = async (file: File) => {
+  setUploading(true);
+  
+  try {
+    const iconPath = await servicesApi.uploadIcon(file);
     
-    try {
-      const formData = new FormData();
-      formData.append('icon', file);
-      
-      const response = await api.post('/upload/service-icon', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      if (response.data.success) {
-        const iconPath = response.data.data.url || response.data.data.path;
-        
-        setFormData(prev => ({
-          ...prev,
-          icon_type: 'custom',
-          icon_url: iconPath
-        }));
-        
-        toast.success('Icon uploaded successfully!');
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to upload icon');
-    } finally {
-      setUploading(false);
-    }
-  };
+    setFormData(prev => ({
+      ...prev,
+      icon_type: 'custom',
+      icon_url: iconPath
+    }));
+    
+    toast.success('Icon uploaded successfully!');
+  } catch (err: any) {
+    toast.error(err?.message || 'Failed to upload icon');
+  } finally {
+    setUploading(false);
+  }
+};
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -382,41 +322,43 @@ const handleDelete = async (id: number) => {
   };
 
   // Get icon component function - YOUR ORIGINAL LOGIC
-  const getIconComponent = (service: Service) => {
-    if (service.icon_type === 'custom' && service.icon_url) {
-      return (
-        <div className="w-8 h-8 flex items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-blue-50 to-blue-100">
-          <img 
-            src={service.icon_url} 
-            alt={service.title}
-            className="w-5 h-5 object-contain"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.onerror = null;
-              target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" font-family="Arial" font-size="10" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
-            }}
-          />
-        </div>
-      );
-    }
-    
-    const iconName = service.icon_name || 'Code';
-    const IconComponent = (LucideIcons as any)[iconName];
-    
-    if (IconComponent && typeof IconComponent === 'function') {
-      return (
-        <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-blue-100">
-          <IconComponent className="w-5 h-5 text-blue-600" />
-        </div>
-      );
-    }
-    
+ const getIconComponent = (service: Service) => {
+  if (service.icon_type === 'custom' && service.icon_url) {
     return (
-      <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-blue-100">
-        <LucideIcons.Code className="w-5 h-5 text-blue-600" />
+      <div className="w-8 h-8 flex items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-blue-50 to-blue-100">
+        <img 
+          src={service.icon_url} 
+          alt={service.title}
+          className="w-5 h-5 object-contain"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.onerror = null;
+            target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" font-family="Arial" font-size="10" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
+          }}
+        />
       </div>
     );
-  };
+  }
+                                                                                                  
+  const iconName = service.icon_name || 'Code';
+  // ✅ FIX: Filter out non-component exports properly
+  const IconComponent = (LucideIcons as any)[iconName];
+  
+  if (IconComponent && typeof IconComponent === 'function' && iconName !== 'default' && iconName !== 'createLucideIcon') {
+    return (
+      <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-blue-100">
+        <IconComponent className="w-5 h-5 text-blue-600" />
+      </div>
+    );
+  }
+  
+  // Fallback
+  return (
+    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-blue-100">
+      <LucideIcons.Code className="w-5 h-5 text-blue-600" />
+    </div>
+  );
+};
 
   // Filter and pagination logic
   const filteredServices = services.filter(service => {
@@ -1141,10 +1083,12 @@ const handleDelete = async (id: number) => {
               <div className="flex items-center space-x-2">
                 {formData.icon_name && (
                   <div className="p-1.5 bg-blue-50 rounded">
-                    {(LucideIcons as any)[formData.icon_name] ? 
-                      React.createElement((LucideIcons as any)[formData.icon_name], { className: "w-4 h-4 text-blue-600" }) : 
-                      <LucideIcons.Code className="w-4 h-4 text-blue-600" />
-                    }
+{(() => {
+  const Icon = (LucideIcons as any)[formData.icon_name];
+  return Icon && typeof Icon === 'function' 
+    ? <Icon className="w-4 h-4 text-blue-600" />
+    : <LucideIcons.Code className="w-4 h-4 text-blue-600" />;
+})()}
                   </div>
                 )}
                 <div className="text-left">

@@ -427,7 +427,7 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const HouslyContactPage = () => {
-    const [stats, setStats] = useState({
+    const [ stats,setStats] = useState<any>({
     projects: 0,
     clients: 0,
     satisfaction: 0,
@@ -441,7 +441,7 @@ const HouslyContactPage = () => {
     };
 
     const interval = setInterval(() => {
-      setStats((prev) => ({
+      setStats((prev:any) => ({
         projects: prev.projects < targets.projects ? prev.projects + 1 : targets.projects,
         clients: prev.clients < targets.clients ? prev.clients + 1 : targets.clients,
         satisfaction: prev.satisfaction < targets.satisfaction ? prev.satisfaction + 1 : targets.satisfaction,
@@ -475,6 +475,7 @@ const HouslyContactPage = () => {
 
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
+  let originalText = '';
   
   try {
     // Basic validation
@@ -509,7 +510,6 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     // Show loading state
     const submitButton = e.currentTarget.querySelector('button[type="submit"]') as HTMLButtonElement;
-    const originalText = submitButton.textContent;
     submitButton.textContent = 'Sending...';
     submitButton.disabled = true;
 

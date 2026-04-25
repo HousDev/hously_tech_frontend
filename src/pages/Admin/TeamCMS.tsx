@@ -6,12 +6,10 @@ import {
   Trash2,
   MoveUp,
   MoveDown,
-  Save,
   X,
   Image as ImageIcon,
   Eye,
   EyeOff,
-  Upload,
   Linkedin,
   Search,
   Filter,
@@ -19,7 +17,6 @@ import {
   ChevronRight,
   Users,
   Check,
-  Menu,
   Grid,
   List,
   Instagram,
@@ -27,28 +24,12 @@ import {
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
-import axios from "axios";
+import { teamApi, type TeamMember, type SocialLink } from '../../lib/teamApi';
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-interface SocialLink {
-  platform: "linkedin" | "instagram" | "whatsapp";
-  url: string;
-}
 
-interface TeamMember {
-  id: number;
-  name: string;
-  role: string;
-  description: string;
-  image_url: string;
-  display_order: number;
-  is_active: boolean;
-  social_links: string; // JSON string of SocialLink[]
-  created_at: string;
-  updated_at: string;
-}
+
+
 
 interface TeamCMSProps {
   isSidebarOpen?: boolean;
@@ -63,7 +44,6 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // States for search, filter and pagination
   const [searchTerm, setSearchTerm] = useState("");
@@ -90,94 +70,36 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
     fetchTeamMembers();
   }, []);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      toast.error("No authentication token found");
-      throw new Error("No authentication token");
-    }
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    };
-  };
+  
 
-  const getUploadHeaders = () => {
-    const token = localStorage.getItem("token");
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
-      },
-    };
-  };
 
-  const fetchTeamMembers = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(
-        `${API_BASE_URL}/team`,
-        getAuthHeaders()
-      );
-
-      if (response.data.success && response.data.data) {
-        const sortedMembers = response.data.data.sort(
-          (a: TeamMember, b: TeamMember) => a.display_order - b.display_order
-        );
-        setTeamMembers(sortedMembers);
-      } else {
-        throw new Error(
-          response.data.message || "Failed to fetch team members"
-        );
-      }
-    } catch (error: any) {
-      console.error("Failed to fetch team members:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to load team members";
-      toast.error(errorMessage);
-
-      // For debugging - remove in production
-      if (error.response) {
-        console.error("Response data:", error.response.data);
-        console.error("Response status:", error.response.status);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+ const fetchTeamMembers = async () => {
+  try {
+    setLoading(true);
+    const members = await teamApi.getAll(true); // true for admin (show all)
+    const sortedMembers = members.sort((a, b) => a.display_order - b.display_order);
+    setTeamMembers(sortedMembers);
+  } catch (error: any) {
+    console.error('Failed to fetch team members:', error);
+    toast.error(error.message || 'Failed to load team members');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const uploadImageToServer = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      setUploadingImage(true);
-      const response = await axios.post(
-        `${API_BASE_URL}/team/upload-image`,
-        formData,
-        getUploadHeaders()
-      );
-
-      if (response.data.success) {
-        return response.data.data.url;
-      }
-      throw new Error("Upload failed");
-    } catch (error: any) {
-      console.error("Upload error:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to upload image";
-      toast.error(errorMessage);
-      throw error;
-    } finally {
-      setUploadingImage(false);
-    }
-  };
+  try {
+    setUploadingImage(true);
+    const result = await teamApi.uploadImage(file);
+    return result.url; // Returns relative path like /uploads/team/filename.jpg
+  } catch (error: any) {
+    console.error('Upload error:', error);
+    toast.error(error.message || 'Failed to upload image');
+    throw error;
+  } finally {
+    setUploadingImage(false);
+  }
+};
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -262,9 +184,6 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
     }
   };
 
-  const stringifySocialLinks = (links: SocialLink[]): string => {
-    return JSON.stringify(links);
-  };
 
   const getWhatsappUrl = (url: string): string => {
     if (!url) return "#";
@@ -284,125 +203,105 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!formData.name.trim()) {
-      toast.error("Name is required");
-      return;
-    }
+  if (!formData.name.trim()) {
+    toast.error("Name is required");
+    return;
+  }
 
-    if (!formData.role.trim()) {
-      toast.error("Role is required");
-      return;
-    }
+  if (!formData.role.trim()) {
+    toast.error("Role is required");
+    return;
+  }
 
-    if (!formData.image_url.trim()) {
-      toast.error("Image is required");
-      return;
-    }
+  if (!formData.image_url.trim()) {
+    toast.error("Image is required");
+    return;
+  }
 
-    // Validate WhatsApp URLs
-    const whatsappLink = socialLinks.find(
-      (link) => link.platform === "whatsapp"
+  // Validate WhatsApp URLs
+  const whatsappLink = socialLinks.find(
+    (link) => link.platform === "whatsapp"
+  );
+  if (
+    whatsappLink &&
+    whatsappLink.url &&
+    !whatsappLink.url.match(/^[\d+\s\-()]+$/) &&
+    !whatsappLink.url.startsWith("http")
+  ) {
+    toast.error(
+      "Please enter a valid WhatsApp number (digits only with optional +, spaces, dashes, parentheses)"
     );
-    if (
-      whatsappLink &&
-      whatsappLink.url &&
-      !whatsappLink.url.match(/^[\d+\s\-()]+$/) &&
-      !whatsappLink.url.startsWith("http")
-    ) {
-      toast.error(
-        "Please enter a valid WhatsApp number (digits only with optional +, spaces, dashes, parentheses)"
-      );
-      return;
+    return;
+  }
+
+  try {
+    const payload = {
+      name: formData.name,
+      role: formData.role,
+      description: formData.description,
+      image_url: formData.image_url,
+      is_active: formData.is_active,
+      social_links: socialLinks,
+      display_order: editingMember ? editingMember.display_order : teamMembers.length,
+    };
+
+    console.log("📤 Sending team member data:", payload);
+
+    if (editingMember) {
+      await teamApi.update(editingMember.id, payload);
+      toast.success("Team member updated successfully");
+    } else {
+      await teamApi.create(payload);
+      toast.success("Team member created successfully");
     }
 
-    try {
-      const payload = {
-        ...formData,
-        social_links: stringifySocialLinks(socialLinks),
-        display_order: editingMember
-          ? editingMember.display_order
-          : teamMembers.length,
-      };
-
-      console.log("📤 Sending team member data:", payload);
-
-      if (editingMember) {
-        const response = await axios.put(
-          `${API_BASE_URL}/team/${editingMember.id}`,
-          payload,
-          getAuthHeaders()
-        );
-
-        if (response.data.success) {
-          toast.success("Team member updated successfully");
-        }
-      } else {
-        const response = await axios.post(
-          `${API_BASE_URL}/team`,
-          payload,
-          getAuthHeaders()
-        );
-
-        if (response.data.success) {
-          toast.success("Team member created successfully");
-        }
-      }
-
-      fetchTeamMembers();
-      handleCloseModal();
-    } catch (error: any) {
-      console.error("Error saving team member:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to save team member";
-      toast.error(errorMessage);
-    }
-  };
+    fetchTeamMembers();
+    handleCloseModal();
+  } catch (error: any) {
+    console.error("Error saving team member:", error);
+    toast.error(error.message || "Failed to save team member");
+  }
+};
 
   const handleEdit = (member: TeamMember) => {
-    setEditingMember(member);
-    setFormData({
-      name: member.name,
-      role: member.role,
-      description: member.description || "",
-      image_url: member.image_url || "",
-      is_active: member.is_active,
-    });
+  setEditingMember(member);
+  setFormData({
+    name: member.name,
+    role: member.role,
+    description: member.description || "",
+    image_url: member.image_url || "",
+    is_active: member.is_active,
+  });
 
-    const parsedLinks = parseSocialLinks(member.social_links);
-    setSocialLinks(
-      parsedLinks.length > 0 ? parsedLinks : [{ platform: "linkedin", url: "" }]
-    );
+  // Parse social links - use social_links_parsed if available, otherwise parse
+  let parsedLinks: SocialLink[] = [];
+  if (member.social_links_parsed && member.social_links_parsed.length > 0) {
+    parsedLinks = member.social_links_parsed;
+  } else if (member.social_links) {
+    parsedLinks = parseSocialLinks(member.social_links);
+  }
+  
+  setSocialLinks(parsedLinks.length > 0 ? parsedLinks : [{ platform: "linkedin", url: "" }]);
 
-    if (member.image_url) {
-      setImagePreview(member.image_url);
-    }
+  if (member.image_url) {
+    setImagePreview(member.image_url);
+  }
 
-    setIsModalOpen(true);
-  };
+  setIsModalOpen(true);
+};
 
- const handleDelete = async (id: number) => {
+const handleDelete = async (id: number) => {
   const deleteToast = toast.loading('Deleting team member...');
 
   try {
-    const response = await axios.delete(`${API_BASE_URL}/team/${id}`, getAuthHeaders());
-
-    if (response.data.success) {
-      toast.success('Team member deleted successfully', { id: deleteToast });
-      fetchTeamMembers();
-    } else {
-      toast.error('Failed to delete team member', { id: deleteToast });
-    }
+    await teamApi.delete(id);
+    toast.success('Team member deleted successfully', { id: deleteToast });
+    fetchTeamMembers();
   } catch (error: any) {
     console.error('Delete error:', error);
-    const errorMessage =
-      error.response?.data?.message ||
-      error.message ||
-      'Failed to delete team member';
-    toast.error(errorMessage, { id: deleteToast });
+    toast.error(error.message || 'Failed to delete team member', { id: deleteToast });
   }
 };
 
@@ -415,10 +314,7 @@ const handleBulkDelete = async () => {
   const deleteToast = toast.loading(`Deleting ${selectedMembers.length} team member(s)...`);
 
   try {
-    for (const id of selectedMembers) {
-      await axios.delete(`${API_BASE_URL}/team/${id}`, getAuthHeaders());
-    }
-
+    await teamApi.bulkDelete(selectedMembers);
     toast.success(
       `Successfully deleted ${selectedMembers.length} team member(s)`,
       { id: deleteToast }
@@ -427,178 +323,116 @@ const handleBulkDelete = async () => {
     fetchTeamMembers();
   } catch (error: any) {
     console.error('Bulk delete error:', error);
-    const errorMessage =
-      error.response?.data?.message ||
-      error.message ||
-      'Failed to delete team members';
-    toast.error(errorMessage, { id: deleteToast });
+    toast.error(error.message || 'Failed to delete team members', { id: deleteToast });
   }
 };
 
-  const handleToggleActive = async (
-    memberId: number,
-    currentStatus: boolean
-  ) => {
-    const toggleToast = toast.loading(
-      currentStatus
-        ? "Deactivating team member..."
-        : "Activating team member..."
+ const handleToggleActive = async (memberId: number, currentStatus: boolean) => {
+  const toggleToast = toast.loading(
+    currentStatus ? "Deactivating team member..." : "Activating team member..."
+  );
+
+  try {
+    await teamApi.toggleStatus(memberId);
+    
+    setTeamMembers((prevMembers) =>
+      prevMembers.map((member) =>
+        member.id === memberId ? { ...member, is_active: !currentStatus } : member
+      )
     );
 
-    try {
-      const response = await axios.patch(
-        `${API_BASE_URL}/team/${memberId}/toggle-status`,
-        {},
-        getAuthHeaders()
-      );
+    toast.success(
+      `Team member ${!currentStatus ? "activated" : "deactivated"} successfully`,
+      { id: toggleToast }
+    );
+  } catch (error: any) {
+    console.error("Toggle error:", error);
+    toast.error(error.message || "Failed to toggle status", { id: toggleToast });
+  }
+};
 
-      if (response.data.success) {
-        setTeamMembers((prevMembers) =>
-          prevMembers.map((member) =>
-            member.id === memberId
-              ? { ...member, is_active: !currentStatus }
-              : member
-          )
-        );
+const handleBulkToggleActive = async (activate: boolean) => {
+  if (selectedMembers.length === 0) {
+    toast.error("Please select team members to update");
+    return;
+  }
 
-        toast.success(
-          `Team member ${
-            !currentStatus ? "activated" : "deactivated"
-          } successfully`,
-          { id: toggleToast }
-        );
-      } else {
-        throw new Error(response.data.message);
-      }
-    } catch (error: any) {
-      console.error("Toggle error:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to toggle status";
-      toast.error(errorMessage, { id: toggleToast });
-    }
-  };
+  const toggleToast = toast.loading(
+    `${activate ? "Activating" : "Deactivating"} ${selectedMembers.length} team member(s)...`
+  );
 
-  const handleBulkToggleActive = async (activate: boolean) => {
-    if (selectedMembers.length === 0) {
-      toast.error("Please select team members to update");
+  try {
+    await teamApi.bulkToggleActive(selectedMembers);
+
+    setTeamMembers((prevMembers) =>
+      prevMembers.map((member) =>
+        selectedMembers.includes(member.id) ? { ...member, is_active: activate } : member
+      )
+    );
+
+    toast.success(
+      `Successfully ${activate ? "activated" : "deactivated"} ${selectedMembers.length} team member(s)`,
+      { id: toggleToast }
+    );
+  } catch (error: any) {
+    console.error("Bulk toggle error:", error);
+    toast.error(error.message || "Failed to update team members", { id: toggleToast });
+  }
+};
+
+ const handleReorder = async (memberId: number, direction: "up" | "down") => {
+  const reorderToast = toast.loading("Moving team member...");
+
+  try {
+    const currentIndex = teamMembers.findIndex((m) => m.id === memberId);
+    if (currentIndex === -1) {
+      toast.error("Team member not found");
       return;
     }
 
-    const toggleToast = toast.loading(
-      `${activate ? "Activating" : "Deactivating"} ${
-        selectedMembers.length
-      } team member(s)...`
-    );
+    if (direction === "up" && currentIndex === 0) return;
+    if (direction === "down" && currentIndex === teamMembers.length - 1) return;
 
-    try {
-      for (const id of selectedMembers) {
-        await axios.patch(
-          `${API_BASE_URL}/team/${id}/toggle-status`,
-          {},
-          getAuthHeaders()
-        );
-      }
+    const swapIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    const updatedMembers = [...teamMembers];
+    [updatedMembers[currentIndex], updatedMembers[swapIndex]] = [
+      updatedMembers[swapIndex],
+      updatedMembers[currentIndex],
+    ];
 
-      setTeamMembers((prevMembers) =>
-        prevMembers.map((member) =>
-          selectedMembers.includes(member.id)
-            ? { ...member, is_active: activate }
-            : member
-        )
-      );
+    // Update display_order
+    const orderData = updatedMembers.map((member, index) => ({
+      id: member.id,
+      display_order: index,
+    }));
 
-      toast.success(
-        `Successfully ${activate ? "activated" : "deactivated"} ${
-          selectedMembers.length
-        } team member(s)`,
-        { id: toggleToast }
-      );
-    } catch (error: any) {
-      console.error("Bulk toggle error:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to update team members";
-      toast.error(errorMessage, { id: toggleToast });
-    }
-  };
+    await teamApi.reorder(orderData);
 
-  const handleReorder = async (memberId: number, direction: "up" | "down") => {
-    const reorderToast = toast.loading("Moving team member...");
-
-    try {
-      const currentIndex = teamMembers.findIndex((m) => m.id === memberId);
-      if (currentIndex === -1) {
-        toast.error("Team member not found");
-        return;
-      }
-
-      if (direction === "up" && currentIndex === 0) return;
-      if (direction === "down" && currentIndex === teamMembers.length - 1)
-        return;
-
-      const swapIndex =
-        direction === "up" ? currentIndex - 1 : currentIndex + 1;
-      const swapMemberId = teamMembers[swapIndex].id;
-
-      const updatedMembers = [...teamMembers];
-      [updatedMembers[currentIndex], updatedMembers[swapIndex]] = [
-        updatedMembers[swapIndex],
-        updatedMembers[currentIndex],
-      ];
-
-      // Update display_order
-      updatedMembers.forEach((member, index) => {
-        member.display_order = index;
-      });
-
-      const response = await axios.post(
-        `${API_BASE_URL}/team/reorder`,
-        {
-          order: updatedMembers.map((m) => ({
-            id: m.id,
-            display_order: m.display_order,
-          })),
-        },
-        getAuthHeaders()
-      );
-
-      if (response.data.success) {
-        setTeamMembers(updatedMembers);
-        toast.success("Team member moved successfully!", { id: reorderToast });
-      } else {
-        throw new Error(response.data.message);
-      }
-    } catch (error: any) {
-      console.error("Reorder error:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to move team member";
-      toast.error(errorMessage, { id: reorderToast });
-      fetchTeamMembers();
-    }
-  };
+    setTeamMembers(updatedMembers);
+    toast.success("Team member moved successfully!", { id: reorderToast });
+  } catch (error: any) {
+    console.error("Reorder error:", error);
+    toast.error(error.message || "Failed to move team member", { id: reorderToast });
+    fetchTeamMembers(); // Refresh to fix any inconsistencies
+  }
+};
 
   const getImageDisplayUrl = (url: string) => {
-    if (!url) return "";
-
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      return url;
-    }
-
-    if (url.startsWith("/uploads/")) {
-      return `${API_BASE_URL.replace("/api", "")}${url}`;
-    }
-
-    if (url && !url.includes("://") && url.trim() !== "") {
-      return `${API_BASE_URL.replace("/api", "")}/uploads/team/${url}`;
-    }
-
+  if (!url) return "";
+  
+  // If already a full URL, return as is
+  if (url.startsWith("http://") || url.startsWith("https://")) {
     return url;
-  };
+  }
+  
+  // If it's a relative path starting with /uploads, add base URL
+  if (url.startsWith("/uploads/")) {
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    return `${baseUrl}${url}`;
+  }
+  
+  return url;
+};
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -1217,9 +1051,6 @@ const handleBulkDelete = async () => {
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {currentMembers.map((member) => {
-                          const parsedSocialLinks = parseSocialLinks(
-                            member.social_links
-                          );
                           return (
                             <tr
                               key={member.id}

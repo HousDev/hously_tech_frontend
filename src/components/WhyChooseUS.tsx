@@ -199,7 +199,7 @@ const WhyChooseUsSection: React.FC = () => {
 
                 {/* Main Title */}
                 <h2
-                  className="text-[24px] sm:text-[32px] md:text-[40px] xl:text-[48px] font-bold leading-tight text-white mb-5 xl:-mt-6 animate-slideInLeft"
+                  className="text-[20px] sm:text-[32px] md:text-[20px] xl:text-[39px] font-bold leading-tight text-white mb-5 xl:-mt-6 animate-slideInLeft"
                   style={{
                     fontFamily: '"Space Grotesk", sans-serif',
                     animationDelay: '0ms',

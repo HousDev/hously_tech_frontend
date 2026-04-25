@@ -88,7 +88,7 @@ const TechFeaturesSection: React.FC = () => {
                   <span className="inline-block text-base font-medium uppercase text-blue-600 mb-6 animate-slideInUp">
                     IT Solutions
                   </span>
-                  <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 leading-tight animate-slideInUp">
+                  <h2 className="text-3xl lg:text-3xl font-bold text-gray-900 leading-tight animate-slideInUp">
                     <span className="block">Empowering Businesses</span>
                     <span className="block">with Innovative IT Solutions</span>
                   </h2>

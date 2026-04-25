@@ -152,7 +152,7 @@ export default function Component() {
                   About Us
                 </span>
 
-                <h2 className="text-[48px] leading-tight font-bold mb-4 animate-[slideInLeft_900ms_ease_300ms_both]"> {/* Reduced text size and mb */}
+                <h2 className="text-[40px] leading-tight font-bold mb-4 animate-[slideInLeft_900ms_ease_300ms_both]"> {/* Reduced text size and mb */}
                   Comprehensive IT Services for Modern Business Transformation
                 </h2>
 
@@ -173,10 +173,10 @@ export default function Component() {
                     </div>
                   </div>
                   <div>
-                    <h4 className="text-2xl font-bold text-gray-900 mb-2"> {/* Reduced mb */}
+                    <h4 className="text-xl font-bold text-gray-900 mb-2"> {/* Reduced mb */}
                       100% Customer Satisfaction
                     </h4>
-                    <p className="text-gray-600 leading-relaxed">
+                    <p className="text-[15px] text-gray-600 leading-relaxed">
                       We bring experienced IT specialists, cloud architects, and technology experts committed to delivering excellence.
                     </p> {/* Made text more concise */}
                   </div>
@@ -192,10 +192,10 @@ export default function Component() {
                     </div>
                   </div>
                   <div>
-                    <h4 className="text-2xl font-bold text-gray-900 mb-2"> {/* Reduced mb */}
+                    <h4 className="text-xl font-bold text-gray-900 mb-2"> {/* Reduced mb */}
                       Quality Assurance Guarantee
                     </h4>
-                    <p className="text-gray-600 leading-relaxed">
+                    <p className=" text[15px] text-gray-600 leading-relaxed">
                       Our rigorous testing and quality standards ensure reliable, secure, and high-performance solutions.
                     </p> {/* Made text more concise */}
                   </div>
@@ -246,7 +246,7 @@ export default function Component() {
                   </span>
 
                   {/* Title */}
-                  <h2 className="text-[#051600] text-3xl md:text-4xl lg:text-5xl xl:text-[56px] leading-tight font-bold mt-0 mb-2 opacity-0 animate-[slideInUp_900ms_ease_0ms_both]"> {/* Reduced text size */}
+                  <h2 className="text-[#051600] text-3xl md:text-4xl lg:text-3xl xl:text-[30px] leading-tight font-bold mt-0 mb-2 opacity-0 animate-[slideInUp_900ms_ease_0ms_both]"> {/* Reduced text size */}
                     How Does it Work?
                   </h2>
 
@@ -264,7 +264,7 @@ export default function Component() {
                       1
                     </span>
                     <div>
-                      <h3 className="text-[#051600] text-lg md:text-xl lg:text-2xl font-semibold mb-2">
+                      <h3 className="text-[#051600] text-lg md:text-xl lg:text-1xl font-semibold mb-2">
                         Discovery & Planning
                       </h3>
                       <p className="text-[#6F756D] text-sm md:text-base leading-relaxed max-w-sm">
@@ -279,7 +279,7 @@ export default function Component() {
                       2
                     </span>
                     <div>
-                      <h3 className="text-[#051600] text-lg md:text-xl lg:text-2xl font-semibold mb-2">
+                      <h3 className="text-[#051600] text-lg md:text-xl lg:text-1xl font-semibold mb-2">
                         Design & Development
                       </h3>
                       <p className="text-[#6F756D] text-sm md:text-base leading-relaxed max-w-sm">
@@ -294,7 +294,7 @@ export default function Component() {
                       3
                     </span>
                     <div>
-                      <h3 className="text-[#051600] text-lg md:text-xl lg:text-2xl font-semibold mb-2">
+                      <h3 className="text-[#051600] text-lg md:text-xl lg:text-1xl font-semibold mb-2">
                         Testing & Support
                       </h3>
                       <p className="text-[#6F756D] text-sm md:text-base leading-relaxed max-w-sm">

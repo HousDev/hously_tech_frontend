@@ -1,28 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Edit, Trash2, Eye, EyeOff, MoveUp, MoveDown, 
-  Save, X, Upload, Image as ImageIcon, Star, User, 
-  Briefcase, MessageSquare, GripVertical, Search, Filter,
-  ChevronLeft, ChevronRight, AlertCircle, Check,
-  Calendar, Award, ThumbsUp, Users, Grid, List, Home,
-  CheckSquare, Square
-} from 'lucide-react';
-import axios from 'axios';
+  X, Star, User, 
+  Search, Filter,
+  ChevronLeft, ChevronRight, Check,
+  ThumbsUp, Users, Grid, List
+  } from 'lucide-react';
+import { testimonialsApi, type Testimonial } from '../../lib/testimonialApi';
+import { toast } from 'react-hot-toast';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-interface Testimonial {
-  id: number;
-  name: string;
-  position: string;
-  rating: number;
-  text: string;
-  image_url: string;
-  display_order: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 interface TestimonialsCMSProps {
   isSidebarOpen?: boolean;
@@ -62,81 +48,19 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
   }, []);
 
   const fetchTestimonials = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_BASE_URL}/testimonials?active=false`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+  try {
+    setLoading(true);
+    const data = await testimonialsApi.getAll();
+    const sorted = [...data].sort((a, b) => a.display_order - b.display_order);
+    setTestimonials(sorted);
+  } catch (error) {
+    toast.error('Failed to fetch testimonials');
+  } finally {
+    setLoading(false);
+  }
+};
 
-      if (response.data.success) {
-        let filtered = response.data.data;
-        
-        if (searchTerm) {
-          filtered = filtered.filter((t: Testimonial) => 
-            t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            t.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            t.text.toLowerCase().includes(searchTerm.toLowerCase())
-          );
-        }
-        
-        if (activeFilter === 'active') {
-          filtered = filtered.filter((t: Testimonial) => t.is_active);
-        } else if (activeFilter === 'inactive') {
-          filtered = filtered.filter((t: Testimonial) => !t.is_active);
-        }
-        
-        filtered.sort((a: Testimonial, b: Testimonial) => a.display_order - b.display_order);
-        setTestimonials(filtered);
-      }
-    } catch (error) {
-      console.error('Failed to fetch testimonials:', error);
-      alert('Failed to fetch testimonials');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const uploadImageToServer = async (file: File): Promise<string> => {
-    console.log('📤 Uploading image to server:', file.name);
-    
-    const uploadFormData = new FormData();
-    uploadFormData.append('image', file);
-    
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-      
-      const response = await axios.post(
-        `${API_BASE_URL}/upload/testimonial-image`, 
-        uploadFormData, 
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-      
-      if (response.data.success) {
-        const imagePath = response.data.data.path;
-        console.log('   Image saved at path:', imagePath);
-        return imagePath;
-      }
-      
-      throw new Error('Upload failed: ' + (response.data.message || 'Unknown error'));
-    } catch (error: any) {
-      console.error('❌ Upload error details:', error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      }
-      throw error;
-    }
-  };
+  
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -156,47 +80,22 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
   };
 
   const handleImageUpload = async () => {
-    if (!selectedFile) {
-      alert('Please select an image file first');
-      return;
-    }
+  if (!selectedFile) { alert('Please select an image file first'); return; }
+  try {
+    setUploadingImage(true);
+    const fullUrl = await testimonialsApi.uploadImage(selectedFile);
+    setFormData(prev => ({ ...prev, image_url: fullUrl }));
+    toast.success('Image uploaded successfully!');
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  } catch (err: any) {
+    toast.error(err?.message || 'Failed to upload image');
+  } finally {
+    setUploadingImage(false);
+  }
+};
 
-    try {
-      setUploadingImage(true);
-      const uploadedPath = await uploadImageToServer(selectedFile);
-      
-      setFormData({ ...formData, image_url: uploadedPath });
-      alert('Image uploaded successfully!');
-      
-      setSelectedFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    } catch (error: any) {
-      console.error('Upload failed:', error);
-      alert(`Failed to upload image: ${error.message || 'Unknown error'}`);
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
-  const getImageDisplayUrl = (url: string) => {
-    if (!url) {
-      return '';
-    }
-    
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    
-    if (url.startsWith('/uploads/')) {
-      const baseUrl = API_BASE_URL.replace('/api', '');
-      return `${baseUrl}${url}`;
-    }
-    
-    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-    return `${baseUrl}/uploads/testimonials/${url}`;
-  };
+ 
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -224,7 +123,6 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
 
     try {
       setUploading(true);
-      const token = localStorage.getItem('token');
       const submitData = {
         ...formData,
         rating: Number(formData.rating),
@@ -232,38 +130,17 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
         image_url: formData.image_url
       };
 
-      let response;
-      if (editingTestimonial) {
-        response = await axios.put(
-          `${API_BASE_URL}/testimonials/${editingTestimonial.id}`,
-          submitData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-      } else {
-        response = await axios.post(
-          `${API_BASE_URL}/testimonials`,
-          submitData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-      }
+    if (editingTestimonial) {
+  await testimonialsApi.update(editingTestimonial.id, submitData);
+  toast.success('Testimonial updated successfully!');
+} else {
+  await testimonialsApi.create(submitData);
+  toast.success('Testimonial created successfully!');
+}
+fetchTestimonials();
+handleCloseModal();
 
-      if (response.data.success) {
-        alert(editingTestimonial ? 'Testimonial updated successfully!' : 'Testimonial created successfully!');
-        fetchTestimonials();
-        handleCloseModal();
-      } else {
-        alert(response.data.message || 'Operation failed');
-      }
+    
     } catch (error: any) {
       console.error('Error saving testimonial:', error);
       alert(error.response?.data?.message || 'Failed to save testimonial');
@@ -289,175 +166,76 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
     setIsModalOpen(true);
   };
 
- const handleDelete = async (id: number) => {
-  const deleteToast = toast.loading('Deleting testimonial...');
-
+const handleDelete = async (id: number) => {
+  const t = toast.loading('Deleting testimonial...');
   try {
-    const token = localStorage.getItem('token');
-
-    const response = await axios.delete(
-      `${API_BASE_URL}/testimonials/${id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (response.data.success) {
-      toast.success('Testimonial deleted successfully!', {
-        id: deleteToast,
-      });
-      fetchTestimonials();
-    } else {
-      toast.error(response.data.message || 'Failed to delete testimonial', {
-        id: deleteToast,
-      });
-    }
-  } catch (error: any) {
-    toast.error(
-      error.response?.data?.message || 'Failed to delete testimonial',
-      { id: deleteToast }
-    );
+    await testimonialsApi.delete(id);
+    toast.success('Deleted successfully!', { id: t });
+    fetchTestimonials();
+  } catch (err: any) {
+    toast.error('Failed to delete', { id: t });
   }
 };
 
 
- const handleBulkDelete = async () => {
-  if (selectedTestimonials.length === 0) {
-    toast.error('Please select testimonials to delete');
-    return;
-  }
-
-  const deleteToast = toast.loading(
-    `Deleting ${selectedTestimonials.length} testimonial(s)...`
-  );
-
+const handleBulkDelete = async () => {
+  if (!selectedTestimonials.length) { toast.error('Please select testimonials'); return; }
+  const t = toast.loading(`Deleting ${selectedTestimonials.length}...`);
   try {
-    const token = localStorage.getItem('token');
-
-    await Promise.all(
-      selectedTestimonials.map((id) =>
-        axios.delete(`${API_BASE_URL}/testimonials/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-      )
-    );
-
-    toast.success(
-      `Successfully deleted ${selectedTestimonials.length} testimonial(s)`,
-      { id: deleteToast }
-    );
-
+    await testimonialsApi.bulkDelete(selectedTestimonials);
+    toast.success(`Deleted ${selectedTestimonials.length} testimonial(s)`, { id: t });
     setSelectedTestimonials([]);
     fetchTestimonials();
-  } catch (error: any) {
-    toast.error(
-      error.response?.data?.message || 'Failed to delete testimonials',
-      { id: deleteToast }
-    );
+  } catch (err: any) {
+    toast.error('Failed to delete', { id: t });
   }
 };
 
 
-  const handleToggleActive = async (id: number, currentStatus: boolean) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.put(
-        `${API_BASE_URL}/testimonials/${id}/toggle-active`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+ const handleToggleActive = async (id: number, currentStatus: boolean) => {
+  try {
+    await testimonialsApi.toggleActive(id);
+    setTestimonials(prev => prev.map(t => t.id === id ? { ...t, is_active: !currentStatus } : t));
+    toast.success(`Testimonial ${!currentStatus ? 'activated' : 'deactivated'}`);
+  } catch (err: any) {
+    toast.error('Failed to update status');
+  }
+};
 
-      if (response.data.success) {
-        alert(`Testimonial ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
-        fetchTestimonials();
-      } else {
-        alert(response.data.message || 'Failed to update testimonial status');
-      }
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to update testimonial status');
-    }
-  };
+const handleBulkToggleActive = async (activate: boolean) => {
+  if (!selectedTestimonials.length) { toast.error('Please select testimonials'); return; }
+  const t = toast.loading(`${activate ? 'Activating' : 'Deactivating'}...`);
+  try {
+    await testimonialsApi.bulkToggleActive(selectedTestimonials);
+    setTestimonials(prev => prev.map(t =>
+      selectedTestimonials.includes(t.id) ? { ...t, is_active: activate } : t
+    ));
+    toast.success(`Updated ${selectedTestimonials.length} testimonial(s)`, { id: t });
+  } catch (err: any) {
+    toast.error('Failed to update', { id: t });
+  }
+};
 
-  const handleBulkToggleActive = async (activate: boolean) => {
-    if (selectedTestimonials.length === 0) {
-      alert('Please select testimonials to update');
-      return;
-    }
+ const handleReorder = async (id: number, direction: 'up' | 'down') => {
+  const currentIndex = testimonials.findIndex(t => t.id === id);
+  if (currentIndex === -1) return;
+  if (direction === 'up' && currentIndex === 0) return;
+  if (direction === 'down' && currentIndex === testimonials.length - 1) return;
 
-    try {
-      const token = localStorage.getItem('token');
-      for (const id of selectedTestimonials) {
-        await axios.put(
-          `${API_BASE_URL}/testimonials/${id}/toggle-active`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
-      }
-      
-      alert(`Successfully ${activate ? 'activated' : 'deactivated'} ${selectedTestimonials.length} testimonial(s)`);
-      fetchTestimonials();
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to update testimonials');
-    }
-  };
+  const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+  const newTestimonials = [...testimonials];
+  [newTestimonials[currentIndex], newTestimonials[swapIndex]] =
+    [newTestimonials[swapIndex], newTestimonials[currentIndex]];
+  newTestimonials.forEach((t, i) => { t.display_order = i; });
 
-  const handleReorder = async (id: number, direction: 'up' | 'down') => {
-    try {
-      const currentIndex = testimonials.findIndex(t => t.id === id);
-      if (currentIndex === -1) return;
-
-      if (direction === 'up' && currentIndex === 0) return;
-      if (direction === 'down' && currentIndex === testimonials.length - 1) return;
-
-      const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-      const swapId = testimonials[swapIndex].id;
-
-      const newTestimonials = [...testimonials];
-      [newTestimonials[currentIndex], newTestimonials[swapIndex]] = 
-        [newTestimonials[swapIndex], newTestimonials[currentIndex]];
-
-      newTestimonials.forEach((testimonial, index) => {
-        testimonial.display_order = index;
-      });
-
-      const orders = newTestimonials.map((t, index) => ({
-        id: t.id,
-        display_order: index
-      }));
-
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_BASE_URL}/testimonials/reorder`,
-        { orders },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-
-      if (response.data.success) {
-        setTestimonials(newTestimonials);
-        alert('Testimonials reordered successfully!');
-      } else {
-        alert(response.data.message || 'Failed to reorder testimonials');
-      }
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to reorder testimonials');
-    }
-  };
+  try {
+    await testimonialsApi.reorder(newTestimonials.map((t, i) => ({ id: t.id, display_order: i })));
+    setTestimonials(newTestimonials);
+  } catch (err: any) {
+    toast.error('Failed to reorder');
+    fetchTestimonials();
+  }
+};
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -848,7 +626,7 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
                   <div className="flex-shrink-0">
                     {testimonial.image_url ? (
                       <img
-                        src={getImageDisplayUrl(testimonial.image_url)}
+src={testimonial.image_url}
                         alt={testimonial.name}
                         className="w-10 h-10 rounded-full object-cover border border-gray-200"
                         onError={(e) => {
@@ -968,7 +746,7 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {currentTestimonials.map((testimonial, index) => (
+                      {currentTestimonials.map((testimonial) => (
                         <tr key={testimonial.id} className="hover:bg-blue-50/50 transition-colors">
                           <td className="px-3 sm:px-4 py-2 sm:py-3">
                             <div className="flex items-center">
@@ -1009,8 +787,7 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
                             <div className="flex items-center space-x-2 sm:space-x-3">
                               <div className="flex-shrink-0">
                                 {testimonial.image_url ? (
-                                  <img
-                                    src={getImageDisplayUrl(testimonial.image_url)}
+                               <img src={testimonial.image_url} 
                                     alt={testimonial.name}
                                     className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border border-gray-200"
                                     onError={(e) => {
@@ -1356,8 +1133,7 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
                         </p>
                         <div className="flex items-center space-x-4">
                           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden border border-gray-200">
-                            <img
-                              src={getImageDisplayUrl(formData.image_url)}
+                            <img src={formData.image_url}
                               alt="Current"
                               className="w-full h-full object-cover"
                               onError={(e) => {

@@ -12,25 +12,11 @@ import {
   Users as UsersIcon, Target as TargetIcon,
   Zap as ZapIcon, Check, XCircle,
   IndianRupee, CheckCircle} from 'lucide-react';
-import careerService, { type Job, type Application } from '../../services/career.service';
 import toast, { Toaster } from 'react-hot-toast';
+import { careerApi, type Job, type Application, type JobStats, type ApplicationStats } from '../../lib/careerApi';
 
-interface JobStats {
-  total: number;
-  active: number;
-  inactive: number;
-  departments: number;
-  locations: number;
-}
 
-interface ApplicationStats {
-  total: number;
-  pending: number;
-  reviewed: number;
-  shortlisted: number;
-  rejected: number;
-  hired: number;
-}
+
 
 interface CareerCMSProps {
   isSidebarOpen?: boolean;
@@ -95,7 +81,6 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   const [activeTab, setActiveTab] = useState<'jobs' | 'applications'>('jobs');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState('');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // View mode
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -132,8 +117,8 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   const [selectedApplications, setSelectedApplications] = useState<number[]>([]);
   
   // Sort state
-  const [sortField, setSortField] = useState<string>('');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortField] = useState<string>('');
+  const [sortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -224,116 +209,104 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     }
   };
 
-  const fetchJobs = async () => {
-    try {
-      let activeFilter;
-      if (statusViewFilter === 'active') {
-        activeFilter = true;
-      } else if (statusViewFilter === 'inactive') {
-        activeFilter = false;
-      } else {
-        activeFilter = undefined;
-      }
-
-      const response = await careerService.getJobs({
-        search: searchTerm || undefined,
-        department: departmentFilter !== 'all' ? departmentFilter : undefined,
-        location: locationFilter !== 'all' ? locationFilter : undefined,
-        job_type: jobTypeFilter !== 'all' ? jobTypeFilter : undefined,
-        active: activeFilter,
-        page: currentPage,
-        limit: itemsPerPage,
-        sort: sortField || undefined,
-        order: sortDirection
-      });
-      
-      if (response.success) {
-        setJobs(response.data.jobs);
-      }
-    } catch (error) {
-      console.error('Failed to fetch jobs:', error);
-      showToast('Failed to fetch jobs', 'error');
+ // REPLACE with:
+const fetchJobs = async () => {
+  try {
+    // FIX: Convert statusViewFilter to active parameter correctly
+    let activeFilter: 'all' | 'true' | 'false' = 'all';
+    if (statusViewFilter === 'active') {
+      activeFilter = 'true';
+    } else if (statusViewFilter === 'inactive') {
+      activeFilter = 'false';
     }
-  };
+    
+    const response = await careerApi.getJobs({
+      search: searchTerm || undefined,
+      department: departmentFilter !== 'all' ? departmentFilter : undefined,
+      location: locationFilter !== 'all' ? locationFilter : undefined,
+      job_type: jobTypeFilter !== 'all' ? jobTypeFilter : undefined,
+      active: activeFilter,  // Now properly typed
+      page: currentPage,
+      limit: itemsPerPage,
+      sort: sortField || undefined,
+      order: sortDirection
+    });
+    
+    setJobs(response.jobs);
+  } catch (error) {
+    console.error('Failed to fetch jobs:', error);
+    showToast('Failed to fetch jobs', 'error');
+  }
+};
 
-  const fetchApplications = async () => {
-    try {
-      const response = await careerService.getApplications({
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-        page: currentPage,
-        limit: itemsPerPage,
-        sort: sortField || undefined,
-        order: sortDirection
-      });
-      
-      if (response.success) {
-        setApplications(response.data.applications);
-      }
-    } catch (error) {
-      console.error('Failed to fetch applications:', error);
-      showToast('Failed to fetch applications', 'error');
+  // REPLACE with:
+const fetchApplications = async () => {
+  try {
+    const response = await careerApi.getApplications({
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      page: currentPage,
+      limit: itemsPerPage,
+      sort: sortField || undefined,
+      order: sortDirection
+    });
+    
+    setApplications(response.applications);
+  } catch (error) {
+    console.error('Failed to fetch applications:', error);
+    showToast('Failed to fetch applications', 'error');
+  }
+};
+
+  // REPLACE with:
+const fetchJobStats = async () => {
+  try {
+    const stats = await careerApi.getJobStats();
+    setJobStats(stats);
+  } catch (error) {
+    console.error('Failed to fetch job stats:', error);
+  }
+};
+
+  // REPLACE with:
+const fetchAppStats = async () => {
+  try {
+    const stats = await careerApi.getApplicationStats();
+    setAppStats(stats);
+  } catch (error) {
+    console.error('Failed to fetch app stats:', error);
+  }
+};
+
+  // REPLACE with:
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+
+  try {
+    const jobData = {
+      ...formData,
+      requirements: formData.requirements.split('\n').filter(r => r.trim()),
+      responsibilities: formData.responsibilities.split('\n').filter(r => r.trim()),
+      benefits: formData.benefits.split('\n').filter(b => b.trim()),
+      is_active: formData.is_active
+    };
+
+    if (editingJob) {
+      await careerApi.updateJob(editingJob.id, jobData);
+      showToast('Job updated successfully!');
+    } else {
+      await careerApi.createJob(jobData);
+      showToast('Job created successfully!');
     }
-  };
-
-  const fetchJobStats = async () => {
-    try {
-      const jobsRes = await careerService.getJobs({ limit: 1000 });
-      const allJobs = jobsRes.success ? jobsRes.data.jobs : [];
-      
-      const deptSet = new Set(allJobs.map((job: { department: any; }) => job.department).filter(Boolean));
-      const locSet = new Set(allJobs.map((job: { location: any; }) => job.location).filter(Boolean));
-      
-      setJobStats({
-        total: allJobs.length,
-        active: allJobs.filter((job: { is_active: any; }) => job.is_active).length,
-        inactive: allJobs.filter((job: { is_active: any; }) => !job.is_active).length,
-        departments: deptSet.size,
-        locations: locSet.size
-      });
-    } catch (error) {
-      console.error('Failed to fetch job stats:', error);
-    }
-  };
-
-  const fetchAppStats = async () => {
-    try {
-      const response = await careerService.getApplicationStats();
-      if (response.success) {
-        setAppStats(response.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch app stats:', error);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    try {
-      const jobData = {
-        ...formData,
-        requirements: formData.requirements.split('\n').filter(r => r.trim()),
-        responsibilities: formData.responsibilities.split('\n').filter(r => r.trim()),
-        benefits: formData.benefits.split('\n').filter(b => b.trim())
-      };
-
-      if (editingJob) {
-        await careerService.updateJob(editingJob.id, jobData);
-        showToast('Job updated successfully!');
-      } else {
-        await careerService.createJob(jobData);
-        showToast('Job created successfully!');
-      }
-      
-      fetchAllData();
-      handleCloseModal();
-    } catch (err: any) {
-      const errorMessage = err.message || 'Unknown error';
-      setError('Failed to save job: ' + errorMessage);
-      showToast(`Failed to save job: ${errorMessage}`, 'error');
-    }
-  };
+    
+    fetchAllData();
+    handleCloseModal();
+  } catch (err: any) {
+    const errorMessage = err.message || 'Unknown error';
+    setError('Failed to save job: ' + errorMessage);
+    showToast(`Failed to save job: ${errorMessage}`, 'error');
+  }
+};
 
   const handleEdit = (job: Job) => {
     setEditingJob(job);
@@ -355,15 +328,13 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     setIsModalOpen(true);
   };
 
- const handleDelete = async (id: number) => {
+const handleDelete = async (id: number) => {
   const deleteToast = toast.loading('Deleting job...');
 
   try {
-    await careerService.deleteJob(id);
-
-    setSelectedJobs(prev => prev.filter(job => job.id !== id));
+    await careerApi.deleteJob(id);
+    setSelectedJobs(prev => prev.filter(jobId => jobId !== id));
     fetchAllData();
-
     toast.success('Job deleted successfully', { id: deleteToast });
   } catch (err: any) {
     console.error(err);
@@ -371,6 +342,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   }
 };
 
+// REPLACE with:
 const handleBulkDelete = async () => {
   const selected = activeTab === 'jobs' ? selectedJobs : selectedApplications;
 
@@ -385,14 +357,12 @@ const handleBulkDelete = async () => {
 
   try {
     if (activeTab === 'jobs') {
-      for (const id of selected) {
-        await careerService.deleteJob(id);
-      }
+      await careerApi.bulkDeleteJobs(selected);
       setSelectedJobs([]);
     } else {
-      // Handle bulk delete applications if endpoint exists
-      for (const id of selected) {
-        // await careerService.deleteApplication(id); // uncomment if available
+      // For applications - if you have bulk delete endpoint
+      for (const {} of selected) {
+        // await careerApi.deleteApplication(id); // Add if available
       }
       setSelectedApplications([]);
     }
@@ -409,49 +379,56 @@ const handleBulkDelete = async () => {
   }
 };
 
-  const handleToggleActive = async (id: number, currentStatus: boolean) => {
-    const toggleToast = toast.loading(currentStatus ? 'Deactivating job...' : 'Activating job...');
+ // REPLACE with:
+const handleToggleActive = async (id: number, currentStatus: boolean) => {
+  const toggleToast = toast.loading(currentStatus ? 'Deactivating job...' : 'Activating job...');
+  
+  try {
+    await careerApi.updateJob(id, { is_active: !currentStatus });
+    toast.success(`Job ${!currentStatus ? 'activated' : 'deactivated'} successfully!`, { id: toggleToast });
     
-    try {
-      await careerService.updateJob(id, { is_active: !currentStatus });
-      toast.success(`Job ${!currentStatus ? 'activated' : 'deactivated'} successfully!`, { id: toggleToast });
-      fetchAllData();
-    } catch (err: any) {
-      toast.error('Failed to update job status', { id: toggleToast });
-    }
-  };
-
-  const handleUpdateApplicationStatus = async (id: number, status: string) => {
-    const statusToast = toast.loading('Updating application status...');
+    // ✅ ADD THIS LINE - Show all jobs to see the status change
+    setStatusViewFilter('all');
     
-    try {
-      await careerService.updateApplicationStatus(id, status);
-      toast.success('Application status updated!', { id: statusToast });
-      fetchAllData();
-    } catch (err: any) {
-      toast.error('Failed to update application status', { id: statusToast });
-    }
-  };
+    fetchAllData();
+  } catch (err: any) {
+    toast.error('Failed to update job status', { id: toggleToast });
+  }
+};
 
-  const handleBulkUpdateApplicationStatus = async (status: string) => {
-    if (selectedApplications.length === 0) {
-      showToast('Please select applications to update', 'error');
-      return;
-    }
+  // REPLACE with:
+const handleUpdateApplicationStatus = async (id: number, status: string) => {
+  const statusToast = toast.loading('Updating application status...');
+  
+  try {
+    await careerApi.updateApplicationStatus(id, status);
+    toast.success('Application status updated!', { id: statusToast });
+    fetchAllData();
+  } catch (err: any) {
+    toast.error('Failed to update application status', { id: statusToast });
+  }
+};
 
-    const updateToast = toast.loading(`Updating ${selectedApplications.length} application(s)...`);
-    
-    try {
-      for (const id of selectedApplications) {
-        await careerService.updateApplicationStatus(id, status);
-      }
-      toast.success(`Updated ${selectedApplications.length} application(s) to ${status}!`, { id: updateToast });
-      setSelectedApplications([]);
-      fetchAllData();
-    } catch (err: any) {
-      toast.error('Failed to update applications', { id: updateToast });
+// REPLACE with:
+const handleBulkUpdateApplicationStatus = async (status: string) => {
+  if (selectedApplications.length === 0) {
+    showToast('Please select applications to update', 'error');
+    return;
+  }
+
+  const updateToast = toast.loading(`Updating ${selectedApplications.length} application(s)...`);
+  
+  try {
+    for (const id of selectedApplications) {
+      await careerApi.updateApplicationStatus(id, status);
     }
-  };
+    toast.success(`Updated ${selectedApplications.length} application(s) to ${status}!`, { id: updateToast });
+    setSelectedApplications([]);
+    fetchAllData();
+  } catch (err: any) {
+    toast.error('Failed to update applications', { id: updateToast });
+  }
+};
 
   const handleAddCustomDept = () => {
     if (customDept.trim()) {
@@ -568,10 +545,7 @@ const handleBulkDelete = async () => {
     }
   };
 
-  const handleSearch = () => {
-    setCurrentPage(1);
-    fetchJobs();
-  };
+ 
 
  
 
@@ -586,21 +560,8 @@ const handleBulkDelete = async () => {
     setSelectedApplications([]);
   };
 
-  const getJobCardClass = (isActive: boolean) => {
-    if (isActive) {
-      return 'border border-gray-200 hover:border-blue-300 bg-gradient-to-br from-white to-blue-50/30';
-    } else {
-      return 'border border-gray-100 hover:border-gray-300 bg-gradient-to-br from-white to-gray-50/30';
-    }
-  };
+  
 
-  const getHeaderClass = (isActive: boolean) => {
-    if (isActive) {
-      return 'bg-gradient-to-br from-blue-50/80 to-blue-100/30';
-    } else {
-      return 'bg-gradient-to-br from-gray-50/80 to-gray-100/30';
-    }
-  };
 
   // Filter and sort logic
   const filteredItems = activeTab === 'jobs' ? jobs : applications;
@@ -642,14 +603,7 @@ const handleBulkDelete = async () => {
   };
 
   // Sort handler
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-  };
+ 
 
   if (loading && jobs.length === 0 && applications.length === 0) {
     return (
@@ -928,9 +882,15 @@ const handleBulkDelete = async () => {
                           className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm shadow-sm min-w-[100px] sm:min-w-[140px]"
                         >
                           <option value="all">All Departments</option>
-                          {Array.from(new Set(jobs.map(job => job.department).filter(Boolean))).map(dept => (
-                            <option key={dept} value={dept}>{dept}</option>
-                          ))}
+                         {Array.from(
+  new Set(
+    jobs
+      .map(job => job.department)
+      .filter((dept): dept is string => Boolean(dept)) // ✅ fix
+  )
+).map(dept => (
+  <option key={dept} value={dept}>{dept}</option>
+))}
                         </select>
 
                         <select
@@ -942,9 +902,15 @@ const handleBulkDelete = async () => {
                           className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm shadow-sm min-w-[80px] sm:min-w-[120px]"
                         >
                           <option value="all">All Locations</option>
-                          {Array.from(new Set(jobs.map(job => job.location).filter(Boolean))).map(loc => (
-                            <option key={loc} value={loc}>{loc}</option>
-                          ))}
+                         {Array.from(
+  new Set(
+    jobs
+      .map(job => job.location)
+      .filter((loc): loc is string => Boolean(loc)) // ✅ type guard
+  )
+).map(loc => (
+  <option key={loc} value={loc}>{loc}</option>
+))}
                         </select>
 
                         <select
@@ -1070,11 +1036,13 @@ const handleBulkDelete = async () => {
                     <div className="p-4">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex-1">
-                          <h3 className="font-bold text-gray-900 text-sm sm:text-base line-clamp-2">{job.job_title}</h3>
-                          <div className="flex items-center mt-1">
+<h3 className={`font-bold ${job.is_active ? 'text-gray-900' : 'text-gray-500'} text-sm sm:text-base line-clamp-2`}>
+  {job.job_title || 'Untitled Job'}
+</h3>                        <div className="flex items-center mt-1">
                             {getDepartmentIcon(job.department || '')}
-                            <span className="ml-2 text-gray-600 text-xs sm:text-sm">{job.department || 'No Department'}</span>
-                          </div>
+<span className={`ml-2 ${job.is_active ? 'text-gray-600' : 'text-gray-400'} text-xs sm:text-sm`}>
+  {job.department || 'No Department'}
+</span>                       </div>
                         </div>
                         <input
                           type="checkbox"
@@ -1110,9 +1078,9 @@ const handleBulkDelete = async () => {
                         )}
                       </div>
                       
-                      <p className="text-gray-600 text-xs sm:text-sm line-clamp-2 mb-4">
-                        {job.description.substring(0, 100)}...
-                      </p>
+        <p className={`${job.is_active ? 'text-gray-600' : 'text-gray-400'} text-xs sm:text-sm line-clamp-2 mb-4`}>
+  {job.description ? `${job.description.substring(0, 100)}...` : 'No description available'}
+</p>
                       
                       <div className="flex items-center justify-between pt-3 border-t">
                         <div className="flex items-center space-x-2">

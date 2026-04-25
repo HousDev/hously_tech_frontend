@@ -1,63 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Edit, Trash2, Save, X, 
-  Eye, EyeOff, Search, Filter, Upload,
-  ChevronDown, Check, ExternalLink, Clock, Calendar,
-  ChevronLeft, ChevronRight, CheckCircle,
-  XCircle, RefreshCw, Tag, FileText, Globe, 
-  TrendingUp, BarChart, Link, Type, BookOpen,
-  Users, Layers, FolderUp, Copy, AlertCircle,
-  Upload as UploadIcon, Link2, Loader2, FileImage,
-  FolderTree, Grid3x3, List, Grid, Table, Archive,
-  Folder, FolderPlus, FolderMinus, FolderOpen,
-  Shield, Zap, Cpu, Smartphone, Palette, Code,
-  Server, Database, Cloud, Briefcase, Hash,
-  PenTool, ArrowUpDown, GripVertical, CalendarDays,
-  User as UserIcon, MoreVertical, Settings,
-  MessageSquare, Rocket, Target, Key, Lock,
-  Wifi, Terminal, Monitor, Smartphone as PhoneIcon,
+  Eye, EyeOff, Search, Filter, 
+  Check, Clock, 
+  ChevronLeft, ChevronRight, 
+  Tag, FileText, 
+  BookOpen,
+  Copy, 
+  Upload as UploadIcon, Loader2, FileImage,
+  List, Grid, 
+  
+  Palette, 
+  Briefcase, 
+  ArrowUpDown, CalendarDays,
+  User as UserIcon, 
+  Target, 
+  Smartphone as PhoneIcon,
   Server as ServerIcon, Cloud as CloudIcon,
   Shield as ShieldIcon, Zap as ZapIcon,
   Cpu as CpuIcon, Layers as LayersIcon,
   Users as UsersIcon, Globe as GlobeIcon,
-  Code as CodeIcon, Database as DatabaseIcon,
-  CheckSquare, Square, Home, Menu, MoveUp, MoveDown
-} from 'lucide-react';
-import api from '../../services/authService';
-import type { ApiResponse } from '../../types/auth.types';
+  Code as CodeIcon, Database as DatabaseIcon} from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { blogApi, type BlogPost, type BlogStats } from '../../lib/blogApi';
 
-interface BlogPost {
-  id: number;
-  title: string;
-  slug: string;
-  excerpt: string;
-  content: string;
-  author_id: number;
-  category: string;
-  tags: string[];
-  featured_image: string;
-  read_time: string;
-  is_published: boolean;
-  published_at: string | null;
-  views: number;
-  meta_title: string;
-  meta_description: string;
-  created_at: string;
-  updated_at: string;
-  author_name?: string;
-  author_avatar?: string;
-}
 
-interface BlogStats {
-  totalPosts: number;
-  publishedPosts: number;
-  draftPosts: number;
-  totalViews: number;
-  avgReadTime: string;
-  categoriesCount: number;
-}
+
+
+
 
 // PREDEFINED CATEGORIES
 const PREDEFINED_CATEGORIES = [
@@ -196,7 +167,6 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Post form state
@@ -240,40 +210,30 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
   }, []);
 
   const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get<ApiResponse<BlogPost[]>>('/blog', {
-        params: {
-          published: 'false'
-        }
-      });
-      
-      if (response.data.success && response.data.data) {
-        const sortedPosts = response.data.data.sort((a, b) => {
-          const dateA = a.published_at ? new Date(a.published_at).getTime() : 0;
-          const dateB = b.published_at ? new Date(b.published_at).getTime() : 0;
-          return dateB - dateA;
-        });
-        setPosts(sortedPosts);
-      }
-    } catch (err: any) {
-      console.error('Error fetching posts:', err);
-      toast.error(err.response?.data?.message || 'Failed to load blog posts');
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+    const data = await blogApi.getAll();
+    const sorted = [...data].sort((a, b) => {
+      const dA = a.published_at ? new Date(a.published_at).getTime() : 0;
+      const dB = b.published_at ? new Date(b.published_at).getTime() : 0;
+      return dB - dA;
+    });
+    setPosts(sorted);
+  } catch (err: any) {
+    toast.error('Failed to load blog posts');
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const fetchStats = async () => {
-    try {
-      const response = await api.get<ApiResponse<BlogStats>>('/blog/stats');
-      if (response.data.success && response.data.data) {
-        setStats(response.data.data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch stats');
-    }
-  };
+ const fetchStats = async () => {
+  try {
+    const data = await blogApi.getStats();
+    setStats(data);
+  } catch (err) {
+    console.error('Failed to fetch stats');
+  }
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,12 +266,13 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
       }
 
       if (editingPost) {
-        await api.put(`/blog/${editingPost.id}`, postData);
-        toast.success('Blog post updated successfully!');
-      } else {
-        await api.post('/blog', postData);
-        toast.success('Blog post created successfully!');
-      }
+  await blogApi.update(editingPost.id, postData);
+  toast.success('Blog post updated successfully!');
+} else {
+  await blogApi.create(postData);
+  toast.success('Blog post created successfully!');
+}
+
       
       fetchPosts();
       handleCloseModal();
@@ -347,15 +308,11 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
   const deleteToast = toast.loading('Deleting blog post...');
 
   try {
-    await api.delete(`/blog/${id}`);
-    toast.success('Blog post deleted successfully!', {
-      id: deleteToast,
-    });
+await blogApi.delete(id);
+    toast.success('Blog post deleted successfully!' );
     fetchPosts();
   } catch (err) {
-    toast.error('Failed to delete blog post', {
-      id: deleteToast,
-    });
+    toast.error('Failed to delete blog post');
   }
 };
 
@@ -371,188 +328,85 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
   );
 
   try {
-    await Promise.all(
-      selectedPosts.map(id => api.delete(`/blog/${id}`))
-    );
+    await blogApi.bulkDelete(selectedPosts);
+
 
     toast.success(
-      `Successfully deleted ${selectedPosts.length} post(s)`,
-      { id: deleteToast }
+      `Successfully deleted ${selectedPosts.length} post(s)`
     );
 
     setSelectedPosts([]);
     fetchPosts();
   } catch (err: any) {
     toast.error(
-      err.response?.data?.message || 'Failed to delete posts',
-      { id: deleteToast }
+      err.response?.data?.message || 'Failed to delete posts'
     );
   }
 };
 
 
-  const handleTogglePublish = async (id: number, currentStatus: boolean) => {
-    try {
-      const postToUpdate = posts.find(p => p.id === id);
-      
-      if (!postToUpdate) {
-        toast.error('Post not found');
-        return;
-      }
-      
-      const updateData: any = {
-        title: postToUpdate.title,
-        excerpt: postToUpdate.excerpt,
-        content: postToUpdate.content,
-        category: postToUpdate.category,
-        is_published: !currentStatus,
-        tags: Array.isArray(postToUpdate.tags) ? postToUpdate.tags : [],
-        read_time: postToUpdate.read_time || '5 min read',
-        meta_title: postToUpdate.meta_title || null,
-        meta_description: postToUpdate.meta_description || null
-      };
-      
-      if (postToUpdate.featured_image && postToUpdate.featured_image.trim()) {
-        updateData.featured_image = postToUpdate.featured_image;
-      } else {
-        updateData.featured_image = null;
-      }
-      
-      if (!currentStatus) {
-        updateData.published_at = new Date().toISOString();
-      } else {
-        updateData.published_at = null;
-      }
-      
-      const response = await api.put(`/blog/${id}`, updateData);
-      
-      if (response.data.success) {
-        toast.success(`Post ${!currentStatus ? 'published' : 'moved to draft'} successfully`);
-        
-        setPosts(prevPosts => {
-          const postIndex = prevPosts.findIndex(p => p.id === id);
-          if (postIndex === -1) return prevPosts;
-          
-          const newPosts = [...prevPosts];
-          newPosts[postIndex] = {
-            ...newPosts[postIndex],
-            is_published: !currentStatus,
-            published_at: !currentStatus ? new Date().toISOString() : null
-          };
-          
-          return newPosts;
-        });
-        
-        fetchStats();
-      } else {
-        toast.error(response.data.message || 'Failed to update post status');
-      }
-    } catch (err: any) {
-      console.error('❌ Toggle error:', {
-        status: err.response?.status,
-        data: err.response?.data,
-        message: err.message
-      });
-      toast.error(err.response?.data?.message || 'Failed to update post status');
-    }
-  };
+ const handleTogglePublish = async (id: number, currentStatus: boolean) => {
+  const t = toast.loading(currentStatus ? 'Moving to draft...' : 'Publishing...');
+  try {
+    const postToUpdate = posts.find(p => p.id === id);
+    if (!postToUpdate) { toast.error('Post not found'); return; }
+
+    await blogApi.update(id, {
+      title: postToUpdate.title,
+      excerpt: postToUpdate.excerpt,
+      content: postToUpdate.content,
+      category: postToUpdate.category,
+      is_published: !currentStatus,
+      tags: Array.isArray(postToUpdate.tags) ? postToUpdate.tags : [],
+      read_time: postToUpdate.read_time || '5 min read',
+      meta_title: postToUpdate.meta_title || null,
+      meta_description: postToUpdate.meta_description || null,
+      featured_image: postToUpdate.featured_image?.trim() || null,
+      published_at: !currentStatus ? new Date().toISOString() : null,
+    });
+
+    setPosts(prev => prev.map(p =>
+      p.id === id
+        ? { ...p, is_published: !currentStatus, published_at: !currentStatus ? new Date().toISOString() : null }
+        : p
+    ));
+    toast.success(`Post ${!currentStatus ? 'published' : 'moved to draft'}`);
+    fetchStats();
+  } catch (err: any) {
+    toast.error(err?.message || 'Failed to update post status');
+  }
+};
 
   const handleBulkTogglePublish = async (publish: boolean) => {
-    if (selectedPosts.length === 0) {
-      toast.error('Please select posts to update');
-      return;
-    }
+  if (selectedPosts.length === 0) { toast.error('Please select posts to update'); return; }
+  const t = toast.loading(`${publish ? 'Publishing' : 'Unpublishing'} ${selectedPosts.length} post(s)...`);
+  try {
+    await blogApi.bulkTogglePublish(selectedPosts, publish, posts);
+    setPosts(prev => prev.map(p =>
+      selectedPosts.includes(p.id)
+        ? { ...p, is_published: publish, published_at: publish ? new Date().toISOString() : null }
+        : p
+    ));
+    toast.success(`Successfully ${publish ? 'published' : 'unpublished'} ${selectedPosts.length} post(s)`);
+    setSelectedPosts([]);
+    fetchStats();
+  } catch (err: any) {
+    toast.error(err?.message || 'Failed to update posts');
+  }
+};
 
-    const toggleToast = toast.loading(`${publish ? 'Publishing' : 'Unpublishing'} ${selectedPosts.length} post(s)...`);
-    
-    try {
-      for (const id of selectedPosts) {
-        const postToUpdate = posts.find(p => p.id === id);
-        if (!postToUpdate) continue;
-        
-        const updateData: any = {
-          title: postToUpdate.title,
-          excerpt: postToUpdate.excerpt,
-          content: postToUpdate.content,
-          category: postToUpdate.category,
-          is_published: publish,
-          tags: Array.isArray(postToUpdate.tags) ? postToUpdate.tags : [],
-          read_time: postToUpdate.read_time || '5 min read',
-          meta_title: postToUpdate.meta_title || null,
-          meta_description: postToUpdate.meta_description || null
-        };
-        
-        if (postToUpdate.featured_image && postToUpdate.featured_image.trim()) {
-          updateData.featured_image = postToUpdate.featured_image;
-        }
-        
-        if (publish) {
-          updateData.published_at = new Date().toISOString();
-        } else {
-          updateData.published_at = null;
-        }
-        
-        await api.put(`/blog/${id}`, updateData);
-      }
-      
-      setPosts(prevPosts => 
-        prevPosts.map(post => 
-          selectedPosts.includes(post.id)
-            ? { 
-                ...post, 
-                is_published: publish,
-                published_at: publish ? new Date().toISOString() : null
-              }
-            : post
-        )
-      );
-      
-      toast.success(`Successfully ${publish ? 'published' : 'unpublished'} ${selectedPosts.length} post(s)`, { id: toggleToast });
-      setSelectedPosts([]);
-      fetchStats();
-    } catch (error: any) {
-      console.error('Bulk toggle error:', error);
-      toast.error(error.response?.data?.message || 'Failed to update posts', { id: toggleToast });
-    }
-  };
-
-  const handleImageUpload = async (file: File) => {
-    setUploading(true);
-    
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('type', 'blog');
-      
-      const response = await api.post('/upload/blog-image', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      if (response.data.success) {
-        const imageData = response.data.data;
-        const imageUrl = imageData.url || imageData.fullUrl;
-        
-        if (imageUrl) {
-          setFormData(prev => ({
-            ...prev,
-            featured_image: imageUrl
-          }));
-          toast.success('Image uploaded successfully!');
-        } else {
-          toast.error('Image uploaded but no URL returned');
-        }
-      } else {
-        toast.error(response.data.message || 'Upload failed');
-      }
-    } catch (err: any) {
-      console.error('❌ Upload error details:', err);
-      toast.error(err.response?.data?.message || 'Failed to upload image');
-    } finally {
-      setUploading(false);
-    }
-  };
+ const handleImageUpload = async (file: File) => {
+  setUploading(true);
+  try {
+    const imageUrl = await blogApi.uploadImage(file);
+    setFormData(prev => ({ ...prev, featured_image: imageUrl }));
+    toast.success('Image uploaded successfully!');
+  } catch (err: any) {
+    toast.error(err?.message || 'Failed to upload image');
+  } finally {
+    setUploading(false);
+  }
+};
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -573,11 +427,7 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
     });
   };
 
-  const handleImageClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
+  
 
   // Filter and sort logic
   const filteredPosts = posts.filter(post => {
@@ -1530,9 +1380,10 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
                                   src={formData.featured_image}
                                   alt="Featured"
                                   className="w-full h-32 sm:h-40 object-cover rounded-lg mb-2"
-                                  onError={(e) => {
-                                    e.currentTarget.src = 'https://via.placeholder.com/400x200?text=Image+Not+Found';
-                                  }}
+onError={(e) => {
+  e.currentTarget.onerror = null;
+  e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" font-family="Arial" font-size="8" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
+}}
                                 />
                                 <div className="absolute top-2 right-2 flex space-x-1">
                                   <button
@@ -1558,7 +1409,7 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
                               </div>
                               <div className="flex gap-2 mt-3">
                                 <input
-                                  type="url"
+                                  type="text"
                                   value={formData.featured_image}
                                   onChange={(e) => setFormData({...formData, featured_image: e.target.value})}
                                   className="flex-1 px-3 py-1.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
@@ -1585,7 +1436,7 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
                                   Enter Image URL
                                 </label>
                                 <input
-                                  type="url"
+                                  type="text"
                                   value={formData.featured_image}
                                   onChange={(e) => setFormData({...formData, featured_image: e.target.value})}
                                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
