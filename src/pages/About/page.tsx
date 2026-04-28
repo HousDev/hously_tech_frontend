@@ -90,13 +90,13 @@ export default function Component() {
           <div className="flex flex-wrap items-start -ml-[40px] px-24">
             {/* Left Column - Images */}
             <div className="w-full lg:w-6/12 px-[90px] mt-[10px] flex-shrink-0 max-w-full"> {/* Reduced mt */}
-              <div className="relative inline-block opacity-0 animate-[slideInLeft_900ms_ease_0ms_both] pr-[110px] pb-[200px]">
+              <div className="relative inline-block opacity-0 animate-[slideInLeft_900ms_ease_0ms_both] pr-[160px] pb-[200px]">
                 {/* Main Image */}
                 <div className="rounded-[30px] overflow-hidden inline-block">
                   <img
                     alt="About"
                     src="https://html.themehour.net/robor/demo/assets/img/normal/about-thumb4-1.jpg"
-                    className="max-w-full h-auto"
+                    className="max-w-full h-[200px] md:h-[300px] lg:h-[400px] object-cover"
                   />
                 </div>
 

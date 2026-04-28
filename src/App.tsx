@@ -1227,6 +1227,7 @@ import TestimonialsCMS from "./pages/Admin/TestimonialCMS";
 import EnquiriesCMS from "./pages/Admin/EnquiriesCMS";
 import TeamCMS from "./pages/Admin/TeamCMS";
 import DashboardAnalytics from "./pages/Admin/DashboardAnalytics";
+import CaseStudyCMS from "./pages/Admin/CaseStudyCMS";
 
 import VisitorTracker from "./components/VisitorTracker";
 import AuthModal from "./components/auth/AuthModal";
@@ -1426,6 +1427,8 @@ function AppContent() {
             <Route path="settings" element={<SettingsCMS />} />
             <Route path="profile" element={<Profile />} />
             <Route path="team" element={<TeamCMS />} />
+            <Route path="case-studies" element={<CaseStudyCMS />} />
+
           </Route>
         </Routes>
       </main>

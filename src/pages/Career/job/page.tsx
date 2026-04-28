@@ -536,10 +536,10 @@ export default function CareersPage() {
       {/* Hero Section */}
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-4xl md:text-5xl font-bold text-center text-gray-900 mb-4">
+          <h1 className="text-4xl md:text-4xl font-bold text-center text-gray-900 mb-4">
             Find Your Dream Job
           </h1>
-          <p className="text-center text-gray-600 max-w-2xl mx-auto text-lg mb-10">
+          <p className="text-center text-gray-600 max-w-2xl mx-auto text-md mb-10">
             Browse through our latest job openings and take the next step in your career journey.
           </p>
 
@@ -660,7 +660,7 @@ export default function CareersPage() {
       {/* Jobs Section */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-0">
+          <h2 className="text-2xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-0">
             Latest Job Opportunities
             {jobs.length > 0 && (
               <span className="ml-2 text-blue-600">({filteredJobs.length})</span>

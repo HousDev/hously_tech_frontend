@@ -86,7 +86,6 @@ const ServiceCard: React.FC<{
         {/* Title */}
         <h3 
           className="text-lg font-semibold text-[#051600] mb-2 relative z-10"
-          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
         >
           <a
             href={`/services/${service.slug}`}
@@ -99,7 +98,6 @@ const ServiceCard: React.FC<{
         {/* Description */}
         <p 
           className="text-xs text-[#6F756D] leading-relaxed mt-2 mb-4 flex-grow"
-          style={{ fontFamily: '"DM Sans", sans-serif' }}
         >
           {service.short_description}
         </p>
@@ -108,7 +106,6 @@ const ServiceCard: React.FC<{
         <button
           onClick={onReadMore}
           className="inline-flex items-center font-medium text-[11px] text-[#051600] hover:text-[#0174d7] transition-all duration-500 no-underline pb-0.5 relative group/button mt-auto z-10 bg-transparent border-none cursor-pointer overflow-hidden"
-          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
         >
           <span className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0174d7]/10 to-transparent translate-x-[-100%] group-hover/card:translate-x-[100%] transition-transform duration-1000"></span>
           
@@ -153,7 +150,6 @@ const ServiceModal: React.FC<{ service: Service | null; onClose: () => void }> =
           {/* Title */}
           <h3 
             className="text-2xl font-semibold text-[#051600] mb-3"
-            style={{ fontFamily: '"Space Grotesk", sans-serif' }}
           >
             {service.title}
           </h3>
@@ -161,7 +157,6 @@ const ServiceModal: React.FC<{ service: Service | null; onClose: () => void }> =
           {/* Full Description */}
           <p 
             className="text-[#6F756D] leading-relaxed text-base"
-            style={{ fontFamily: '"DM Sans", sans-serif' }}
           >
             {service.full_description}
           </p>
@@ -285,8 +280,7 @@ const ServicesSection: React.FC = () => {
                 {/* Shadow title */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[-1] w-max opacity-50 select-none">
                   <h2 
-                    className="text-[200px] sm:text-[250px] lg:text-[300px] font-bold text-white leading-none m-0"
-                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    className="text-[200px] sm:text-[250px] lg:text-[150px] font-bold text-white leading-none m-0"
                   >
                     Services
                   </h2>
@@ -297,7 +291,6 @@ const ServicesSection: React.FC = () => {
                   <div className="w-6 h-0.5 bg-[#0174d7]"></div>
                   <span 
                     className="inline-block text-[#0174d7] text-xs sm:text-sm font-medium uppercase tracking-wide relative pb-1 animate-slideInUp"
-                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     <AnimatedText text="OUR" />
                     {' '}
@@ -309,7 +302,6 @@ const ServicesSection: React.FC = () => {
                 {/* Main title */}
                 <h2 
                   className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#051600] mb-4 mt-[-0.4em] animate-slideInUp leading-tight"
-                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                 >
                   <AnimatedText text="Innovative" />{' '}
                   <AnimatedText text="IT" />{' '}

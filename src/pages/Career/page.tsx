@@ -159,10 +159,10 @@ const HouslyCareerPage: React.FC = () => {
           <div className="relative z-10 max-w-5xl mx-auto px-4 text-center">
             {/* Heading */}
             <h1 className="font-bold text-gray-900 leading-tight mb-4">
-              <span className="block text-3xl md:text-5xl lg:text-6xl">
+              <span className="block text-3xl md:text-5xl lg:text-4xl">
                 Join <span className="text-[#0270e1]">Hously</span> Finntech Realty
               </span>
-              <span className="block text-3xl md:text-4xl lg:text-5xl mt-1 text-gray-700">
+              <span className="block text-2xl md:text-4xl lg:text-2xl mt-1 text-gray-700">
                 Build the Future with Technology
               </span>
             </h1>
@@ -183,7 +183,7 @@ const HouslyCareerPage: React.FC = () => {
 
         {/* Why Work With Us - REDUCED SPACE */}
         <div className="max-w-6xl mx-auto px-4 py-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900">
+          <h2 className="text-3xl md:text-3xl font-bold text-center mb-12 text-gray-900">
             Why Work With Us?
           </h2>
 
@@ -245,7 +245,7 @@ const HouslyCareerPage: React.FC = () => {
         <div className="bg-gray-50 py-10 px-4">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl md:text-3xl font-bold text-gray-900 mb-4">
                 Current Openings
               </h2>
               <p className="text-gray-600 text-lg max-w-2xl mx-auto">
@@ -350,7 +350,7 @@ const HouslyCareerPage: React.FC = () => {
           <div className="container mx-auto px-4 max-w-7xl">
             {/* Section Intro */}
             <div className="max-w-4xl mx-auto text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl md:text-3xl font-bold text-gray-900 mb-4">
                 How We Hire
               </h2>
               <p className="text-gray-600 leading-relaxed text-base md:text-lg">

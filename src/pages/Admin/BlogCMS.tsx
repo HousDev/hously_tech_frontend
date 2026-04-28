@@ -346,7 +346,7 @@ await blogApi.delete(id);
 
 
  const handleTogglePublish = async (id: number, currentStatus: boolean) => {
-  const t = toast.loading(currentStatus ? 'Moving to draft...' : 'Publishing...');
+  // const t = toast.loading(currentStatus ? 'Moving to draft...' : 'Publishing...');
   try {
     const postToUpdate = posts.find(p => p.id === id);
     if (!postToUpdate) { toast.error('Post not found'); return; }
@@ -450,17 +450,19 @@ await blogApi.delete(id);
   });
 
   const sortedPosts = [...filteredPosts].sort((a, b) => {
-    const getDateValue = (dateStr: string | null) => {
-      if (!dateStr) return 0;
-      const date = new Date(dateStr);
-      return isNaN(date.getTime()) ? 0 : date.getTime();
-    };
+    const getDateValue = (post: BlogPost) => {
+  const d = post.published_at && post.published_at !== 'null'
+    ? post.published_at
+    : post.created_at;  // ← fallback to created_at for drafts
+  const date = new Date(d);
+  return isNaN(date.getTime()) ? 0 : date.getTime();
+};
 
-    switch (sortBy) {
-      case 'newest':
-        return getDateValue(b.published_at) - getDateValue(a.published_at);
-      case 'oldest':
-        return getDateValue(a.published_at) - getDateValue(b.published_at);
+switch (sortBy) {
+  case 'newest':
+    return getDateValue(b) - getDateValue(a);
+  case 'oldest':
+    return getDateValue(a) - getDateValue(b);
       case 'views':
         return b.views - a.views;
       case 'title':
@@ -541,7 +543,7 @@ await blogApi.delete(id);
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white ">
       <ToastContainer position="top-right" autoClose={3000} />
       
       {/* Main Container */}
@@ -549,239 +551,233 @@ await blogApi.delete(id);
         isSidebarOpen ? 'ml-0 sm:ml-0' : ''
       }`}>
         {/* Header - Fixed with sidebar consideration */}
-        <div className={`${isSidebarOpen ? 'relative sm:sticky sm:top-4 lg:top-16' : 'sticky top-0 sm:top-4 lg:top-16'} z-30 bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4`}>
-          {/* Blue Title Section */}
-          <div className="bg-blue-200 text-black  rounded-t-lg sm:rounded-t-xl">
-            <div className="px-3 sm:px-4 py-2 sm:py-3">
-              <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <div className="bg-white/20 p-1.5 sm:p-2 rounded-md sm:rounded-lg">
-                    <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="flex flex-col">
-                    <h1 className="text-sm sm:text-base lg:text-lg font-bold tracking-tight truncate">
-                      Blog Management
-                    </h1>
-                    <p className="text-black text-[10px] sm:text-xs mt-0.5 hidden sm:block">
-                      Create, edit, and manage your blog posts
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="sm:hidden bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-lg transition"
-                >
-                  <Plus size={18} />
-                </button>
+ <div className={`${isSidebarOpen ? 'relative sm:sticky sm:top-4 lg:top-16' : 'sticky top-0 sm:top-4 lg:top-16'} z-30 bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4`}>
+  {/* Blue Title Section */}
+  <div className="bg-blue-200 text-black rounded-t-lg sm:rounded-t-xl">
+    <div className="px-2 py-1.5 sm:px-3 sm:py-2">
+      <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-2">
+        <div className="flex items-center space-x-2">
+          <div className="bg-white/20 p-1 rounded-md">
+            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </div>
+          <h1 className="text-sm sm:text-base font-bold tracking-tight">
+            Blog Management
+          </h1>
+        </div>
+       <button
+              onClick={() => setIsModalOpen(true)}
+              className="sm:hidden flex bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-md items-center gap-1.5 text-xs"
+            >
+              <Plus size={14} />
+              <span>Add Post</span>
+            </button>
+      </div>
+    </div>
+  </div>
+
+  {/* White Content Section - Show only when sidebar is closed on mobile */}
+  {(!isSidebarOpen || window.innerWidth >= 640) && (
+    <div className="bg-white rounded-b-lg sm:rounded-b-xl">
+      <div className="px-2 py-2 sm:px-3 sm:py-2.5">
+        {/* Header with Actions */}
+        <div className="flex flex-row justify-between items-center gap-1.5 mb-2 sm:mb-2.5">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-xs sm:text-sm font-semibold text-gray-800">
+              Posts ({posts.length})
+            </h2>
+            <span className="text-[11px] text-gray-500 hidden sm:inline">Manage blog content</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="hidden sm:flex bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-md items-center gap-1.5 text-xs"
+            >
+              <Plus size={14} />
+              <span>Add Post</span>
+            </button>
+            <div className="sm:hidden flex items-center gap-1.5">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+              >
+                <Grid size={16} />
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`p-1 rounded ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+              >
+                <List size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Compact Stats Cards */}
+        <div className="hidden sm:grid grid-cols-1 md:grid-cols-4 gap-1.5 mb-2 sm:mb-2.5">
+          <div className="bg-white rounded border border-gray-200 px-2 py-1 sm:px-3 sm:py-1.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] sm:text-xs text-gray-500">Total</p>
+                <p className="text-base sm:text-lg font-bold text-gray-900">{totalPostsCount}</p>
+              </div>
+              <div className="p-1 bg-blue-100 rounded-lg">
+                <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
               </div>
             </div>
           </div>
-
-          {/* White Content Section - Show only when sidebar is closed on mobile */}
-          {(!isSidebarOpen || window.innerWidth >= 640) && (
-            <div className="bg-white rounded-b-lg sm:rounded-b-xl">
-              <div className="px-3 sm:px-4 pt-2 sm:pt-3 pb-3 sm:pb-4">
-                {/* Header with Actions */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div>
-                    <h2 className="text-sm sm:text-base font-semibold text-gray-800">
-                      All Posts ({posts.length})
-                    </h2>
-                    <p className="text-[10px] sm:text-xs text-gray-600 hidden sm:block">
-                      Create, edit, and organize your blog content
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2 w-full sm:w-auto">
-                    <button
-                      onClick={() => setIsModalOpen(true)}
-                      className="hidden sm:flex bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg items-center space-x-2 transition-all duration-200 shadow-sm text-xs sm:text-sm w-full sm:w-auto justify-center"
-                    >
-                      <Plus size={16} className="sm:size-[18px]" />
-                      <span className="font-medium">Add Post</span>
-                    </button>
-                    <div className="sm:hidden flex items-center space-x-2 ml-auto">
-                      <button
-                        onClick={() => setViewMode('grid')}
-                        className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
-                      >
-                        <Grid size={18} />
-                      </button>
-                      <button
-                        onClick={() => setViewMode('table')}
-                        className={`p-1.5 rounded ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
-                      >
-                        <List size={18} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Compact Stats Cards */}
-                <div className="hidden sm:grid grid-cols-1 md:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="bg-white rounded border border-gray-200 p-2 sm:p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] sm:text-xs text-gray-500">Total</p>
-                        <p className="text-lg sm:text-xl font-bold text-gray-900">{totalPostsCount}</p>
-                      </div>
-                      <div className="p-1 sm:p-1.5 bg-blue-100 rounded-lg">
-                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white rounded border border-gray-200 p-2 sm:p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] sm:text-xs text-gray-500">Published</p>
-                        <p className="text-lg sm:text-xl font-bold text-green-600">{publishedPostsCount}</p>
-                      </div>
-                      <div className="p-1 sm:p-1.5 bg-green-100 rounded-lg">
-                        <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white rounded border border-gray-200 p-2 sm:p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] sm:text-xs text-gray-500">Drafts</p>
-                        <p className="text-lg sm:text-xl font-bold text-yellow-600">{draftPostsCount}</p>
-                      </div>
-                      <div className="p-1 sm:p-1.5 bg-yellow-100 rounded-lg">
-                        <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white rounded border border-gray-200 p-2 sm:p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] sm:text-xs text-gray-500">Categories</p>
-                        <p className="text-lg sm:text-xl font-bold text-purple-600">{PREDEFINED_CATEGORIES.length}</p>
-                      </div>
-                      <div className="p-1 sm:p-1.5 bg-purple-100 rounded-lg">
-                        <Tag className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mobile Stats Summary */}
-                <div className="sm:hidden grid grid-cols-4 gap-2 mb-3">
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Total</p>
-                    <p className="text-base font-bold text-gray-900">{totalPostsCount}</p>
-                  </div>
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Pub</p>
-                    <p className="text-base font-bold text-green-600">{publishedPostsCount}</p>
-                  </div>
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Draft</p>
-                    <p className="text-base font-bold text-yellow-600">{draftPostsCount}</p>
-                  </div>
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Cats</p>
-                    <p className="text-base font-bold text-purple-600">{PREDEFINED_CATEGORIES.length}</p>
-                  </div>
-                </div>
-
-                {/* Compact Search and Filter Bar */}
-                <div className="bg-white rounded p-2 sm:p-3">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-3">
-                    <div className="flex-1">
-                      <div className="relative">
-                        <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Search posts..."
-                          value={searchTerm}
-                          onChange={(e) => {
-                            setSearchTerm(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                          className="w-full pl-7 sm:pl-9 pr-3 sm:pr-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <Filter className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 hidden sm:block" />
-                        <select
-                          value={statusFilter}
-                          onChange={(e) => {
-                            setStatusFilter(e.target.value as any);
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="all">All Status</option>
-                          <option value="published">Published</option>
-                          <option value="draft">Drafts</option>
-                        </select>
-                      </div>
-                      
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <Tag className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 hidden sm:block" />
-                        <select
-                          value={categoryFilter}
-                          onChange={(e) => {
-                            setCategoryFilter(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="all">All Categories</option>
-                          {categoriesFromPosts.map(category => (
-                            <option key={category} value={category}>
-                              {category}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <ArrowUpDown className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 hidden sm:block" />
-                        <select
-                          value={sortBy}
-                          onChange={(e) => {
-                            setSortBy(e.target.value as any);
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="newest">Newest</option>
-                          <option value="oldest">Oldest</option>
-                          <option value="views">Most Views</option>
-                          <option value="title">Title A-Z</option>
-                        </select>
-                      </div>
-                      
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <span className="text-xs text-gray-600 hidden sm:inline">Show:</span>
-                        <select
-                          value={itemsPerPage}
-                          onChange={(e) => {
-                            setItemsPerPage(Number(e.target.value));
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="5">5</option>
-                          <option value="10">10</option>
-                          <option value="25">25</option>
-                        </select>
-                        <span className="text-xs text-gray-600 hidden sm:inline">per page</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          
+          <div className="bg-white rounded border border-gray-200 px-2 py-1 sm:px-3 sm:py-1.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] sm:text-xs text-gray-500">Published</p>
+                <p className="text-base sm:text-lg font-bold text-green-600">{publishedPostsCount}</p>
+              </div>
+              <div className="p-1 bg-green-100 rounded-lg">
+                <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600" />
               </div>
             </div>
-          )}
+          </div>
+          
+          <div className="bg-white rounded border border-gray-200 px-2 py-1 sm:px-3 sm:py-1.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] sm:text-xs text-gray-500">Drafts</p>
+                <p className="text-base sm:text-lg font-bold text-yellow-600">{draftPostsCount}</p>
+              </div>
+              <div className="p-1 bg-yellow-100 rounded-lg">
+                <EyeOff className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded border border-gray-200 px-2 py-1 sm:px-3 sm:py-1.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] sm:text-xs text-gray-500">Categories</p>
+                <p className="text-base sm:text-lg font-bold text-purple-600">{PREDEFINED_CATEGORIES.length}</p>
+              </div>
+              <div className="p-1 bg-purple-100 rounded-lg">
+                <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600" />
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Mobile Stats Summary */}
+        <div className="sm:hidden grid grid-cols-4 gap-1.5 mb-2">
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 text-center">
+            <p className="text-[9px] text-gray-500">Total</p>
+            <p className="text-sm font-bold text-gray-900">{totalPostsCount}</p>
+          </div>
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 text-center">
+            <p className="text-[9px] text-gray-500">Pub</p>
+            <p className="text-sm font-bold text-green-600">{publishedPostsCount}</p>
+          </div>
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 text-center">
+            <p className="text-[9px] text-gray-500">Draft</p>
+            <p className="text-sm font-bold text-yellow-600">{draftPostsCount}</p>
+          </div>
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 text-center">
+            <p className="text-[9px] text-gray-500">Cats</p>
+            <p className="text-sm font-bold text-purple-600">{PREDEFINED_CATEGORIES.length}</p>
+          </div>
+        </div>
+
+        {/* Compact Search and Filter Bar */}
+        <div className="bg-white rounded p-1.5 sm:p-2">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-1.5 sm:gap-2">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search posts..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full pl-6 sm:pl-8 pr-2 sm:pr-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1">
+                <Filter className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 hidden sm:block" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value as any);
+                    setCurrentPage(1);
+                  }}
+                  className="px-1.5 py-1 sm:px-2 sm:py-1 text-[10px] sm:text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  <option value="all">All Status</option>
+                  <option value="published">Published</option>
+                  <option value="draft">Drafts</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 hidden sm:block" />
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="px-1.5 py-1 sm:px-2 sm:py-1 text-[10px] sm:text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  <option value="all">All Categories</option>
+                  {categoriesFromPosts.map(category => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <ArrowUpDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 hidden sm:block" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value as any);
+                    setCurrentPage(1);
+                  }}
+                  className="px-1.5 py-1 sm:px-2 sm:py-1 text-[10px] sm:text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                  <option value="views">Most Views</option>
+                  <option value="title">Title A-Z</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <span className="text-[9px] sm:text-xs text-gray-600 hidden sm:inline">Show:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-1.5 py-1 sm:px-2 sm:py-1 text-[10px] sm:text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                </select>
+                <span className="text-[9px] sm:text-xs text-gray-600 hidden sm:inline">per page</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+</div>
 
         {/* Bulk Actions Bar - Hide when sidebar is open on mobile */}
         {selectedPosts.length > 0 && (!isSidebarOpen || window.innerWidth >= 640) && (
@@ -940,7 +936,7 @@ await blogApi.delete(id);
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[calc(100vh-250px)] sm:max-h-[calc(100vh-300px)]">
+                <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[calc(100vh-370px)] sm:max-h-[calc(100vh-370px)]">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-20">
                       <tr>
@@ -1100,90 +1096,102 @@ await blogApi.delete(id);
                 </div>
 
                 {/* Pagination Controls */}
-                {filteredPosts.length > 0 && (
-                  <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-3 sm:px-4 py-2 sm:py-3 z-10">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
-                      <div className="text-xs sm:text-sm text-gray-700">
-                        <span className="hidden sm:inline">Showing </span>
-                        <span className="font-semibold">{indexOfFirstItem + 1}</span>
-                        <span className="hidden sm:inline"> to </span>
-                        <span className="sm:hidden">-</span>
-                        <span className="font-semibold">
-                          {Math.min(indexOfLastItem, filteredPosts.length)}
-                        </span>
-                        <span className="hidden sm:inline"> of </span>
-                        <span className="sm:hidden">/</span>
-                        <span className="font-semibold">{filteredPosts.length}</span>
-                        {(searchTerm || statusFilter !== 'all' || categoryFilter !== 'all') && (
-                          <span className="ml-1 sm:ml-2 text-blue-600 text-[10px] sm:text-xs hidden sm:inline">
-                            {searchTerm && `(Search: "${searchTerm}")`}
-                            {statusFilter !== 'all' && ` (Status: ${statusFilter})`}
-                            {categoryFilter !== 'all' && ` (Category: ${categoryFilter})`}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center justify-between sm:justify-start space-x-1 sm:space-x-2">
-                        <button
-                          onClick={prevPage}
-                          disabled={currentPage === 1}
-                          className="p-1.5 sm:p-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition"
-                        >
-                          <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
-                        
-                        <div className="flex items-center space-x-0.5 sm:space-x-1">
-                          {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-                            let pageNumber;
-                            if (totalPages <= 3) {
-                              pageNumber = i + 1;
-                            } else if (currentPage <= 2) {
-                              pageNumber = i + 1;
-                            } else if (currentPage >= totalPages - 1) {
-                              pageNumber = totalPages - 2 + i;
-                            } else {
-                              pageNumber = currentPage - 1 + i;
-                            }
-                            
-                            return (
-                              <button
-                                key={pageNumber}
-                                onClick={() => goToPage(pageNumber)}
-                                className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm rounded-lg transition ${
-                                  currentPage === pageNumber
-                                    ? 'bg-blue-600 text-white shadow-sm'
-                                    : 'border border-gray-300 text-gray-700 hover:bg-white hover:shadow-sm'
-                                }`}
-                              >
-                                {pageNumber}
-                              </button>
-                            );
-                          })}
-                          
-                          {totalPages > 3 && currentPage < totalPages - 1 && (
-                            <>
-                              <span className="px-0.5 sm:px-1 text-gray-500">...</span>
-                              <button
-                                onClick={() => goToPage(totalPages)}
-                                className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm transition"
-                              >
-                                {totalPages}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                        
-                        <button
-                          onClick={nextPage}
-                          disabled={currentPage === totalPages}
-                          className="p-1.5 sm:p-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition"
-                        >
-                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+               {filteredPosts.length > 0 && (
+  <div className="bg-gray-50 border-t border-gray-200 px-2 py-1.5 sm:px-4 sm:py-2">
+    <div className="flex items-center justify-between gap-1 sm:gap-2">
+      {/* Left side - Showing info compact */}
+      <div className="text-[9px] sm:text-xs text-gray-600 whitespace-nowrap">
+        <span className="hidden sm:inline">Showing </span>
+        <span className="font-semibold text-gray-800">{indexOfFirstItem + 1}</span>
+        <span className="hidden sm:inline"> - </span>
+        <span className="sm:hidden">-</span>
+        <span className="font-semibold text-gray-800">
+          {Math.min(indexOfLastItem, filteredPosts.length)}
+        </span>
+        <span className="hidden sm:inline"> of </span>
+        <span className="sm:hidden">/</span>
+        <span className="font-semibold text-gray-800">{filteredPosts.length}</span>
+        
+        {/* Filter indicators - compact */}
+        {(searchTerm || statusFilter !== 'all' || categoryFilter !== 'all') && (
+          <span className="ml-1 text-blue-600 text-[8px] sm:text-[10px] hidden sm:inline">
+            {searchTerm && `🔍 "${searchTerm.slice(0, 8)}${searchTerm.length > 8 ? '…' : ''}"`}
+            {statusFilter !== 'all' && ` • ${statusFilter === 'published' ? 'Pub' : 'Draft'}`}
+            {categoryFilter !== 'all' && ` • ${categoryFilter.slice(0, 10)}${categoryFilter.length > 10 ? '…' : ''}`}
+          </span>
+        )}
+      </div>
+      
+      {/* Pagination controls - compact row */}
+      <div className="flex items-center gap-0.5 sm:gap-1">
+        {/* Previous button */}
+        <button
+          onClick={prevPage}
+          disabled={currentPage === 1}
+          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+        </button>
+        
+        {/* Page numbers - Desktop */}
+        <div className="hidden sm:flex items-center gap-0.5 sm:gap-1">
+          {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+            let pageNumber;
+            if (totalPages <= 3) {
+              pageNumber = i + 1;
+            } else if (currentPage <= 2) {
+              pageNumber = i + 1;
+            } else if (currentPage >= totalPages - 1) {
+              pageNumber = totalPages - 2 + i;
+            } else {
+              pageNumber = currentPage - 1 + i;
+            }
+            
+            return (
+              <button
+                key={pageNumber}
+                onClick={() => goToPage(pageNumber)}
+                className={`min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs rounded-md transition ${
+                  currentPage === pageNumber
+                    ? 'bg-blue-600 text-white font-medium shadow-sm'
+                    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {pageNumber}
+              </button>
+            );
+          })}
+          
+          {totalPages > 3 && currentPage < totalPages - 1 && (
+            <>
+              <span className="text-gray-400 text-[10px] sm:text-xs px-0.5">...</span>
+              <button
+                onClick={() => goToPage(totalPages)}
+                className="min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition"
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+        </div>
+        
+        {/* Mobile: Current page indicator */}
+        <span className="sm:hidden text-[10px] font-medium text-gray-700 px-1">
+          {currentPage}/{totalPages}
+        </span>
+        
+        {/* Next button */}
+        <button
+          onClick={nextPage}
+          disabled={currentPage === totalPages}
+          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+        </button>
+      </div>
+    </div>
+  </div>
+)}
               </>
             )}
           </div>
@@ -1191,416 +1199,442 @@ await blogApi.delete(id);
       </div>
 
       {/* POST MODAL - Responsive */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black/50" onClick={handleCloseModal} />
-          <div className="flex min-h-full items-center justify-center p-2 sm:p-4">
-            <div className="relative bg-white rounded-lg sm:rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-4 sm:p-6">
-                <div className="flex justify-between items-center mb-4 sm:mb-6">
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-900">
-                      {editingPost ? 'Edit Post' : 'New Post'}
-                    </h2>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {formData.is_published ? 'Will be published immediately' : 'Will be saved as draft'}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className={`px-2 py-1 rounded text-xs font-medium ${
-                      formData.is_published 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {formData.is_published ? 'PUBLISHED' : 'DRAFT'}
-                    </div>
-                    <button
-                      onClick={() => setShowPreview(!showPreview)}
-                      className="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
-                    >
-                      {showPreview ? 'Edit' : 'Preview'}
-                    </button>
-                    <button
-                      onClick={handleCloseModal}
-                      className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg"
-                    >
-                      <X size={20} className="sm:size-[24px]" />
-                    </button>
-                  </div>
-                </div>
+     {isModalOpen && (
+  <div className="fixed inset-0 z-50 overflow-y-auto">
+    {/* Backdrop - Black */}
+    <div
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+      onClick={handleCloseModal}
+    />
 
-                {showPreview ? (
-                  <div className="p-4">
-                    <div className="max-w-3xl mx-auto">
-                      <img
-                        src={formData.featured_image || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1200'}
-                        alt="Preview"
-                        className="w-full h-32 sm:h-48 object-cover rounded-lg mb-4"
-                      />
-                      <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">
-                        {formData.title || 'Post Title'}
-                      </h1>
-                      <div className="flex flex-wrap items-center gap-3 text-gray-600 mb-6">
-                        <span className="flex items-center text-sm">
-                          <UserIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                          {formData.author_name || 'Author Name'}
-                        </span>
-                        <span className="flex items-center text-sm">
-                          <CalendarDays className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                          {new Date().toLocaleDateString()}
-                        </span>
-                        <span className="flex items-center text-sm">
-                          <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                          {formData.read_time}
-                        </span>
-                      </div>
-                      <div className="prose prose-sm sm:prose-lg max-w-none">
-                        <p className="text-lg sm:text-xl text-gray-700 mb-6">
-                          {formData.excerpt || 'Post excerpt will appear here...'}
-                        </p>
-                        <div dangerouslySetInnerHTML={{ 
-                          __html: formData.content.replace(/\n/g, '<br>') || 'Post content will appear here...' 
-                        }} />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-                    {/* Row 1: Title & Category */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Title *
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.title}
-                          onChange={(e) => setFormData({...formData, title: e.target.value})}
-                          className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                          required
-                          placeholder="Post title"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Category *
-                        </label>
-                        <select
-                          value={formData.category}
-                          onChange={(e) => setFormData({...formData, category: e.target.value})}
-                          className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                          required
-                        >
-                          <option value="">Select category</option>
-                          {PREDEFINED_CATEGORIES.map((category) => (
-                            <option key={category.id} value={category.name}>
-                              {category.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Row 2: Excerpt & Read Time */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Excerpt *
-                        </label>
-                        <textarea
-                          value={formData.excerpt}
-                          onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
-                          rows={2}
-                          className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                          required
-                          placeholder="Brief summary"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Read Time
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.read_time}
-                          onChange={(e) => setFormData({...formData, read_time: e.target.value})}
-                          className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                          placeholder="5 min read"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Row 3: Tags */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Tags
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.tags}
-                        onChange={(e) => setFormData({...formData, tags: e.target.value})}
-                        className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                        placeholder="technology, web, development"
-                      />
-                    </div>
-
-                    {/* Content */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Content *
-                        </label>
-                        <span className="text-xs text-gray-400">Supports markdown</span>
-                      </div>
-                      <textarea
-                        value={formData.content}
-                        onChange={(e) => setFormData({...formData, content: e.target.value})}
-                        rows={4}
-                        className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-mono"
-                        required
-                        placeholder="Write your content here..."
-                      />
-                    </div>
-
-                    {/* Featured Image + Settings */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-                      {/* Featured Image */}
-                      <div className="lg:col-span-2">
-                        <div className="bg-gray-50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-200">
-                          <label className="block text-sm font-medium text-gray-700 mb-3">
-                            Featured Image
-                          </label>
-                          
-                          {formData.featured_image ? (
-                            <div className="mb-4">
-                              <div className="relative">
-                                <img
-                                  src={formData.featured_image}
-                                  alt="Featured"
-                                  className="w-full h-32 sm:h-40 object-cover rounded-lg mb-2"
-onError={(e) => {
-  e.currentTarget.onerror = null;
-  e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" font-family="Arial" font-size="8" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
-}}
-                                />
-                                <div className="absolute top-2 right-2 flex space-x-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(formData.featured_image);
-                                      toast.success('URL copied!');
-                                    }}
-                                    className="p-1.5 bg-gray-800 text-white rounded hover:bg-gray-900"
-                                    title="Copy URL"
-                                  >
-                                    <Copy className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({...prev, featured_image: ''}))}
-                                    className="p-1.5 bg-red-600 text-white rounded hover:bg-red-700"
-                                    title="Remove"
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="flex gap-2 mt-3">
-                                <input
-                                  type="text"
-                                  value={formData.featured_image}
-                                  onChange={(e) => setFormData({...formData, featured_image: e.target.value})}
-                                  className="flex-1 px-3 py-1.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                                  placeholder="Enter image URL"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const img = new Image();
-                                    img.onload = () => toast.success('✅ Valid');
-                                    img.onerror = () => toast.error('❌ Invalid URL');
-                                    img.src = formData.featured_image;
-                                  }}
-                                  className="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                                >
-                                  Test
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="space-y-3">
-                              <div>
-                                <label className="block text-xs text-gray-600 mb-1">
-                                  Enter Image URL
-                                </label>
-                                <input
-                                  type="text"
-                                  value={formData.featured_image}
-                                  onChange={(e) => setFormData({...formData, featured_image: e.target.value})}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
-                                  placeholder="https://images.unsplash.com/..."
-                                />
-                              </div>
-                              
-                              <div className="relative">
-                                <div className="absolute inset-0 flex items-center">
-                                  <div className="w-full border-t border-gray-300"></div>
-                                </div>
-                                <div className="relative flex justify-center text-xs">
-                                  <span className="px-2 bg-gray-50 text-gray-500">OR</span>
-                                </div>
-                              </div>
-
-                              <div>
-                                <input
-                                  type="file"
-                                  ref={fileInputRef}
-                                  className="hidden"
-                                  accept="image/*"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handleImageUpload(file);
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => fileInputRef.current?.click()}
-                                  disabled={uploading}
-                                  className="w-full border border-dashed border-gray-300 rounded-lg p-3 text-center hover:border-gray-400 transition disabled:opacity-50"
-                                >
-                                  {uploading ? (
-                                    <div className="flex items-center justify-center space-x-2">
-                                      <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                                      <span className="text-sm">Uploading...</span>
-                                    </div>
-                                  ) : (
-                                    <div className="space-y-1">
-                                      <UploadIcon className="w-5 h-5 text-gray-400 mx-auto" />
-                                      <div className="text-sm font-medium">Click to upload</div>
-                                      <div className="text-xs text-gray-500">PNG, JPG, WebP up to 5MB</div>
-                                    </div>
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Publish & SEO Settings */}
-                      <div className="space-y-4 sm:space-y-6">
-                        {/* Publish Settings */}
-                        <div className="bg-gray-50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-200">
-                          <h3 className="text-sm font-semibold text-gray-800 mb-3">PUBLISH</h3>
-                          <label className="flex items-start space-x-3 cursor-pointer">
-                            <div className="flex items-center h-5">
-                              <input
-                                type="checkbox"
-                                checked={formData.is_published}
-                                onChange={(e) => setFormData({...formData, is_published: e.target.checked})}
-                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                              />
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium">
-                                {formData.is_published ? 'Published' : 'Save as Draft'}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {formData.is_published 
-                                  ? 'Post is publicly visible' 
-                                  : 'Post will be saved as draft'}
-                              </div>
-                            </div>
-                          </label>
-                        </div>
-
-                        {/* SEO Settings */}
-                        <div className="bg-gray-50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-200">
-                          <h3 className="text-sm font-semibold text-gray-800 mb-3">SEO</h3>
-                          <div className="space-y-3">
-                            <div>
-                              <label className="block text-xs text-gray-600 mb-1">
-                                Meta Title
-                              </label>
-                              <input
-                                type="text"
-                                value={formData.meta_title}
-                                onChange={(e) => setFormData({...formData, meta_title: e.target.value})}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
-                                placeholder="SEO title"
-                                maxLength={255}
-                              />
-                            </div>
-                            
-                            <div>
-                              <label className="block text-xs text-gray-600 mb-1">
-                                Meta Description
-                              </label>
-                              <textarea
-                                value={formData.meta_description}
-                                onChange={(e) => setFormData({...formData, meta_description: e.target.value})}
-                                rows={2}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
-                                placeholder="SEO description"
-                                maxLength={500}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-gray-200">
-                      <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
-                        <button
-                          type="button"
-                          onClick={handleCloseModal}
-                          className="px-3 sm:px-4 py-2 sm:py-2.5 text-sm border border-gray-300 rounded-lg sm:rounded-xl text-gray-700 hover:bg-gray-50 transition-colors order-2 sm:order-1"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          className={`px-3 sm:px-5 py-2 sm:py-2.5 text-sm rounded-lg sm:rounded-xl flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2 ${
-                            formData.is_published 
-                              ? 'bg-green-600 hover:bg-green-700 text-white' 
-                              : 'bg-gray-600 hover:bg-gray-700 text-white'
-                          }`}
-                          disabled={
-                            !formData.title ||
-                            !formData.excerpt ||
-                            !formData.content ||
-                            !formData.category
-                          }
-                        >
-                          {editingPost ? (
-                            <>
-                              <Save size={14} className="sm:size-[16px]" />
-                              <span>
-                                {formData.is_published ? 'Update & Publish' : 'Update as Draft'}
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <Plus size={14} className="sm:size-[16px]" />
-                              <span>
-                                {formData.is_published ? 'Create & Publish' : 'Save as Draft'}
-                              </span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </form>
-                )}
+    {/* Center wrapper */}
+    <div className="flex min-h-full items-center justify-center p-2 sm:p-3">
+      <div className="relative w-full max-w-[95%] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-3xl bg-white rounded-lg sm:rounded-xl shadow-lg">
+        
+        {/* ─── Header ─── */}
+        <div className="bg-gradient-to-r from-[#0D47A1] to-[#1976D2] rounded-t-lg sm:rounded-t-xl">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 sm:px-4 sm:py-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="bg-[#FFC107] rounded-md w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center font-bold text-[9px] sm:text-xs text-[#0D47A1] shrink-0">
+                bp
               </div>
+              <div>
+                <h2 className="text-white font-medium text-xs sm:text-sm">
+                  {editingPost ? 'Edit Post' : 'Add New Post'}
+                </h2>
+                <p className="text-white/70 text-[8px] sm:text-[10px] hidden sm:block">
+                  {editingPost ? 'Update post details' : 'Add a new post to your blog'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className={`px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-medium ${
+                formData.is_published 
+                  ? 'bg-green-500/20 text-green-100' 
+                  : 'bg-gray-500/20 text-gray-200'
+              }`}>
+                {formData.is_published ? 'PUBLISHED' : 'DRAFT'}
+              </div>
+              <button
+                onClick={() => setShowPreview(!showPreview)}
+                className="px-2 py-0.5 sm:px-2.5 sm:py-0.5 text-[8px] sm:text-[9px] border border-white/30 rounded text-white hover:bg-white/10 transition"
+              >
+                {showPreview ? 'Edit' : 'Preview'}
+              </button>
+              <button
+                onClick={handleCloseModal}
+                className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-white/30 bg-white/10 text-white flex items-center justify-center cursor-pointer shrink-0 hover:bg-white/20 transition"
+              >
+                <X size={10} className="sm:w-3 sm:h-3" />
+              </button>
             </div>
           </div>
         </div>
-      )}
+
+        {/* ─── Body - No Scroll on Desktop ─── */}
+        <div className="max-h-[70vh] sm:max-h-none overflow-y-auto sm:overflow-visible">
+          <div className="p-2.5 sm:p-4">
+            
+            {showPreview ? (
+              <div className="p-2 sm:p-4">
+                <div className="max-w-3xl mx-auto">
+                  <img
+                    src={formData.featured_image || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1200'}
+                    alt="Preview"
+                    className="w-full h-32 sm:h-48 object-cover rounded mb-3 sm:mb-4"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" font-family="Arial" font-size="8" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
+                    }}
+                  />
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">
+                    {formData.title || 'Post Title'}
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-gray-600 mb-3 sm:mb-4">
+                    <span className="flex items-center text-[10px] sm:text-xs">
+                      <UserIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
+                      {formData.author_name || 'Author Name'}
+                    </span>
+                    <span className="flex items-center text-[10px] sm:text-xs">
+                      <CalendarDays className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
+                      {new Date().toLocaleDateString()}
+                    </span>
+                    <span className="flex items-center text-[10px] sm:text-xs">
+                      <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
+                      {formData.read_time}
+                    </span>
+                  </div>
+                  <div className="prose prose-sm sm:prose max-w-none">
+                    <p className="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4">
+                      {formData.excerpt || 'Post excerpt will appear here...'}
+                    </p>
+                    <div dangerouslySetInnerHTML={{ 
+                      __html: formData.content.replace(/\n/g, '<br>') || 'Post content will appear here...' 
+                    }} />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-3">
+
+                {/* ROW 1: Title & Category */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
+                  <div>
+                    <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                      Title <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.title}
+                      onChange={(e) => setFormData({...formData, title: e.target.value})}
+                      className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+                      required
+                      placeholder="Post title"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                      Category <span className="text-red-600">*</span>
+                    </label>
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({...formData, category: e.target.value})}
+                      className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+                      required
+                    >
+                      <option value="">Select category</option>
+                      {PREDEFINED_CATEGORIES.map((category) => (
+                        <option key={category.id} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* ROW 2: Excerpt & Read Time */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
+                  <div>
+                    <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                      Excerpt <span className="text-red-600">*</span>
+                    </label>
+                    <textarea
+                      value={formData.excerpt}
+                      onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
+                      rows={2}
+                      className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] resize-none"
+                      required
+                      placeholder="Brief summary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                      Read Time
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.read_time}
+                      onChange={(e) => setFormData({...formData, read_time: e.target.value})}
+                      className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+                      placeholder="5 min read"
+                    />
+                  </div>
+                </div>
+
+                {/* ROW 3: Tags */}
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                    Tags
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.tags}
+                    onChange={(e) => setFormData({...formData, tags: e.target.value})}
+                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+                    placeholder="technology, web, development"
+                  />
+                </div>
+
+                {/* Content */}
+                <div>
+                  <div className="flex justify-between items-center mb-0.5">
+                    <label className="block text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                      Content <span className="text-red-600">*</span>
+                    </label>
+                    <span className="text-[7px] sm:text-[9px] text-gray-400">Supports markdown</span>
+                  </div>
+                  <textarea
+                    value={formData.content}
+                    onChange={(e) => setFormData({...formData, content: e.target.value})}
+                    rows={4}
+                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] font-mono resize-none"
+                    required
+                    placeholder="Write your content here..."
+                  />
+                </div>
+
+                {/* Divider */}
+                <hr className="border-t border-gray-100 my-1" />
+
+                {/* Featured Image + Settings */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-3">
+                  {/* Featured Image */}
+                  <div className="lg:col-span-2">
+                    <div className="bg-[#fafbff] rounded border border-gray-200 p-2 sm:p-3">
+                      <label className="block mb-1.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                        Featured Image
+                      </label>
+                      
+                      {formData.featured_image ? (
+                        <div className="mb-2 sm:mb-3">
+                          <div className="relative">
+                            <img
+                              src={formData.featured_image}
+                              alt="Featured"
+                              className="w-full h-28 sm:h-36 object-cover rounded mb-1.5"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" font-family="Arial" font-size="8" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                            <div className="absolute top-1 right-1 flex gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(formData.featured_image);
+                                  toast.success('URL copied!');
+                                }}
+                                className="p-1 bg-gray-800 text-white rounded hover:bg-gray-900 transition"
+                                title="Copy URL"
+                              >
+                                <Copy className="w-2.5 h-2.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({...prev, featured_image: ''}))}
+                                className="p-1 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                                title="Remove"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-1.5 mt-2">
+                            <input
+                              type="text"
+                              value={formData.featured_image}
+                              onChange={(e) => setFormData({...formData, featured_image: e.target.value})}
+                              className="flex-1 px-2 py-0.5 text-[9px] sm:text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 bg-white"
+                              placeholder="Enter image URL"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const img = new Image();
+                                img.onload = () => toast.success('✅ Valid');
+                                img.onerror = () => toast.error('❌ Invalid URL');
+                                img.src = formData.featured_image;
+                              }}
+                              className="px-2 py-0.5 text-[9px] bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
+                            >
+                              Test
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div>
+                            <label className="block text-[8px] sm:text-[9px] text-gray-600 mb-0.5">
+                              Enter Image URL
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.featured_image}
+                              onChange={(e) => setFormData({...formData, featured_image: e.target.value})}
+                              className="w-full px-2 py-1 text-[10px] sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 bg-white"
+                              placeholder="https://images.unsplash.com/..."
+                            />
+                          </div>
+                          
+                          <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                              <div className="w-full border-t border-gray-300"></div>
+                            </div>
+                            <div className="relative flex justify-center text-[8px] sm:text-[9px]">
+                              <span className="px-2 bg-[#fafbff] text-gray-500">OR</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <input
+                              type="file"
+                              ref={fileInputRef}
+                              className="hidden"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(file);
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={uploading}
+                              className="w-full border border-dashed border-gray-300 rounded p-2 text-center hover:border-gray-400 transition disabled:opacity-50 bg-white"
+                            >
+                              {uploading ? (
+                                <div className="flex items-center justify-center gap-1">
+                                  <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
+                                  <span className="text-[9px] sm:text-[10px]">Uploading...</span>
+                                </div>
+                              ) : (
+                                <div className="space-y-0.5">
+                                  <UploadIcon className="w-4 h-4 text-gray-400 mx-auto" />
+                                  <div className="text-[9px] sm:text-[10px] font-medium">Click to upload</div>
+                                  <div className="text-[7px] sm:text-[8px] text-gray-500">PNG, JPG, WebP up to 5MB</div>
+                                </div>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Publish & SEO Settings */}
+                  <div className="space-y-2 sm:space-y-3">
+                    {/* Publish Settings */}
+                    <div className="bg-[#fafbff] rounded border border-gray-200 p-2 sm:p-3">
+                      <h3 className="text-[9px] sm:text-[10px] font-semibold text-gray-700 mb-1.5">PUBLISH</h3>
+                      <label className="flex items-start gap-1.5 cursor-pointer">
+                        <div className="flex items-center h-3.5">
+                          <input
+                            type="checkbox"
+                            checked={formData.is_published}
+                            onChange={(e) => setFormData({...formData, is_published: e.target.checked})}
+                            className="w-3 h-3 text-blue-600 rounded focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <div className="text-[9px] sm:text-[10px] font-medium">
+                            {formData.is_published ? 'Published' : 'Save as Draft'}
+                          </div>
+                          <div className="text-[7px] sm:text-[8px] text-gray-500">
+                            {formData.is_published 
+                              ? 'Post is publicly visible' 
+                              : 'Post will be saved as draft'}
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+
+                    {/* SEO Settings */}
+                    <div className="bg-[#fafbff] rounded border border-gray-200 p-2 sm:p-3">
+                      <h3 className="text-[9px] sm:text-[10px] font-semibold text-gray-700 mb-1.5">SEO</h3>
+                      <div className="space-y-1.5">
+                        <div>
+                          <label className="block text-[7px] sm:text-[8px] text-gray-600 mb-0.5">
+                            Meta Title
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.meta_title}
+                            onChange={(e) => setFormData({...formData, meta_title: e.target.value})}
+                            className="w-full px-2 py-0.5 text-[8px] sm:text-[9px] border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 bg-white"
+                            placeholder="SEO title"
+                            maxLength={255}
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-[7px] sm:text-[8px] text-gray-600 mb-0.5">
+                            Meta Description
+                          </label>
+                          <textarea
+                            value={formData.meta_description}
+                            onChange={(e) => setFormData({...formData, meta_description: e.target.value})}
+                            rows={1}
+                            className="w-full px-2 py-0.5 text-[8px] sm:text-[9px] border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 bg-white resize-none"
+                            placeholder="SEO description"
+                            maxLength={500}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <hr className="border-t border-gray-100 my-1" />
+
+                {/* Form Actions */}
+                <div className="flex justify-end gap-1.5 sm:gap-2 pt-1.5">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="px-2 py-1 sm:px-3 sm:py-1 border border-gray-300 rounded text-[9px] sm:text-xs text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-[9px] sm:text-xs flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed transition ${
+                      formData.is_published 
+                        ? 'bg-green-600 hover:bg-green-700 text-white' 
+                        : 'bg-gray-600 hover:bg-gray-700 text-white'
+                    }`}
+                    disabled={
+                      !formData.title ||
+                      !formData.excerpt ||
+                      !formData.content ||
+                      !formData.category
+                    }
+                  >
+                    {editingPost ? (
+                      <>
+                        <Save size={10} className="sm:w-3 sm:h-3" />
+                        <span>{formData.is_published ? 'Update' : 'Update Draft'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={10} className="sm:w-3 sm:h-3" />
+                        <span>{formData.is_published ? 'Create' : 'Save Draft'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+              </form>
+            )}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };

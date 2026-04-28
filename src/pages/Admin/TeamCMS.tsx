@@ -573,7 +573,7 @@ const handleBulkToggleActive = async (activate: boolean) => {
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white ">
       <Toaster
         position="top-right"
         toastOptions={{
@@ -607,226 +607,155 @@ const handleBulkToggleActive = async (activate: boolean) => {
         }`}
       >
         {/* Header - Fixed with sidebar consideration */}
-        <div
-          className={`${
-            isSidebarOpen
-              ? "relative sm:sticky sm:top-4 lg:top-16"
-              : "sticky top-0 sm:top-4 lg:top-16"
-          } z-30 bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4`}
-        >
-          {/* Blue Title Section */}
-          <div className="bg-blue-200 text-black rounded-t-lg sm:rounded-t-xl">
-            <div className="px-3 sm:px-4 py-2 sm:py-3">
-              <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <div className="bg-white/20 p-1.5 sm:p-2 rounded-md sm:rounded-lg">
-                    <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="flex flex-col">
-                    <h1 className="text-sm sm:text-base lg:text-lg font-bold tracking-tight truncate">
-                      Team Management
-                    </h1>
-                    <p className="text-black text-[10px] sm:text-xs mt-0.5 hidden sm:block">
-                      Manage your team members and their profiles
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="sm:hidden bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-lg transition"
-                >
-                  <Plus size={18} />
-                </button>
-              </div>
+       <div
+  className={`${
+    isSidebarOpen
+      ? "relative sm:sticky sm:top-4 lg:top-16"
+      : "sticky top-0 sm:top-4 lg:top-16"
+  } z-30 bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4`}
+>
+  {/* Blue Title Section */}
+  <div className="bg-blue-200 text-black rounded-t-lg sm:rounded-t-xl">
+    <div className="px-2 py-1.5 sm:px-3 sm:py-2">
+      <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-2">
+        <div className="flex items-center space-x-2">
+          <div className="bg-white/20 p-1 rounded-md">
+            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </div>
+          <h1 className="text-sm sm:text-base font-bold tracking-tight">
+            Team Management
+          </h1>
+        </div>
+        <button
+              onClick={() => setIsModalOpen(true)}
+              className="sm:hidden flex bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-2 rounded-md items-center gap-1.5 text-xs"
+            >
+              <Plus size={14} />
+              <span>Add Member</span>
+            </button>
+      </div>
+    </div>
+  </div>
+
+  {/* White Content Section - Show only when sidebar is closed on mobile */}
+  {(!isSidebarOpen || window.innerWidth >= 640) && (
+    <div className="bg-white rounded-b-lg sm:rounded-b-xl">
+      <div className="px-2 py-2 sm:px-3 sm:py-2.5">
+        {/* Header with Actions */}
+        <div className="flex flex-row justify-between items-center gap-1.5 mb-2 sm:mb-2.5">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-xs sm:text-sm font-semibold text-gray-800">
+              Team Members ({teamMembers.length})
+            </h2>
+            <span className="text-[11px] text-gray-500 hidden sm:inline">Manage your team</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="hidden sm:flex bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-md items-center gap-1.5 text-xs"
+            >
+              <Plus size={14} />
+              <span>Add Member</span>
+            </button>
+            <div className="sm:hidden flex items-center gap-1.5">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-1 rounded ${
+                  viewMode === "grid"
+                    ? "bg-blue-100 text-blue-600"
+                    : "text-gray-600"
+                }`}
+              >
+                <Grid size={16} />
+              </button>
+              <button
+                onClick={() => setViewMode("table")}
+                className={`p-1 rounded ${
+                  viewMode === "table"
+                    ? "bg-blue-100 text-blue-600"
+                    : "text-gray-600"
+                }`}
+              >
+                <List size={16} />
+              </button>
             </div>
           </div>
-
-          {/* White Content Section - Show only when sidebar is closed on mobile */}
-          {(!isSidebarOpen || window.innerWidth >= 640) && (
-            <div className="bg-white rounded-b-lg sm:rounded-b-xl">
-              <div className="px-3 sm:px-4 pt-2 sm:pt-3 pb-3 sm:pb-4">
-                {/* Header with Actions */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div>
-                    <h2 className="text-sm sm:text-base font-semibold text-gray-800">
-                      All Team Members ({teamMembers.length})
-                    </h2>
-                    <p className="text-[10px] sm:text-xs text-gray-600 hidden sm:block">
-                      Add, edit, and organize your team members
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2 w-full sm:w-auto">
-                    <button
-                      onClick={() => setIsModalOpen(true)}
-                      className="hidden sm:flex bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg items-center space-x-2 transition-all duration-200 shadow-sm text-xs sm:text-sm w-full sm:w-auto justify-center"
-                    >
-                      <Plus size={16} className="sm:size-[18px]" />
-                      <span className="font-medium">Add Member</span>
-                    </button>
-                    <div className="sm:hidden flex items-center space-x-2 ml-auto">
-                      <button
-                        onClick={() => setViewMode("grid")}
-                        className={`p-1.5 rounded ${
-                          viewMode === "grid"
-                            ? "bg-blue-100 text-blue-600"
-                            : "text-gray-600"
-                        }`}
-                      >
-                        <Grid size={18} />
-                      </button>
-                      <button
-                        onClick={() => setViewMode("table")}
-                        className={`p-1.5 rounded ${
-                          viewMode === "table"
-                            ? "bg-blue-100 text-blue-600"
-                            : "text-gray-600"
-                        }`}
-                      >
-                        <List size={18} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Compact Stats Cards - Hide on mobile, show on tablet+ */}
-                <div className="hidden sm:grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="bg-white rounded border border-gray-200 p-2 sm:p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] sm:text-xs text-gray-500">
-                          Total
-                        </p>
-                        <p className="text-lg sm:text-xl font-bold text-gray-900">
-                          {totalMembers}
-                        </p>
-                      </div>
-                      <div className="p-1 sm:p-1.5 bg-blue-100 rounded-lg">
-                        <div className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex items-center justify-center text-xs sm:text-sm font-bold">
-                          {totalMembers}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded border border-gray-200 p-2 sm:p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] sm:text-xs text-gray-500">
-                          Active
-                        </p>
-                        <p className="text-lg sm:text-xl font-bold text-green-600">
-                          {activeMembers}
-                        </p>
-                      </div>
-                      <div className="p-1 sm:p-1.5 bg-green-100 rounded-lg">
-                        <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded border border-gray-200 p-2 sm:p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] sm:text-xs text-gray-500">
-                          Inactive
-                        </p>
-                        <p className="text-lg sm:text-xl font-bold text-gray-600">
-                          {inactiveMembers}
-                        </p>
-                      </div>
-                      <div className="p-1 sm:p-1.5 bg-gray-100 rounded-lg">
-                        <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mobile Stats Summary */}
-                <div className="sm:hidden grid grid-cols-3 gap-2 mb-3">
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Total</p>
-                    <p className="text-base font-bold text-gray-900">
-                      {totalMembers}
-                    </p>
-                  </div>
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Active</p>
-                    <p className="text-base font-bold text-green-600">
-                      {activeMembers}
-                    </p>
-                  </div>
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Inactive</p>
-                    <p className="text-base font-bold text-gray-600">
-                      {inactiveMembers}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Compact Search and Filter Bar */}
-                <div className="bg-white rounded p-2 sm:p-3">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-3">
-                    <div className="flex-1">
-                      <div className="relative">
-                        <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Search team members..."
-                          value={searchTerm}
-                          onChange={(e) => {
-                            setSearchTerm(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                          className="w-full pl-7 sm:pl-9 pr-3 sm:pr-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <Filter className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 hidden sm:block" />
-                        <select
-                          value={statusFilter}
-                          onChange={(e) => {
-                            setStatusFilter(e.target.value as any);
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="all">All</option>
-                          <option value="active">Active</option>
-                          <option value="inactive">Inactive</option>
-                        </select>
-                      </div>
-
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <span className="text-xs text-gray-600 hidden sm:inline">
-                          Show:
-                        </span>
-                        <select
-                          value={itemsPerPage}
-                          onChange={(e) => {
-                            setItemsPerPage(Number(e.target.value));
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="5">5</option>
-                          <option value="10">10</option>
-                          <option value="25">25</option>
-                        </select>
-                        <span className="text-xs text-gray-600 hidden sm:inline">
-                          per page
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
+        {/* Stats Cards - Responsive */}
+        <div className="grid grid-cols-3 gap-1.5 mb-2 sm:mb-3">
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 sm:p-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] sm:text-xs text-gray-500">Total</p>
+              <p className="text-sm sm:text-base font-bold text-gray-900">{totalMembers}</p>
+            </div>
+          </div>
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 sm:p-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] sm:text-xs text-gray-500">Active</p>
+              <p className="text-sm sm:text-base font-bold text-green-600">{activeMembers}</p>
+            </div>
+          </div>
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 sm:p-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] sm:text-xs text-gray-500">Inactive</p>
+              <p className="text-sm sm:text-base font-bold text-gray-600">{inactiveMembers}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Search and Filter Bar */}
+        <div className="bg-white rounded">
+          <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search team members..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full pl-6 sm:pl-8 pr-2 sm:pr-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as any);
+                  setCurrentPage(1);
+                }}
+                className="px-1.5 py-1 sm:px-2 sm:py-1.5 text-xs sm:text-sm border border-gray-300 rounded bg-white"
+              >
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-1.5 py-1 sm:px-2 sm:py-1.5 text-xs sm:text-sm border border-gray-300 rounded bg-white"
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+</div>
         {/* Bulk Actions Bar - Hide when sidebar is open on mobile */}
         {selectedMembers.length > 0 &&
           (!isSidebarOpen || window.innerWidth >= 640) && (
@@ -1008,7 +937,7 @@ const handleBulkToggleActive = async (activate: boolean) => {
                 </div>
               ) : (
                 <>
-                  <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[calc(100vh-250px)] sm:max-h-[calc(100vh-300px)]">
+                  <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[calc(100vh-320px)] sm:max-h-[calc(100vh-340px)]">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky z-20">
                         <tr>
@@ -1269,99 +1198,101 @@ const handleBulkToggleActive = async (activate: boolean) => {
                   </div>
 
                   {/* Pagination Controls */}
-                  {filteredMembers.length > 0 && (
-                    <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-3 sm:px-6 py-2 sm:py-4 z-10">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
-                        <div className="text-xs sm:text-sm text-gray-700">
-                          <span className="hidden sm:inline">Showing </span>
-                          <span className="font-semibold">
-                            {indexOfFirstItem + 1}
-                          </span>
-                          <span className="hidden sm:inline"> to </span>
-                          <span className="sm:hidden">-</span>
-                          <span className="font-semibold">
-                            {Math.min(indexOfLastItem, filteredMembers.length)}
-                          </span>
-                          <span className="hidden sm:inline"> of </span>
-                          <span className="sm:hidden">/</span>
-                          <span className="font-semibold">
-                            {filteredMembers.length}
-                          </span>
-                          {(searchTerm || statusFilter !== "all") && (
-                            <span className="ml-1 sm:ml-2 text-blue-600 text-[10px] sm:text-xs hidden sm:inline">
-                              {searchTerm && `(Search: "${searchTerm}")`}
-                              {statusFilter !== "all" &&
-                                ` (Filter: ${statusFilter})`}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between sm:justify-start space-x-1 sm:space-x-2">
-                          <button
-                            onClick={prevPage}
-                            disabled={currentPage === 1}
-                            className="p-1.5 sm:p-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition"
-                          >
-                            <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-                          </button>
-
-                          <div className="flex items-center space-x-0.5 sm:space-x-1">
-                            {Array.from(
-                              { length: Math.min(3, totalPages) },
-                              (_, i) => {
-                                let pageNumber;
-                                if (totalPages <= 3) {
-                                  pageNumber = i + 1;
-                                } else if (currentPage <= 2) {
-                                  pageNumber = i + 1;
-                                } else if (currentPage >= totalPages - 1) {
-                                  pageNumber = totalPages - 2 + i;
-                                } else {
-                                  pageNumber = currentPage - 1 + i;
-                                }
-
-                                return (
-                                  <button
-                                    key={pageNumber}
-                                    onClick={() => goToPage(pageNumber)}
-                                    className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm rounded-lg transition ${
-                                      currentPage === pageNumber
-                                        ? "bg-blue-600 text-white shadow-sm"
-                                        : "border border-gray-300 text-gray-700 hover:bg-white hover:shadow-sm"
-                                    }`}
-                                  >
-                                    {pageNumber}
-                                  </button>
-                                );
-                              }
-                            )}
-
-                            {totalPages > 3 && currentPage < totalPages - 1 && (
-                              <>
-                                <span className="px-0.5 sm:px-1 text-gray-500">
-                                  ...
-                                </span>
-                                <button
-                                  onClick={() => goToPage(totalPages)}
-                                  className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm transition"
-                                >
-                                  {totalPages}
-                                </button>
-                              </>
-                            )}
-                          </div>
-
-                          <button
-                            onClick={nextPage}
-                            disabled={currentPage === totalPages}
-                            className="p-1.5 sm:p-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition"
-                          >
-                            <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                 {filteredMembers.length > 0 && (
+  <div className="bg-gray-50 border-t border-gray-200 px-2 py-1.5 sm:px-4 sm:py-2">
+    <div className="flex items-center justify-between gap-1 sm:gap-2">
+      {/* Left side - Showing info compact */}
+      <div className="text-[9px] sm:text-xs text-gray-600 whitespace-nowrap">
+        <span className="hidden sm:inline">Showing </span>
+        <span className="font-semibold text-gray-800">{indexOfFirstItem + 1}</span>
+        <span className="hidden sm:inline"> - </span>
+        <span className="sm:hidden">-</span>
+        <span className="font-semibold text-gray-800">
+          {Math.min(indexOfLastItem, filteredMembers.length)}
+        </span>
+        <span className="hidden sm:inline"> of </span>
+        <span className="sm:hidden">/</span>
+        <span className="font-semibold text-gray-800">{filteredMembers.length}</span>
+        
+        {/* Filter indicators - compact */}
+        {(searchTerm || statusFilter !== "all") && (
+          <span className="ml-1 text-blue-600 text-[8px] sm:text-[10px] hidden sm:inline">
+            {searchTerm && `🔍 "${searchTerm.slice(0, 8)}${searchTerm.length > 8 ? '…' : ''}"`}
+            {statusFilter !== "all" && ` • ${statusFilter === 'active' ? 'Act' : 'Inact'}`}
+          </span>
+        )}
+      </div>
+      
+      {/* Pagination controls - compact row */}
+      <div className="flex items-center gap-0.5 sm:gap-1">
+        {/* Previous button */}
+        <button
+          onClick={prevPage}
+          disabled={currentPage === 1}
+          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+        </button>
+        
+        {/* Page numbers - Desktop */}
+        <div className="hidden sm:flex items-center gap-0.5 sm:gap-1">
+          {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+            let pageNumber;
+            if (totalPages <= 3) {
+              pageNumber = i + 1;
+            } else if (currentPage <= 2) {
+              pageNumber = i + 1;
+            } else if (currentPage >= totalPages - 1) {
+              pageNumber = totalPages - 2 + i;
+            } else {
+              pageNumber = currentPage - 1 + i;
+            }
+            
+            return (
+              <button
+                key={pageNumber}
+                onClick={() => goToPage(pageNumber)}
+                className={`min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs rounded-md transition ${
+                  currentPage === pageNumber
+                    ? 'bg-blue-600 text-white font-medium shadow-sm'
+                    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {pageNumber}
+              </button>
+            );
+          })}
+          
+          {totalPages > 3 && currentPage < totalPages - 1 && (
+            <>
+              <span className="text-gray-400 text-[10px] sm:text-xs px-0.5">...</span>
+              <button
+                onClick={() => goToPage(totalPages)}
+                className="min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition"
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+        </div>
+        
+        {/* Mobile: Current page indicator */}
+        <span className="sm:hidden text-[10px] font-medium text-gray-700 px-1">
+          {currentPage}/{totalPages}
+        </span>
+        
+        {/* Next button */}
+        <button
+          onClick={nextPage}
+          disabled={currentPage === totalPages}
+          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+        </button>
+      </div>
+    </div>
+  </div>
+)}
                 </>
               )}
             </div>
@@ -1369,263 +1300,273 @@ const handleBulkToggleActive = async (activate: boolean) => {
       </div>
 
       {/* Modal - Responsive */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div
-            className="fixed inset-0 bg-black/50"
-            onClick={handleCloseModal}
-          />
-          <div className="flex min-h-full items-center justify-center p-2 sm:p-4">
-            <div className="relative bg-white rounded-lg sm:rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-4 sm:p-6">
-                <div className="flex justify-between items-center mb-4 sm:mb-6">
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">
-                    {editingMember ? "Edit Team Member" : "Add New Team Member"}
-                  </h2>
-                  <button
-                    onClick={handleCloseModal}
-                    className="text-gray-400 hover:text-gray-600 transition"
-                  >
-                    <X size={20} className="sm:size-[24px]" />
-                  </button>
+    {isModalOpen && (
+  <div className="fixed inset-0 z-50 overflow-y-auto">
+    {/* Backdrop - Black */}
+    <div
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+      onClick={handleCloseModal}
+    />
+
+    {/* Center wrapper */}
+    <div className="flex min-h-full items-center justify-center p-2 sm:p-3">
+      <div className="relative w-full max-w-[95%] sm:max-w-2xl md:max-w-3xl lg:max-w-2xl bg-white rounded-lg sm:rounded-xl shadow-lg">
+        
+        {/* ─── Header ─── */}
+        <div className="bg-gradient-to-r from-[#0D47A1] to-[#1976D2] rounded-t-lg sm:rounded-t-xl">
+          <div className="flex items-center justify-between px-2.5 py-1.5 sm:px-4 sm:py-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="bg-[#FFC107] rounded-md w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center font-bold text-[9px] sm:text-xs text-[#0D47A1] shrink-0">
+                tm
+              </div>
+              <div>
+                <h2 className="text-white font-medium text-xs sm:text-sm">
+                  {editingMember ? "Edit Team Member" : "Add New Team Member"}
+                </h2>
+                <p className="text-white/70 text-[8px] sm:text-[10px] hidden sm:block">
+                  {editingMember ? "Update team member details" : "Add a new member to your team"}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleCloseModal}
+              className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-white/30 bg-white/10 text-white flex items-center justify-center cursor-pointer shrink-0 hover:bg-white/20 transition"
+            >
+              <X size={10} className="sm:w-3 sm:h-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* ─── Scrollable Body ─── */}
+        <div className="max-h-[70vh] sm:max-h-[75vh] overflow-y-auto">
+          <div className="p-2.5 sm:p-4">
+            <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-3">
+
+              {/* ROW 1: Name + Role */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                    Name <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="John Doe"
+                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+                    required
+                  />
                 </div>
 
-                <form
-                  onSubmit={handleSubmit}
-                  className="space-y-4 sm:space-y-5"
-                >
-                  {/* ROW 1: Name + Role */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Name *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        placeholder="John Doe"
-                        className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                        required
-                      />
-                    </div>
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                    Role <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    placeholder="Senior Developer"
+                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+                    required
+                  />
+                </div>
+              </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Role *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.role}
-                        onChange={(e) =>
-                          setFormData({ ...formData, role: e.target.value })
-                        }
-                        placeholder="Senior Developer"
-                        className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                        required
-                      />
-                    </div>
-                  </div>
+              {/* ROW 2: Description */}
+              <div>
+                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                  Description
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Brief description about the team member's role and expertise..."
+                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] resize-none"
+                />
+              </div>
 
-                  {/* ROW 2: Description */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={formData.description}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          description: e.target.value,
-                        })
-                      }
-                      placeholder="Brief description about the team member's role and expertise..."
-                      className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl resize-none focus:ring-2 focus:ring-blue-500 transition text-sm"
+              {/* Divider */}
+              <hr className="border-t border-gray-100 my-1" />
+
+              {/* ROW 3: Image + Preview */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                {/* Image Input */}
+                <div className="sm:col-span-2">
+                  <label className="block mb-1 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                    Profile Image <span className="text-red-600">*</span>
+                  </label>
+
+                  <div className="border border-dashed border-gray-300 rounded-lg p-2 sm:p-3 text-center bg-[#fafbff]">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      className="hidden"
                     />
-                  </div>
 
-                  {/* ROW 3: Image + Preview */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5">
-                    {/* Image Input */}
-                    <div className="lg:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Profile Image *
-                      </label>
-
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center">
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={handleFileChange}
-                          accept="image/*"
-                          className="hidden"
-                        />
-
-                        {!selectedFile && !formData.image_url ? (
+                    {!selectedFile && !formData.image_url ? (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-[9px] sm:text-xs text-blue-600 font-medium hover:underline"
+                      >
+                        Click to browse image
+                      </button>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                        <span className="text-[9px] sm:text-xs text-gray-700 truncate">
+                          {selectedFile ? selectedFile.name : "Image selected"}
+                        </span>
+                        <div className="flex gap-1.5">
                           <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="text-blue-600 text-xs sm:text-sm font-medium hover:underline"
+                            className="px-2 py-0.5 sm:px-2.5 sm:py-1 border border-gray-300 text-gray-700 rounded-lg text-[8px] sm:text-[9px] hover:bg-gray-50 transition"
                           >
-                            Click to browse image
+                            Change
                           </button>
-                        ) : (
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <span className="text-xs sm:text-sm text-gray-700 truncate">
-                              {selectedFile
-                                ? selectedFile.name
-                                : "Image selected"}
-                            </span>
-                            <div className="flex space-x-2">
-                              <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-300 text-gray-700 rounded-lg text-xs sm:text-sm hover:bg-gray-50"
-                              >
-                                Change
-                              </button>
-                              {selectedFile && (
-                                <button
-                                  type="button"
-                                  onClick={handleImageUpload}
-                                  disabled={uploadingImage}
-                                  className="px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-600 text-white rounded-lg text-xs sm:text-sm hover:bg-blue-700 disabled:opacity-50"
-                                >
-                                  {uploadingImage ? "Uploading..." : "Upload"}
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                          {selectedFile && (
+                            <button
+                              type="button"
+                              onClick={handleImageUpload}
+                              disabled={uploadingImage}
+                              className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-blue-600 text-white rounded-lg text-[8px] sm:text-[9px] hover:bg-blue-700 disabled:opacity-50 transition"
+                            >
+                              {uploadingImage ? "Uploading..." : "Upload"}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-
-                    {/* Preview */}
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">
-                        Preview
-                      </p>
-                      <div className="h-24 sm:h-32 rounded-lg sm:rounded-xl border bg-gray-100 overflow-hidden">
-                        {(formData.image_url || imagePreview) && (
-                          <img
-                            src={imagePreview || formData.image_url}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                      </div>
-                    </div>
+                    )}
                   </div>
+                </div>
 
-                  {/* ROW 4: Social Links */}
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Social Links (Max 3)
-                      </label>
-                      <button
-                        type="button"
-                        onClick={addSocialLink}
-                        disabled={socialLinks.length >= 3}
-                        className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400"
-                      >
-                        + Add Link
-                      </button>
-                    </div>
-
-                    {socialLinks.map((link, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center space-x-2 mb-2"
-                      >
-                        <select
-                          value={link.platform}
-                          onChange={(e) =>
-                            updateSocialLink(index, "platform", e.target.value)
-                          }
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                        >
-                          <option value="linkedin">LinkedIn</option>
-                          <option value="instagram">Instagram</option>
-                          <option value="whatsapp">WhatsApp</option>
-                        </select>
-                        <input
-                          type={link.platform === "whatsapp" ? "text" : "url"}
-                          value={link.url}
-                          onChange={(e) =>
-                            updateSocialLink(index, "url", e.target.value)
-                          }
-                          placeholder={
-                            link.platform === "whatsapp"
-                              ? "Enter phone number (e.g., +1234567890)"
-                              : "Enter URL"
-                          }
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeSocialLink(index)}
-                          className="p-2 text-red-600 hover:text-red-800 transition"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    ))}
-                    <p className="text-xs text-gray-500 mt-1">
-                      For WhatsApp: Enter phone number with country code (e.g.,
-                      +1234567890)
-                    </p>
+                {/* Preview */}
+                <div>
+                  <p className="text-[9px] sm:text-xs font-medium text-[#0D47A1] mb-1">
+                    Preview
+                  </p>
+                  <div className="h-20 sm:h-24 rounded-lg border border-gray-200 bg-gray-100 overflow-hidden">
+                    {(formData.image_url || imagePreview) && (
+                      <img
+                        src={imagePreview || formData.image_url}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                   </div>
+                </div>
+              </div>
 
-                  {/* ROW 5: Active Status */}
-                  <div className="flex items-center space-x-2 sm:space-x-3">
+              {/* Divider */}
+              <hr className="border-t border-gray-100 my-1" />
+
+              {/* ROW 4: Social Links */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                    Social Links (Max 3)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addSocialLink}
+                    disabled={socialLinks.length >= 3}
+                    className="text-[8px] sm:text-[9px] text-blue-600 hover:text-blue-800 disabled:text-gray-400 transition"
+                  >
+                    + Add Link
+                  </button>
+                </div>
+
+                {socialLinks.map((link, index) => (
+                  <div key={index} className="flex items-center gap-1.5 mb-1.5">
+                    <select
+                      value={link.platform}
+                      onChange={(e) => updateSocialLink(index, "platform", e.target.value)}
+                      className="px-2 py-1 sm:px-2.5 sm:py-1 text-[9px] sm:text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff]"
+                    >
+                      <option value="linkedin">LinkedIn</option>
+                      <option value="instagram">Instagram</option>
+                      <option value="whatsapp">WhatsApp</option>
+                    </select>
                     <input
-                      type="checkbox"
-                      checked={formData.is_active}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          is_active: e.target.checked,
-                        })
+                      type={link.platform === "whatsapp" ? "text" : "url"}
+                      value={link.url}
+                      onChange={(e) => updateSocialLink(index, "url", e.target.value)}
+                      placeholder={
+                        link.platform === "whatsapp"
+                          ? "Enter phone number"
+                          : "Enter URL"
                       }
-                      className="h-4 w-4 text-blue-600 rounded"
+                      className="flex-1 px-2 py-1 sm:px-2.5 sm:py-1 text-[9px] sm:text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff]"
                     />
-                    <span className="text-sm text-gray-700">Active Member</span>
-                  </div>
-
-                  {/* FOOTER */}
-                  <div className="flex justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
                     <button
                       type="button"
-                      onClick={handleCloseModal}
-                      className="px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition text-xs sm:text-sm"
+                      onClick={() => removeSocialLink(index)}
+                      className="p-1 text-red-600 hover:text-red-800 transition"
                     >
-                      Cancel
-                    </button>
-
-                    <button
-                      type="submit"
-                      disabled={
-                        uploadingImage ||
-                        !formData.name.trim() ||
-                        !formData.role.trim() ||
-                        !formData.image_url.trim()
-                      }
-                      className="px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl bg-blue-600 text-white text-xs sm:text-sm hover:bg-blue-700 transition disabled:opacity-50"
-                    >
-                      {editingMember ? "Update" : "Create"} Member
+                      <X size={12} className="sm:w-3.5 sm:h-3.5" />
                     </button>
                   </div>
-                </form>
+                ))}
+                <p className="text-[7px] sm:text-[8px] text-gray-400 mt-0.5">
+                  For WhatsApp: Enter phone number with country code (e.g., +1234567890)
+                </p>
               </div>
-            </div>
+
+              {/* Divider */}
+              <hr className="border-t border-gray-100 my-1" />
+
+              {/* ROW 5: Active Status */}
+              <div className="flex items-center gap-1.5 sm:gap-2 py-0.5">
+                <input
+                  type="checkbox"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  className="w-3.5 h-3.5 text-blue-600 rounded accent-blue-600"
+                />
+                <span className="text-[9px] sm:text-xs text-gray-700">Active Member</span>
+              </div>
+
+              {/* Divider */}
+              <hr className="border-t border-gray-100 my-1" />
+
+              {/* Form Actions */}
+              <div className="flex justify-end gap-1.5 sm:gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-2 py-1 sm:px-3 sm:py-1 border border-gray-300 rounded-lg text-[9px] sm:text-xs text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    uploadingImage ||
+                    !formData.name.trim() ||
+                    !formData.role.trim() ||
+                    !formData.image_url.trim()
+                  }
+                  className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 text-white rounded-lg text-[9px] sm:text-xs hover:bg-blue-700 flex items-center gap-1 disabled:opacity-50 transition"
+                >
+                  <svg width="10" height="10" className="sm:w-3 sm:h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>{editingMember ? "Update" : "Create"}</span>
+                </button>
+              </div>
+
+            </form>
           </div>
         </div>
-      )}
+
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };

@@ -48,7 +48,7 @@ export interface BlogPayload {
 
 export const blogApi = {
 getAll: (): Promise<BlogPost[]> =>
-  unwrap(api.get<ApiResponse<BlogPost[]>>("/blog?published=false"))
+  unwrap(api.get<ApiResponse<BlogPost[]>>("/blog?published=false&limit=100"))
     .then((res: any) => res.posts ?? res),
 
   getById: (id: number): Promise<BlogPost> =>

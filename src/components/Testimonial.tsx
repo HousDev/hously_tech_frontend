@@ -364,7 +364,7 @@ const TestimonialsSection: React.FC = () => {
                   <SwiperSlide key={testimonial.id}>
                     <div 
                       className="bg-white rounded-2xl p-5 shadow-lg mx-2 testimonial-card-mobile testimonial-card-width flex flex-col"
-                      style={{ minHeight: '300px', height: '300px' }}
+                      style={{ minHeight: '30px', height: '200px' }}
                     >
                       {/* Rating Stars - SIZE REDUCED */}
                       <div className="flex gap-1 text-[#0076d8] mb-3 text-sm">
@@ -432,21 +432,25 @@ const TestimonialsSection: React.FC = () => {
               )}
 
               {/* Mobile Slider Controls - SIZE REDUCED */}
-              {testimonials.length > 0 && (
-                <div className="flex items-center justify-center gap-3 mt-4">
-                  <button className="mobile-testimonial-prev flex-shrink-0 w-10 h-10 rounded-full bg-[#0076d8] text-white flex items-center justify-center hover:bg-blue-700 transition-all duration-300 shadow-md">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <div className="mobile-testimonial-pagination flex items-center justify-center gap-1"></div>
-                  <button className="mobile-testimonial-next flex-shrink-0 w-10 h-10 rounded-full bg-[#0076d8] text-white flex items-center justify-center hover:bg-blue-700 transition-all duration-300 shadow-md">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              )}
+            {testimonials.length > 0 && (
+  <div className="flex items-center justify-center gap-3 mt-4">
+    
+    <button className="mobile-testimonial-prev flex-shrink-0 w-10 h-10 rounded-full bg-[#0076d8] text-white flex items-center justify-center hover:bg-blue-700 transition-all duration-300 shadow-md">
+      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+      </svg>
+    </button>
+
+    {/* ❌ Removed pagination dots */}
+
+    <button className="mobile-testimonial-next flex-shrink-0 w-10 h-10 rounded-full bg-[#0076d8] text-white flex items-center justify-center hover:bg-blue-700 transition-all duration-300 shadow-md">
+      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+
+  </div>
+)}
             </div>
           </div>
         </section>
@@ -612,7 +616,7 @@ const TestimonialsSection: React.FC = () => {
                     <img
                       alt="Testimonial"
                       src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d"
-                      className="w-full h-150 object-cover"
+                      className="w-full h-130 object-cover"
                     />
                   </div>
                 </div>
@@ -684,7 +688,7 @@ const TestimonialsSection: React.FC = () => {
                             <SwiperSlide key={testimonial.id} className="!w-full lg:!w-[380px] xl:!w-[472px]">
                               <div 
                                 className="bg-white rounded-2xl lg:rounded-[30px] p-6 lg:p-7 xl:p-9 shadow-lg lg:shadow-[0_10px_20px_rgba(0,0,0,0.06)] testimonial-card-desktop testimonial-card-width-lg testimonial-card-width-xl flex flex-col"
-                                style={{ minHeight: '390px', height: '390px' }}
+                                style={{ minHeight: '200px', height: '320px' }}
                               >
                                 {/* Rating Stars - SIZE REDUCED */}
                                 <div className="flex gap-1.5 text-[#0076d8] mb-3 lg:mb-4 text-base lg:text-lg">

@@ -1,8 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// /* eslint-disable react-hooks/purity */
-// import { useState, useRef, type ChangeEvent } from "react";
+
+
+
+
+
+
+
+// import { useState, useRef, useEffect } from "react";
 // import { useParams, useNavigate } from "react-router-dom";
-// import { getJobById } from "../../index";
+// import careerService, { type Job, type ApplicationFormData } from "../../../../../services/career.service";
 // import {
 //   ArrowLeft,
 //   Upload,
@@ -15,30 +20,34 @@
 //   Briefcase,
 //   Calendar,
 //   MapPin,
-//   DollarSign,
 //   CheckCircle,
 //   AlertCircle,
 //   X,
+//   Loader2,
+//   Users,
+//   IndianRupee,
 // } from "lucide-react";
 
 // export default function JobApplicationPage() {
 //   const { id } = useParams<{ id: string }>();
 //   const navigate = useNavigate();
-//   const job = id ? getJobById(id) : null;
 //   const fileInputRef = useRef<HTMLInputElement>(null);
 //   const [dragActive, setDragActive] = useState(false);
+//   const [job, setJob] = useState<Job | null>(null);
+//   const [loading, setLoading] = useState(true);
+//   const [jobError, setJobError] = useState<string | null>(null);
 
 //   const [formData, setFormData] = useState({
-//     fullName: "",
+//     applicant_name: "",
 //     email: "",
 //     phone: "",
 //     linkedin: "",
 //     portfolio: "",
-//     coverLetter: "",
+//     cover_letter: "",
 //   });
 
 //   const [formErrors, setFormErrors] = useState({
-//     fullName: "",
+//     applicant_name: "",
 //     email: "",
 //     phone: "",
 //     resume: "",
@@ -47,11 +56,42 @@
 //   const [resume, setResume] = useState<File | null>(null);
 //   const [isSubmitting, setIsSubmitting] = useState(false);
 //   const [isSubmitted, setIsSubmitted] = useState(false);
-//   const [, setUploadProgress] = useState(0);
+//   const [submitError, setSubmitError] = useState<string | null>(null);
+
+//   useEffect(() => {
+//     const fetchJobDetails = async () => {
+//       try {
+//         setLoading(true);
+//         setJobError(null);
+        
+//         if (id) {
+//           const response = await careerService.getJobBySlug(id);
+          
+//           if (response.success && response.data) {
+//             setJob(response.data);
+            
+//             // Check if job is active
+//             if (!response.data.is_active) {
+//               setJobError("This job is no longer accepting applications");
+//             }
+//           } else {
+//             setJobError("Job not found");
+//           }
+//         }
+//       } catch (err) {
+//         console.error("Error fetching job details:", err);
+//         setJobError("Unable to load job details");
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+
+//     fetchJobDetails();
+//   }, [id]);
 
 //   // Handle form input changes
 //   const handleChange = (
-//     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+//     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
 //   ) => {
 //     const { name, value } = e.target;
 //     setFormData({
@@ -91,7 +131,7 @@
 //   };
 
 //   // Handle file input change
-//   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+//   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 //     if (e.target.files && e.target.files[0]) {
 //       const file = e.target.files[0];
 //       validateAndSetFile(file);
@@ -149,7 +189,7 @@
 //   // Validate form
 //   const validateForm = () => {
 //     const errors = {
-//       fullName: "",
+//       applicant_name: "",
 //       email: "",
 //       phone: "",
 //       resume: "",
@@ -158,8 +198,8 @@
 //     let isValid = true;
 
 //     // Validate name
-//     if (!formData.fullName.trim()) {
-//       errors.fullName = "Full name is required";
+//     if (!formData.applicant_name.trim()) {
+//       errors.applicant_name = "Full name is required";
 //       isValid = false;
 //     }
 
@@ -194,50 +234,32 @@
 //   };
 
 //   // Handle form submission
-//   const handleSubmit = async (e: React.FormEvent) => {
-//     e.preventDefault();
+//   // Handle form submission
+// const handleSubmit = async (e: React.FormEvent) => {
+//   e.preventDefault();
+//   setSubmitError(null);
 
-//     if (!validateForm()) {
-//       return;
-//     }
+//   if (!validateForm() || !job) {
+//     return;
+//   }
 
-//     setIsSubmitting(true);
-//     setUploadProgress(0);
+//   setIsSubmitting(true);
 
-//     // Simulate file upload progress
-//     const uploadInterval = setInterval(() => {
-//       setUploadProgress((prev) => {
-//         if (prev >= 90) {
-//           clearInterval(uploadInterval);
-//           return prev;
-//         }
-//         return prev + 10;
-//       });
-//     }, 100);
+//   try {
+//     const applicationData: ApplicationFormData = {
+//       job_id: job.id,
+//       applicant_name: formData.applicant_name,
+//       email: formData.email,
+//       phone: formData.phone,
+//       cover_letter: formData.cover_letter || undefined,
+//       resume: resume || undefined,
+//     };
 
-//     try {
-//       // Simulate API call with FormData
-//       const formDataToSend = new FormData();
-//       formDataToSend.append("jobId", id || "");
-//       formDataToSend.append("fullName", formData.fullName);
-//       formDataToSend.append("email", formData.email);
-//       formDataToSend.append("phone", formData.phone);
-//       formDataToSend.append("linkedin", formData.linkedin);
-//       formDataToSend.append("portfolio", formData.portfolio);
-//       formDataToSend.append("coverLetter", formData.coverLetter);
-//       if (resume) {
-//         formDataToSend.append("resume", resume);
-//       }
+//     console.log('Submitting application data:', applicationData);
 
-//       // Simulate API delay
-//       await new Promise((resolve) => setTimeout(resolve, 2000));
+//     const response = await careerService.submitApplication(applicationData);
 
-//       clearInterval(uploadInterval);
-//       setUploadProgress(100);
-
-//       // Add a small delay to show 100% completion
-//       await new Promise((resolve) => setTimeout(resolve, 500));
-
+//     if (response.success) {
 //       setIsSubmitting(false);
 //       setIsSubmitted(true);
 
@@ -245,14 +267,25 @@
 //       setTimeout(() => {
 //         navigate(`/career/job/${id}`);
 //       }, 5000);
-
-//       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-//     } catch (error) {
-//       clearInterval(uploadInterval);
-//       setIsSubmitting(false);
-//       alert("Something went wrong. Please try again.");
+//     } else {
+//       throw new Error(response.message || 'Failed to submit application');
 //     }
-//   };
+//   } catch (error: any) {
+//     console.error('Error submitting application:', error);
+    
+//     // Show user-friendly error messages
+//     let errorMessage = 'Something went wrong. Please try again.';
+    
+//     if (error.response?.data?.message) {
+//       errorMessage = error.response.data.message;
+//     } else if (error.message) {
+//       errorMessage = error.message;
+//     }
+    
+//     setSubmitError(errorMessage);
+//     setIsSubmitting(false);
+//   }
+// };
 
 //   // Format file size
 //   const formatFileSize = (bytes: number) => {
@@ -263,20 +296,39 @@
 //     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 //   };
 
-//   if (!job) {
+//   const formatDate = (dateString: string) => {
+//     const date = new Date(dateString);
+//     return date.toLocaleDateString('en-US', { 
+//       year: 'numeric', 
+//       month: 'short', 
+//       day: 'numeric' 
+//     });
+//   };
+
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen bg-gray-50 flex items-center justify-center pt-20">
+//         <div className="text-center">
+//           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+//           <p className="text-gray-600">Loading application form...</p>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   if (jobError || !job) {
 //     return (
 //       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
 //         <div className="text-center max-w-md">
 //           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
 //           <h1 className="text-2xl font-bold text-gray-900 mb-4">
-//             Job not found
+//             {jobError || "Job not found"}
 //           </h1>
 //           <p className="text-gray-600 mb-6">
-//             The job you're trying to apply for doesn't exist or has been
-//             removed.
+//             The job you're trying to apply for doesn't exist or has been removed.
 //           </p>
 //           <button
-//             onClick={() => navigate("/career/job")}
+//             onClick={() => navigate("/career")}
 //             className="bg-gradient-to-r from-[#0270e1] to-[#024a9e] text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
 //           >
 //             Back to All Jobs
@@ -300,31 +352,12 @@
 //           </h2>
 //           <p className="text-gray-600 mb-6">
 //             Thank you for applying for the{" "}
-//             <span className="font-semibold">{job.title}</span> position at{" "}
-//             {job.company}. We've received your application and will review it
-//             shortly.
+//             <span className="font-semibold">{job.job_title}</span> position. 
+//             We've received your application and will review it shortly.
 //           </p>
 //           <div className="space-y-4">
 //             <div className="flex items-center justify-center space-x-2 text-sm text-blue-600">
-//               <svg
-//                 className="animate-spin h-4 w-4"
-//                 fill="none"
-//                 viewBox="0 0 24 24"
-//               >
-//                 <circle
-//                   className="opacity-25"
-//                   cx="12"
-//                   cy="12"
-//                   r="10"
-//                   stroke="currentColor"
-//                   strokeWidth="4"
-//                 ></circle>
-//                 <path
-//                   className="opacity-75"
-//                   fill="currentColor"
-//                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-//                 ></path>
-//               </svg>
+//               <Loader2 className="animate-spin h-4 w-4" />
 //               <span>Redirecting in 5 seconds...</span>
 //             </div>
 //             <button
@@ -355,10 +388,10 @@
 //           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
 //             <div>
 //               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
-//                 Apply for <span className="text-blue-600">{job.title}</span>
+//                 Apply for <span className="text-blue-600">{job.job_title}</span>
 //               </h1>
 //               <p className="text-gray-600">
-//                 {job.company} • {job.type.join(" • ")}
+//                 {job.department} • {job.job_type}
 //               </p>
 //             </div>
 //             <div className="flex items-center space-x-4">
@@ -366,11 +399,21 @@
 //                 Ref:
 //               </span>
 //               <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
-//                 #{Math.random().toString(36).substr(2, 6).toUpperCase()}
+//                 #{job.id}
 //               </span>
 //             </div>
 //           </div>
 //         </div>
+
+//         {/* Submit Error */}
+//         {submitError && (
+//           <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+//             <div className="flex items-center">
+//               <AlertCircle className="w-5 h-5 mr-2" />
+//               <span>{submitError}</span>
+//             </div>
+//           </div>
+//         )}
 
 //         {/* Horizontal Layout - Side by Side */}
 //         <div className="flex flex-col lg:flex-row gap-6">
@@ -404,20 +447,20 @@
 //                       </label>
 //                       <input
 //                         type="text"
-//                         name="fullName"
-//                         value={formData.fullName}
+//                         name="applicant_name"
+//                         value={formData.applicant_name}
 //                         onChange={handleChange}
 //                         className={`w-full px-4 py-3 border ${
-//                           formErrors.fullName
+//                           formErrors.applicant_name
 //                             ? "border-red-300"
 //                             : "border-gray-300"
 //                         } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
 //                         placeholder="John Doe"
 //                       />
-//                       {formErrors.fullName && (
+//                       {formErrors.applicant_name && (
 //                         <p className="mt-1 text-sm text-red-600 flex items-center">
 //                           <AlertCircle className="w-4 h-4 mr-1" />
-//                           {formErrors.fullName}
+//                           {formErrors.applicant_name}
 //                         </p>
 //                       )}
 //                     </div>
@@ -508,7 +551,22 @@
 //                   </div>
 //                 </div>
 
-//                 {/* Resume Upload - Enhanced */}
+//                 {/* Cover Letter */}
+//                 <div>
+//                   <label className="block text-sm font-medium text-gray-700 mb-2">
+//                     Cover Letter
+//                   </label>
+//                   <textarea
+//                     name="cover_letter"
+//                     value={formData.cover_letter}
+//                     onChange={handleChange}
+//                     rows={4}
+//                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+//                     placeholder="Tell us why you're the perfect candidate for this position..."
+//                   />
+//                 </div>
+
+//                 {/* Resume Upload */}
 //                 <div>
 //                   <label className="block text-sm font-semibold text-gray-900 mb-2">
 //                     Resume / CV *
@@ -583,21 +641,6 @@
 
 //                 {/* Terms & Submit */}
 //                 <div className="pt-6 border-t">
-//                   <div className="flex items-start mb-2">
-//                     {/* <input
-//                       type="checkbox"
-//                       id="terms"
-//                       required
-//                       className="mt-1 mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-//                     /> */}
-//                     {/* <label htmlFor="terms" className="text-sm text-gray-600">
-//                       I agree to the processing of my personal data for recruitment purposes in accordance with 
-//                       <span className="text-blue-600 hover:text-blue-800 font-medium ml-1 cursor-pointer">
-//                         Hously's Privacy Policy
-//                       </span>.
-//                     </label> */}
-//                   </div>
-
 //                   {/* Submit Button */}
 //                   <div className="flex flex-col sm:flex-row gap-4">
 //                     <button
@@ -611,25 +654,7 @@
 //                     >
 //                       {isSubmitting ? (
 //                         <>
-//                           <svg
-//                             className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-//                             fill="none"
-//                             viewBox="0 0 24 24"
-//                           >
-//                             <circle
-//                               className="opacity-25"
-//                               cx="12"
-//                               cy="12"
-//                               r="10"
-//                               stroke="currentColor"
-//                               strokeWidth="4"
-//                             ></circle>
-//                             <path
-//                               className="opacity-75"
-//                               fill="currentColor"
-//                               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-//                             ></path>
-//                           </svg>
+//                           <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
 //                           Submitting Application...
 //                         </>
 //                       ) : (
@@ -663,7 +688,7 @@
 //                     <Briefcase className="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" />
 //                     <div className="flex-1">
 //                       <p className="text-sm text-gray-500">Position</p>
-//                       <p className="font-semibold">{job.title}</p>
+//                       <p className="font-semibold">{job.job_title}</p>
 //                     </div>
 //                   </div>
 
@@ -671,43 +696,45 @@
 //                     <MapPin className="w-5 h-5 text-green-600 mr-3 flex-shrink-0" />
 //                     <div className="flex-1">
 //                       <p className="text-sm text-gray-500">Location</p>
-//                       <p className="font-semibold">{job.location}</p>
+//                       <p className="font-semibold">{job.location || "Remote"}</p>
 //                     </div>
 //                   </div>
 
-//                   <div className="flex items-center p-3 bg-purple-50 rounded-lg">
-//                     <svg
-//                       className="w-5 h-5 text-purple-600 mr-3 flex-shrink-0"
-//                       fill="none"
-//                       stroke="currentColor"
-//                       viewBox="0 0 24 24"
-//                     >
-//                       <path
-//                         strokeLinecap="round"
-//                         strokeLinejoin="round"
-//                         strokeWidth="2"
-//                         d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-//                       />
-//                     </svg>
-//                     <div className="flex-1">
-//                       <p className="text-sm text-gray-500">Job Type</p>
-//                       <p className="font-semibold">{job.type.join(", ")}</p>
+//                   {job.experience_level && (
+//                     <div className="flex items-center p-3 bg-purple-50 rounded-lg">
+//                       <Briefcase className="w-5 h-5 text-purple-600 mr-3 flex-shrink-0" />
+//                       <div className="flex-1">
+//                         <p className="text-sm text-gray-500">Experience</p>
+//                         <p className="font-semibold">{job.experience_level}</p>
+//                       </div>
 //                     </div>
-//                   </div>
+//                   )}
 
-//                   <div className="flex items-center p-3 bg-yellow-50 rounded-lg">
-//                     <DollarSign className="w-5 h-5 text-yellow-600 mr-3 flex-shrink-0" />
-//                     <div className="flex-1">
-//                       <p className="text-sm text-gray-500">Salary</p>
-//                       <p className="font-semibold">{job.salary}</p>
+//                   {job.salary_range && (
+//                     <div className="flex items-center p-3 bg-yellow-50 rounded-lg">
+//                       <IndianRupee className="w-5 h-5 text-yellow-600 mr-3 flex-shrink-0" />
+//                       <div className="flex-1">
+//                         <p className="text-sm text-gray-500">Salary</p>
+//                         <p className="font-semibold">{job.salary_range}</p>
+//                       </div>
 //                     </div>
-//                   </div>
+//                   )}
+
+//                   {job.vacancy_count > 0 && (
+//                     <div className="flex items-center p-3 bg-pink-50 rounded-lg">
+//                       <Users className="w-5 h-5 text-pink-600 mr-3 flex-shrink-0" />
+//                       <div className="flex-1">
+//                         <p className="text-sm text-gray-500">Vacancies</p>
+//                         <p className="font-semibold">{job.vacancy_count}</p>
+//                       </div>
+//                     </div>
+//                   )}
 
 //                   <div className="flex items-center p-3 bg-gray-50 rounded-lg">
 //                     <Calendar className="w-5 h-5 text-gray-600 mr-3 flex-shrink-0" />
 //                     <div className="flex-1">
 //                       <p className="text-sm text-gray-500">Posted</p>
-//                       <p className="font-semibold">{job.posted}</p>
+//                       <p className="font-semibold">{formatDate(job.created_at)}</p>
 //                     </div>
 //                   </div>
 //                 </div>
@@ -725,8 +752,7 @@
 //                       <span className="text-blue-600 font-bold text-xs">1</span>
 //                     </div>
 //                     <span>
-//                       Ensure your resume is updated and matches the job
-//                       requirements
+//                       Ensure your resume is updated and matches the job requirements
 //                     </span>
 //                   </li>
 //                   <li className="flex items-start p-2 hover:bg-white/50 rounded transition-colors">
@@ -734,8 +760,7 @@
 //                       <span className="text-blue-600 font-bold text-xs">2</span>
 //                     </div>
 //                     <span>
-//                       Customize your cover letter to highlight relevant
-//                       experience
+//                       Customize your cover letter to highlight relevant experience
 //                     </span>
 //                   </li>
 //                   <li className="flex items-start p-2 hover:bg-white/50 rounded transition-colors">
@@ -756,33 +781,6 @@
 //                   </li>
 //                 </ul>
 //               </div>
-
-//               {/* Contact & Support */}
-//               {/* <div className="bg-white rounded-xl shadow-lg p-6">
-//                 <h3 className="text-lg font-bold text-gray-900 mb-4">Need Help?</h3>
-//                 <div className="space-y-4">
-//                   <div className="p-3 bg-gray-50 rounded-lg">
-//                     <p className="text-sm text-gray-600 mb-2">
-//                       If you have questions about the application process, our HR team is here to help:
-//                     </p>
-//                     <div className="space-y-2 text-sm">
-//                       <div className="flex items-center">
-//                         <Mail className="w-4 h-4 text-gray-400 mr-2" />
-//                         <span className="text-gray-700">careers@hously.com</span>
-//                       </div>
-//                       <div className="flex items-center">
-//                         <Phone className="w-4 h-4 text-gray-400 mr-2" />
-//                         <span className="text-gray-700">+1 (555) 123-4567</span>
-//                       </div>
-//                     </div>
-//                   </div>
-//                   <div className="p-3 bg-blue-50 rounded-lg">
-//                     <p className="text-sm text-blue-700">
-//                       <span className="font-semibold">Note:</span> Applications are typically reviewed within 3-5 business days. You'll receive an email confirmation once your application is received.
-//                     </p>
-//                   </div>
-//                 </div>
-//               </div> */}
 //             </div>
 //           </div>
 //         </div>
@@ -790,11 +788,6 @@
 //     </div>
 //   );
 // }
-
-
-
-
-
 
 
 import { useState, useRef, useEffect } from "react";
@@ -862,7 +855,6 @@ export default function JobApplicationPage() {
           if (response.success && response.data) {
             setJob(response.data);
             
-            // Check if job is active
             if (!response.data.is_active) {
               setJobError("This job is no longer accepting applications");
             }
@@ -881,7 +873,6 @@ export default function JobApplicationPage() {
     fetchJobDetails();
   }, [id]);
 
-  // Handle form input changes
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -890,7 +881,6 @@ export default function JobApplicationPage() {
       ...formData,
       [name]: value,
     });
-    // Clear error when user starts typing
     if (formErrors[name as keyof typeof formErrors]) {
       setFormErrors({
         ...formErrors,
@@ -899,7 +889,6 @@ export default function JobApplicationPage() {
     }
   };
 
-  // Handle drag events
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -910,7 +899,6 @@ export default function JobApplicationPage() {
     }
   };
 
-  // Handle drop event
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -922,7 +910,6 @@ export default function JobApplicationPage() {
     }
   };
 
-  // Handle file input change
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -930,15 +917,13 @@ export default function JobApplicationPage() {
     }
   };
 
-  // Validate and set file
   const validateAndSetFile = (file: File) => {
-    // Check file type
     const allowedTypes = [
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 5 * 1024 * 1024;
 
     if (!allowedTypes.includes(file.type)) {
       setFormErrors({
@@ -963,7 +948,6 @@ export default function JobApplicationPage() {
     });
   };
 
-  // Remove resume
   const handleRemoveResume = () => {
     setResume(null);
     if (fileInputRef.current) {
@@ -971,14 +955,12 @@ export default function JobApplicationPage() {
     }
   };
 
-  // Trigger file input click
   const handleUploadClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
-  // Validate form
   const validateForm = () => {
     const errors = {
       applicant_name: "",
@@ -989,13 +971,11 @@ export default function JobApplicationPage() {
 
     let isValid = true;
 
-    // Validate name
     if (!formData.applicant_name.trim()) {
       errors.applicant_name = "Full name is required";
       isValid = false;
     }
 
-    // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email) {
       errors.email = "Email is required";
@@ -1005,7 +985,6 @@ export default function JobApplicationPage() {
       isValid = false;
     }
 
-    // Validate phone
     const phoneRegex = /^[+]?[1-9][\d]{0,15}$/;
     if (!formData.phone) {
       errors.phone = "Phone number is required";
@@ -1015,7 +994,6 @@ export default function JobApplicationPage() {
       isValid = false;
     }
 
-    // Validate resume
     if (!resume) {
       errors.resume = "Resume is required";
       isValid = false;
@@ -1025,61 +1003,56 @@ export default function JobApplicationPage() {
     return isValid;
   };
 
-  // Handle form submission
-  // Handle form submission
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setSubmitError(null);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError(null);
 
-  if (!validateForm() || !job) {
-    return;
-  }
+    if (!validateForm() || !job) {
+      return;
+    }
 
-  setIsSubmitting(true);
+    setIsSubmitting(true);
 
-  try {
-    const applicationData: ApplicationFormData = {
-      job_id: job.id,
-      applicant_name: formData.applicant_name,
-      email: formData.email,
-      phone: formData.phone,
-      cover_letter: formData.cover_letter || undefined,
-      resume: resume || undefined,
-    };
+    try {
+      const applicationData: ApplicationFormData = {
+        job_id: job.id,
+        applicant_name: formData.applicant_name,
+        email: formData.email,
+        phone: formData.phone,
+        cover_letter: formData.cover_letter || undefined,
+        resume: resume || undefined,
+      };
 
-    console.log('Submitting application data:', applicationData);
+      console.log('Submitting application data:', applicationData);
 
-    const response = await careerService.submitApplication(applicationData);
+      const response = await careerService.submitApplication(applicationData);
 
-    if (response.success) {
+      if (response.success) {
+        setIsSubmitting(false);
+        setIsSubmitted(true);
+
+        setTimeout(() => {
+          navigate(`/career/job/${id}`);
+        }, 5000);
+      } else {
+        throw new Error(response.message || 'Failed to submit application');
+      }
+    } catch (error: any) {
+      console.error('Error submitting application:', error);
+      
+      let errorMessage = 'Something went wrong. Please try again.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setSubmitError(errorMessage);
       setIsSubmitting(false);
-      setIsSubmitted(true);
-
-      // Redirect after 5 seconds
-      setTimeout(() => {
-        navigate(`/career/job/${id}`);
-      }, 5000);
-    } else {
-      throw new Error(response.message || 'Failed to submit application');
     }
-  } catch (error: any) {
-    console.error('Error submitting application:', error);
-    
-    // Show user-friendly error messages
-    let errorMessage = 'Something went wrong. Please try again.';
-    
-    if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-    
-    setSubmitError(errorMessage);
-    setIsSubmitting(false);
-  }
-};
+  };
 
-  // Format file size
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -1101,8 +1074,8 @@ const handleSubmit = async (e: React.FormEvent) => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center pt-20">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading application form...</p>
+          <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 text-blue-600 animate-spin mx-auto mb-3" />
+          <p className="text-xs sm:text-sm text-gray-600">Loading application form...</p>
         </div>
       </div>
     );
@@ -1110,18 +1083,18 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   if (jobError || !job) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 pt-20">
         <div className="text-center max-w-md">
-          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          <AlertCircle className="w-12 h-12 sm:w-16 sm:h-16 text-red-400 mx-auto mb-3" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
             {jobError || "Job not found"}
           </h1>
-          <p className="text-gray-600 mb-6">
+          <p className="text-xs sm:text-sm text-gray-600 mb-4">
             The job you're trying to apply for doesn't exist or has been removed.
           </p>
           <button
             onClick={() => navigate("/career")}
-            className="bg-gradient-to-r from-[#0270e1] to-[#024a9e] text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+            className="bg-gradient-to-r from-[#0270e1] to-[#024a9e] text-white px-5 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold hover:opacity-90 transition-opacity"
           >
             Back to All Jobs
           </button>
@@ -1132,29 +1105,29 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center px-4">
-        <div className="max-w-md bg-white rounded-2xl shadow-xl p-8 text-center animate-fade-in">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-scale">
-            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
-              <CheckCircle className="w-8 h-8 text-white" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center px-4 pt-20">
+        <div className="max-w-md bg-white rounded-xl shadow-lg p-6 sm:p-8 text-center">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
             Application Submitted!
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-xs sm:text-sm text-gray-600 mb-4">
             Thank you for applying for the{" "}
             <span className="font-semibold">{job.job_title}</span> position. 
             We've received your application and will review it shortly.
           </p>
-          <div className="space-y-4">
-            <div className="flex items-center justify-center space-x-2 text-sm text-blue-600">
-              <Loader2 className="animate-spin h-4 w-4" />
+          <div className="space-y-3">
+            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-blue-600">
+              <Loader2 className="animate-spin h-3 w-3 sm:h-4 sm:w-4" />
               <span>Redirecting in 5 seconds...</span>
             </div>
             <button
               onClick={() => navigate(`/career/job/${id}`)}
-              className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+              className="text-blue-600 hover:text-blue-800 font-medium text-xs sm:text-sm"
             >
               Return to job details
             </button>
@@ -1165,32 +1138,30 @@ const handleSubmit = async (e: React.FormEvent) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-28">
-      <div className="max-w-7xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-8 sm:pb-12">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <button
             onClick={() => navigate(`/career/job/${id}`)}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-3 group"
+            className="flex items-center text-gray-600 hover:text-gray-900 mb-2 sm:mb-3 group text-xs sm:text-sm md:mt-0 mt-5"
           >
-            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+            <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 group-hover:-translate-x-1 transition-transform  " />
             Back to Job Details
           </button>
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1">
                 Apply for <span className="text-blue-600">{job.job_title}</span>
               </h1>
-              <p className="text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600">
                 {job.department} • {job.job_type}
               </p>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="hidden md:inline text-sm text-gray-500">
-                Ref:
-              </span>
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:inline text-xs text-gray-500">Ref:</span>
+              <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-blue-100 text-blue-700 text-[10px] sm:text-xs font-medium rounded-full">
                 #{job.id}
               </span>
             </div>
@@ -1199,24 +1170,24 @@ const handleSubmit = async (e: React.FormEvent) => {
 
         {/* Submit Error */}
         {submitError && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            <div className="flex items-center">
-              <AlertCircle className="w-5 h-5 mr-2" />
-              <span>{submitError}</span>
+          <div className="mb-4 sm:mb-6 bg-red-50 border border-red-200 text-red-700 px-3 sm:px-4 py-2 sm:py-3 rounded-lg">
+            <div className="flex items-center gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="text-xs sm:text-sm">{submitError}</span>
             </div>
           </div>
         )}
 
-        {/* Horizontal Layout - Side by Side */}
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left Column - Application Form (70%) */}
+        {/* Main Layout */}
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+          {/* Left Column - Application Form */}
           <div className="lg:w-3/5">
-            <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900">
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                   Application Form
                 </h2>
-                <div className="text-sm text-gray-500">
+                <div className="text-[10px] sm:text-xs text-gray-500">
                   Step 1 of 2 •{" "}
                   <span className="text-blue-600 font-medium">
                     Personal Details
@@ -1224,17 +1195,17 @@ const handleSubmit = async (e: React.FormEvent) => {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
                 {/* Personal Information */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3 pb-2 border-b">
                     Personal Information
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {/* Full Name */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <User className="inline w-4 h-4 mr-1" />
+                      <label className="block text-[10px] sm:text-xs font-medium text-gray-700 mb-1">
+                        <User className="inline w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
                         Full Name *
                       </label>
                       <input
@@ -1242,16 +1213,16 @@ const handleSubmit = async (e: React.FormEvent) => {
                         name="applicant_name"
                         value={formData.applicant_name}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 border ${
+                        className={`w-full px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border ${
                           formErrors.applicant_name
                             ? "border-red-300"
                             : "border-gray-300"
-                        } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
+                        } rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]`}
                         placeholder="John Doe"
                       />
                       {formErrors.applicant_name && (
-                        <p className="mt-1 text-sm text-red-600 flex items-center">
-                          <AlertCircle className="w-4 h-4 mr-1" />
+                        <p className="mt-0.5 text-[9px] sm:text-xs text-red-600 flex items-center gap-0.5">
+                          <AlertCircle className="w-3 h-3" />
                           {formErrors.applicant_name}
                         </p>
                       )}
@@ -1259,8 +1230,8 @@ const handleSubmit = async (e: React.FormEvent) => {
 
                     {/* Email */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <Mail className="inline w-4 h-4 mr-1" />
+                      <label className="block text-[10px] sm:text-xs font-medium text-gray-700 mb-1">
+                        <Mail className="inline w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
                         Email Address *
                       </label>
                       <input
@@ -1268,16 +1239,16 @@ const handleSubmit = async (e: React.FormEvent) => {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 border ${
+                        className={`w-full px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border ${
                           formErrors.email
                             ? "border-red-300"
                             : "border-gray-300"
-                        } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
+                        } rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]`}
                         placeholder="john@example.com"
                       />
                       {formErrors.email && (
-                        <p className="mt-1 text-sm text-red-600 flex items-center">
-                          <AlertCircle className="w-4 h-4 mr-1" />
+                        <p className="mt-0.5 text-[9px] sm:text-xs text-red-600 flex items-center gap-0.5">
+                          <AlertCircle className="w-3 h-3" />
                           {formErrors.email}
                         </p>
                       )}
@@ -1285,8 +1256,8 @@ const handleSubmit = async (e: React.FormEvent) => {
 
                     {/* Phone */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <Phone className="inline w-4 h-4 mr-1" />
+                      <label className="block text-[10px] sm:text-xs font-medium text-gray-700 mb-1">
+                        <Phone className="inline w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
                         Phone Number *
                       </label>
                       <input
@@ -1294,16 +1265,16 @@ const handleSubmit = async (e: React.FormEvent) => {
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 border ${
+                        className={`w-full px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border ${
                           formErrors.phone
                             ? "border-red-300"
                             : "border-gray-300"
-                        } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
+                        } rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]`}
                         placeholder="+1 (555) 123-4567"
                       />
                       {formErrors.phone && (
-                        <p className="mt-1 text-sm text-red-600 flex items-center">
-                          <AlertCircle className="w-4 h-4 mr-1" />
+                        <p className="mt-0.5 text-[9px] sm:text-xs text-red-600 flex items-center gap-0.5">
+                          <AlertCircle className="w-3 h-3" />
                           {formErrors.phone}
                         </p>
                       )}
@@ -1311,8 +1282,8 @@ const handleSubmit = async (e: React.FormEvent) => {
 
                     {/* LinkedIn */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <Linkedin className="inline w-4 h-4 mr-1" />
+                      <label className="block text-[10px] sm:text-xs font-medium text-gray-700 mb-1">
+                        <Linkedin className="inline w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
                         LinkedIn Profile
                       </label>
                       <input
@@ -1320,16 +1291,16 @@ const handleSubmit = async (e: React.FormEvent) => {
                         name="linkedin"
                         value={formData.linkedin}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
                         placeholder="https://linkedin.com/in/username"
                       />
                     </div>
                   </div>
 
                   {/* Portfolio */}
-                  <div className="mt-5">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Globe className="inline w-4 h-4 mr-1" />
+                  <div className="mt-3 sm:mt-4">
+                    <label className="block text-[10px] sm:text-xs font-medium text-gray-700 mb-1">
+                      <Globe className="inline w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
                       Portfolio / Website
                     </label>
                     <input
@@ -1337,7 +1308,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       name="portfolio"
                       value={formData.portfolio}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
                       placeholder="https://yourportfolio.com"
                     />
                   </div>
@@ -1345,26 +1316,24 @@ const handleSubmit = async (e: React.FormEvent) => {
 
                 {/* Cover Letter */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-[10px] sm:text-xs font-medium text-gray-700 mb-1">
                     Cover Letter
                   </label>
                   <textarea
                     name="cover_letter"
                     value={formData.cover_letter}
                     onChange={handleChange}
-                    rows={4}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    rows={3}
+                    className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] resize-none"
                     placeholder="Tell us why you're the perfect candidate for this position..."
                   />
                 </div>
 
                 {/* Resume Upload */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  <label className="block text-[10px] sm:text-xs font-medium text-gray-700 mb-1">
                     Resume / CV *
-                    <span className="text-xs text-gray-500 font-normal ml-1">
-                      (PDF, DOC, DOCX – max 5MB)
-                    </span>
+                    <span className="text-gray-400 ml-1">(PDF, DOC, DOCX – max 5MB)</span>
                   </label>
 
                   <div
@@ -1374,7 +1343,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                         : dragActive
                         ? "border-blue-500"
                         : "border-gray-300"
-                    } rounded-lg px-4 py-2 transition-all cursor-pointer bg-white`}
+                    } rounded-lg px-3 py-2 transition-all cursor-pointer bg-[#fafbff]`}
                     onClick={handleUploadClick}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
@@ -1389,21 +1358,18 @@ const handleSubmit = async (e: React.FormEvent) => {
                       className="hidden"
                     />
 
-                    {/* Left */}
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center gap-2">
                       {resume ? (
-                        <FileText className="w-5 h-5 text-green-600" />
+                        <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600" />
                       ) : (
-                        <Upload className="w-5 h-5 text-blue-600" />
+                        <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
                       )}
-
-                      <span className="text-sm text-gray-700 truncate max-w-[220px]">
+                      <span className="text-[10px] sm:text-xs text-gray-700 truncate max-w-[150px] sm:max-w-[200px]">
                         {resume ? resume.name : "Upload your resume"}
                       </span>
                     </div>
 
-                    {/* Right */}
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-1.5">
                       {resume && (
                         <button
                           type="button"
@@ -1413,51 +1379,52 @@ const handleSubmit = async (e: React.FormEvent) => {
                           }}
                           className="text-red-500 hover:text-red-700"
                         >
-                          <X className="w-4 h-4" />
+                          <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         </button>
                       )}
-
-                      <span className="text-xs text-gray-500">
+                      <span className="text-[9px] sm:text-[10px] text-gray-400">
                         {resume ? formatFileSize(resume.size) : "Browse"}
                       </span>
                     </div>
                   </div>
 
                   {formErrors.resume && (
-                    <p className="mt-1 text-xs text-red-600 flex items-center">
-                      <AlertCircle className="w-4 h-4 mr-1" />
+                    <p className="mt-1 text-[9px] sm:text-xs text-red-600 flex items-center gap-0.5">
+                      <AlertCircle className="w-3 h-3" />
                       {formErrors.resume}
                     </p>
                   )}
                 </div>
 
-                {/* Terms & Submit */}
-                <div className="pt-6 border-t">
-                  {/* Submit Button */}
-                  <div className="flex flex-col sm:flex-row gap-4">
+                {/* Submit Buttons */}
+                <div className="pt-4 border-t">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className={`flex-1 py-4 rounded-lg font-bold text-lg transition-all flex items-center justify-center ${
+                      className={`flex-1 py-2 sm:py-2.5 rounded-lg font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 ${
                         isSubmitting
                           ? "bg-gray-400 cursor-not-allowed"
-                          : "bg-[#0076d8] hover:from-[#024a9e] hover:to-[#0270e1] hover:shadow-lg transform hover:-translate-y-0.5"
+                          : "bg-blue-600 hover:bg-blue-700 hover:shadow-md transform hover:-translate-y-0.5"
                       } text-white`}
                     >
                       {isSubmitting ? (
                         <>
-                          <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
-                          Submitting Application...
+                          <Loader2 className="animate-spin h-3 w-3 sm:h-4 sm:w-4" />
+                          Submitting...
                         </>
                       ) : (
-                        "Submit Application"
+                        <>
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          Submit Application
+                        </>
                       )}
                     </button>
 
                     <button
                       type="button"
                       onClick={() => navigate(`/career/job/${id}`)}
-                      className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                      className="px-4 sm:px-6 py-2 sm:py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium text-xs sm:text-sm hover:bg-gray-50 transition-colors"
                     >
                       Cancel
                     </button>
@@ -1467,107 +1434,106 @@ const handleSubmit = async (e: React.FormEvent) => {
             </div>
           </div>
 
-          {/* Right Column - Job Info & Tips (30%) */}
+          {/* Right Column - Job Info & Tips */}
           <div className="lg:w-2/5">
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-5">
               {/* Job Summary */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">
+              <div className="bg-white rounded-xl shadow-lg p-4 sm:p-5">
+                <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-3">
                   Job Summary
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-center p-3 bg-blue-50 rounded-lg">
-                    <Briefcase className="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" />
+<div className="grid grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-3">                  <div className="flex items-center gap-2 p-2 sm:p-2.5 bg-blue-50 rounded-lg">
+                    <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
                     <div className="flex-1">
-                      <p className="text-sm text-gray-500">Position</p>
-                      <p className="font-semibold">{job.job_title}</p>
+                      <p className="text-[9px] sm:text-[10px] text-gray-500">Position</p>
+                      <p className="text-[10px] sm:text-xs font-semibold">{job.job_title}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center p-3 bg-green-50 rounded-lg">
-                    <MapPin className="w-5 h-5 text-green-600 mr-3 flex-shrink-0" />
+                  <div className="flex items-center gap-2 p-2 sm:p-2.5 bg-green-50 rounded-lg">
+                    <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600" />
                     <div className="flex-1">
-                      <p className="text-sm text-gray-500">Location</p>
-                      <p className="font-semibold">{job.location || "Remote"}</p>
+                      <p className="text-[9px] sm:text-[10px] text-gray-500">Location</p>
+                      <p className="text-[10px] sm:text-xs font-semibold">{job.location || "Remote"}</p>
                     </div>
                   </div>
 
                   {job.experience_level && (
-                    <div className="flex items-center p-3 bg-purple-50 rounded-lg">
-                      <Briefcase className="w-5 h-5 text-purple-600 mr-3 flex-shrink-0" />
+                    <div className="flex items-center gap-2 p-2 sm:p-2.5 bg-purple-50 rounded-lg">
+                      <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600" />
                       <div className="flex-1">
-                        <p className="text-sm text-gray-500">Experience</p>
-                        <p className="font-semibold">{job.experience_level}</p>
+                        <p className="text-[9px] sm:text-[10px] text-gray-500">Experience</p>
+                        <p className="text-[10px] sm:text-xs font-semibold">{job.experience_level}</p>
                       </div>
                     </div>
                   )}
 
                   {job.salary_range && (
-                    <div className="flex items-center p-3 bg-yellow-50 rounded-lg">
-                      <IndianRupee className="w-5 h-5 text-yellow-600 mr-3 flex-shrink-0" />
+                    <div className="flex items-center gap-2 p-2 sm:p-2.5 bg-yellow-50 rounded-lg">
+                      <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600" />
                       <div className="flex-1">
-                        <p className="text-sm text-gray-500">Salary</p>
-                        <p className="font-semibold">{job.salary_range}</p>
+                        <p className="text-[9px] sm:text-[10px] text-gray-500">Salary</p>
+                        <p className="text-[10px] sm:text-xs font-semibold">{job.salary_range}</p>
                       </div>
                     </div>
                   )}
 
                   {job.vacancy_count > 0 && (
-                    <div className="flex items-center p-3 bg-pink-50 rounded-lg">
-                      <Users className="w-5 h-5 text-pink-600 mr-3 flex-shrink-0" />
+                    <div className="flex items-center gap-2 p-2 sm:p-2.5 bg-pink-50 rounded-lg">
+                      <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-600" />
                       <div className="flex-1">
-                        <p className="text-sm text-gray-500">Vacancies</p>
-                        <p className="font-semibold">{job.vacancy_count}</p>
+                        <p className="text-[9px] sm:text-[10px] text-gray-500">Vacancies</p>
+                        <p className="text-[10px] sm:text-xs font-semibold">{job.vacancy_count}</p>
                       </div>
                     </div>
                   )}
 
-                  <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                    <Calendar className="w-5 h-5 text-gray-600 mr-3 flex-shrink-0" />
+                  <div className="flex items-center gap-2 p-2 sm:p-2.5 bg-gray-50 rounded-lg">
+                    <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600" />
                     <div className="flex-1">
-                      <p className="text-sm text-gray-500">Posted</p>
-                      <p className="font-semibold">{formatDate(job.created_at)}</p>
+                      <p className="text-[9px] sm:text-[10px] text-gray-500">Posted</p>
+                      <p className="text-[10px] sm:text-xs font-semibold">{formatDate(job.created_at)}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Application Tips */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                  <CheckCircle className="w-5 h-5 text-blue-600 mr-2" />
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-5 border border-blue-100">
+                <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-3 flex items-center gap-1.5">
+                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
                   Application Tips
                 </h3>
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
-                  <li className="flex items-start p-2 hover:bg-white/50 rounded transition-colors">
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                      <span className="text-blue-600 font-bold text-xs">1</span>
+                <ul className="space-y-2">
+                  <li className="flex items-start gap-2 p-1.5 hover:bg-white/50 rounded transition-colors">
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-blue-600 font-bold text-[9px] sm:text-[10px]">1</span>
                     </div>
-                    <span>
+                    <span className="text-[10px] sm:text-xs text-gray-700">
                       Ensure your resume is updated and matches the job requirements
                     </span>
                   </li>
-                  <li className="flex items-start p-2 hover:bg-white/50 rounded transition-colors">
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                      <span className="text-blue-600 font-bold text-xs">2</span>
+                  <li className="flex items-start gap-2 p-1.5 hover:bg-white/50 rounded transition-colors">
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-blue-600 font-bold text-[9px] sm:text-[10px]">2</span>
                     </div>
-                    <span>
+                    <span className="text-[10px] sm:text-xs text-gray-700">
                       Customize your cover letter to highlight relevant experience
                     </span>
                   </li>
-                  <li className="flex items-start p-2 hover:bg-white/50 rounded transition-colors">
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                      <span className="text-blue-600 font-bold text-xs">3</span>
+                  <li className="flex items-start gap-2 p-1.5 hover:bg-white/50 rounded transition-colors">
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-blue-600 font-bold text-[9px] sm:text-[10px]">3</span>
                     </div>
-                    <span>
+                    <span className="text-[10px] sm:text-xs text-gray-700">
                       Double-check all contact information for accuracy
                     </span>
                   </li>
-                  <li className="flex items-start p-2 hover:bg-white/50 rounded transition-colors">
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                      <span className="text-blue-600 font-bold text-xs">4</span>
+                  <li className="flex items-start gap-2 p-1.5 hover:bg-white/50 rounded transition-colors">
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-blue-600 font-bold text-[9px] sm:text-[10px]">4</span>
                     </div>
-                    <span>
+                    <span className="text-[10px] sm:text-xs text-gray-700">
                       Include links to your portfolio or relevant projects
                     </span>
                   </li>

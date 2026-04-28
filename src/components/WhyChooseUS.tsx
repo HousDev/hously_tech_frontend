@@ -185,7 +185,7 @@ const WhyChooseUsSection: React.FC = () => {
             {/* Left Column - 7/12 on desktop, full width on mobile */}
             <div className="w-full xl:w-7/12 px-10 mt-10">
               {/* Title Section */}
-              <div className="mb-[60px] xl:mb-[60px] mb-10 relative z-10 xl:-mt-4">
+              <div className="mb-[60px] xl:mb-[30px] mb-10 relative z-10 xl:-mt-4">
                 {/* Sub Title */}
                 <span
                   className="inline-block text-[12px] sm:text-[13px] font-medium uppercase tracking-wider text-[#0076d8] mb-5 xl:mb-7 relative pb-1 animate-slideInLeft"
@@ -214,7 +214,7 @@ const WhyChooseUsSection: React.FC = () => {
                 <img
                   alt="Why Choose Us"
                   src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&q=80"
-                  className="w-full h-[200px] md:h-[520px] object-cover"
+                  className="w-full h-[200px] md:h-[420px] object-cover"
                 />
               </div>
             </div>
@@ -227,7 +227,7 @@ const WhyChooseUsSection: React.FC = () => {
                 <div className="flex justify-center xl:justify-end items-end leading-none animate-slideInUp">
                   {/* Animated number */}
                   <span
-                    className="text-white font-bold text-[100px] sm:text-[140px] md:text-[200px] xl:text-[240px] leading-[0.74]"
+                    className="text-white font-bold text-[100px] sm:text-[140px] md:text-[200px] xl:text-[130px] leading-[0.74]"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     {experienceCount}
@@ -235,7 +235,7 @@ const WhyChooseUsSection: React.FC = () => {
                   
                   {/* Plus sign - ALWAYS VISIBLE */}
                   <span
-                    className="font-bold text-[50px] sm:text-[70px] md:text-[100px] xl:text-[140px] leading-[0.8] ml-2"
+                    className="font-bold text-[50px] sm:text-[70px] md:text-[100px] xl:text-[100px] leading-[0.8] ml-2"
                     style={{
                       WebkitTextStroke: "1px #ffffff",
                       color: "transparent",
@@ -251,8 +251,8 @@ const WhyChooseUsSection: React.FC = () => {
                   className="text-white font-bold text-center xl:text-right mx-auto xl:ml-auto mt-4 animate-slideInUp"
                   style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                 >
-                  <div className="text-[24px] sm:text-[30px] md:text-[36px] xl:text-[40px] leading-[1.1]">Years Of</div>
-                  <div className="text-[24px] sm:text-[30px] md:text-[36px] xl:text-[40px] leading-[1.1]">Experience</div>
+                  <div className="text-[24px] sm:text-[30px] md:text-[36px] xl:text-[20px] leading-[1.1]">Years Of</div>
+                  <div className="text-[24px] sm:text-[30px] md:text-[36px] xl:text-[20px] leading-[1.1]">Experience</div>
                 </div>
               </div>
 

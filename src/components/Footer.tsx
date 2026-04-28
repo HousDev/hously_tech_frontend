@@ -340,10 +340,10 @@ const Footer: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <FaEnvelope className="text-[#fed700] flex-shrink-0 text-sm" />
                       <a
-                        href="mailto:info@hously.in"
+                        href="mailto:careers@hously.in"
                         className="text-gray-300 hover:text-white transition-colors text-sm"
                       >
-                        info@hously.in
+                        careers@hously.in
                       </a>
                     </div>
                   </div>
@@ -376,7 +376,7 @@ const Footer: React.FC = () => {
 
       {/* Mobile Footer */}
       <div className="block lg:hidden">
-        <div className="bg-gradient-to-br from-gray-900 via-blue-900/80 to-gray-900">
+        <div className="bg-[#0F172A]">
           <div className="px-3 py-4">
             <div className="mb-4 text-center">
               <div className="flex items-center mb-2 justify-start">
@@ -559,10 +559,10 @@ const Footer: React.FC = () => {
                   <div className="flex items-center gap-1.5">
                     <FaEnvelope className="text-[#fed700] text-[10px] flex-shrink-0" />
                     <a
-                      href="mailto:info@hously.in"
+                      href="mailto:careers@hously.in"
                       className="text-gray-300 hover:text-white text-[10px]"
                     >
-                      info@hously.in
+                      careers@hously.in
                     </a>
                   </div>
                 </div>

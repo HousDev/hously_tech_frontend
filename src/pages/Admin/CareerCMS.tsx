@@ -185,29 +185,30 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     }
   };
 
- useEffect(() => {
+useEffect(() => {
   fetchAllData();
-}, [activeTab, currentPage, itemsPerPage, statusFilter, departmentFilter, locationFilter, jobTypeFilter, statusViewFilter, sortField, sortDirection, searchTerm]); // Add searchTerm here
-  const fetchAllData = async () => {
-    try {
-      setLoading(true);
-      
-      if (activeTab === 'jobs') {
-        await fetchJobs();
-        await fetchJobStats();
-      } else {
-        await fetchApplications();
-        await fetchAppStats();
-      }
-      
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-      setError('Failed to load data');
-      showToast('Failed to load data', 'error');
-    } finally {
-      setLoading(false);
+  // Also fetch app stats separately when component mounts
+  fetchAppStats();
+}, [activeTab, currentPage, itemsPerPage, statusFilter, departmentFilter, locationFilter, jobTypeFilter, statusViewFilter, sortField, sortDirection, searchTerm]);
+  
+const fetchAllData = async () => {
+  try {
+    setLoading(true);
+    
+    if (activeTab === 'jobs') {
+      await Promise.all([fetchJobs(), fetchJobStats()]);
+    } else {
+      await Promise.all([fetchApplications(), fetchAppStats()]);
     }
-  };
+    
+  } catch (error) {
+    console.error('Failed to fetch data:', error);
+    setError('Failed to load data');
+    showToast('Failed to load data', 'error');
+  } finally {
+    setLoading(false);
+  }
+};
 
  // REPLACE with:
 const fetchJobs = async () => {
@@ -270,10 +271,21 @@ const fetchJobStats = async () => {
   // REPLACE with:
 const fetchAppStats = async () => {
   try {
+    console.log('Fetching application stats...');
     const stats = await careerApi.getApplicationStats();
+    console.log('Application stats received:', stats);
     setAppStats(stats);
   } catch (error) {
     console.error('Failed to fetch app stats:', error);
+    // Set default stats to avoid undefined
+    setAppStats({
+      total: 0,
+      pending: 0,
+      reviewed: 0,
+      shortlisted: 0,
+      rejected: 0,
+      hired: 0
+    });
   }
 };
 
@@ -397,15 +409,41 @@ const handleToggleActive = async (id: number, currentStatus: boolean) => {
 };
 
   // REPLACE with:
-const handleUpdateApplicationStatus = async (id: number, status: string) => {
-  const statusToast = toast.loading('Updating application status...');
+const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
+
+const handleUpdateApplicationStatus = async (id: number, status: 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired') => {
+  const currentApp = applications.find(a => a.id === id);
   
+  if (currentApp?.status === status) return;
+  if (processingIds.has(id)) return;
+
+  // Optimistically update UI immediately
+  setApplications(prev => 
+    prev.map(app => app.id === id ? { ...app, status } : app)
+  );
+  
+  setProcessingIds(prev => new Set(prev).add(id));
+  
+  const statusToast = toast.loading('Updating application status...');
   try {
     await careerApi.updateApplicationStatus(id, status);
     toast.success('Application status updated!', { id: statusToast });
-    fetchAllData();
+    
+    // ✅ REMOVE the setTimeout fetchAllData — optimistic update already shows the change
+    // The useEffect will re-fetch naturally on next filter/tab change
+    
   } catch (err: any) {
+    // Revert on error
+    setApplications(prev => 
+      prev.map(app => app.id === id ? { ...app, status: currentApp?.status || 'pending' } : app)
+    );
     toast.error('Failed to update application status', { id: statusToast });
+  } finally {
+    setProcessingIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   }
 };
 
@@ -424,7 +462,8 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
     }
     toast.success(`Updated ${selectedApplications.length} application(s) to ${status}!`, { id: updateToast });
     setSelectedApplications([]);
-    fetchAllData();
+    // ✅ REMOVE fetchAllData() from here too
+    // fetchAllData();  // DELETE THIS LINE
   } catch (err: any) {
     toast.error('Failed to update applications', { id: updateToast });
   }
@@ -482,10 +521,36 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
   };
 
   const downloadResume = (path: string) => {
-    if (path) {
-      window.open(path, '_blank');
+  if (!path) {
+    toast.error('No resume file available');
+    return;
+  }
+
+  try {
+    // Get the base URL from Vite environment
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    
+    // Remove /api suffix if present to get the root URL
+    const baseUrl = apiBaseUrl.replace(/\/api$/, '').replace(/\/$/, '');
+    
+    // Construct the full URL
+    let fullUrl: string;
+    
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      fullUrl = path;
+    } else {
+      // Remove leading slash if present
+      const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+      fullUrl = `${baseUrl}/${cleanPath}`;
     }
-  };
+    
+    // Open in new tab
+    window.open(fullUrl, '_blank');
+  } catch (error) {
+    console.error('Error opening resume:', error);
+    toast.error('Failed to open resume');
+  }
+};
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -614,7 +679,7 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white ">
       <Toaster 
         position="top-right"
         toastOptions={{
@@ -646,344 +711,317 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
         isSidebarOpen ? 'ml-0 sm:ml-0' : ''
       }`}>
         {/* Header - Fixed with sidebar consideration */}
-        <div className={`${isSidebarOpen ? 'relative sm:sticky sm:top-4 lg:top-16' : 'sticky top-0 sm:top-4 lg:top-16'} z-30 bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4`}>
-          {/* Blue Title Section */}
-          <div className="bg-blue-200 text-black rounded-t-lg sm:rounded-t-xl">
-            <div className="px-3 sm:px-4 py-2 sm:py-3">
-<div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <div className="bg-white/20 p-1.5 sm:p-2 rounded-md sm:rounded-lg">
-                    <Briefcase className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="flex flex-col">
-                    <h1 className="text-sm sm:text-base lg:text-lg font-bold tracking-tight truncate">
-                      Career Management
-                    </h1>
-                    <p className="text-black text-[10px] sm:text-xs mt-0.5 hidden sm:block">
-                      Manage job openings and applications
-                    </p>
-                  </div>
+<div className={`${isSidebarOpen ? 'relative sm:sticky sm:top-4 lg:top-16' : 'sticky top-0 sm:top-4 lg:top-16'} z-30 bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4`}>
+  {/* Blue Title Section */}
+  <div className="bg-blue-200 text-black rounded-t-lg sm:rounded-t-xl">
+    <div className="px-2 py-1.5 sm:px-3 sm:py-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <div className="bg-white/20 p-1 rounded-md">
+            <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </div>
+          <h1 className="text-sm sm:text-base font-bold tracking-tight">
+            Career Management
+          </h1>
+        </div>
+        <div className="flex items-center gap-2">
+         {activeTab === 'jobs' && (
+     <button
+            onClick={() => setIsModalOpen(true)}
+            className="sm:hidden flex bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-2 rounded-md items-center gap-1.5 text-xs"
+          >
+            <Plus size={14} />
+            <span>Add Job</span>
+          </button>
+  )}
+  {activeTab === 'jobs' && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="hidden sm:flex bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-md items-center gap-1.5 text-xs"
+          >
+            <Plus size={14} />
+            <span>Add Job</span>
+          </button>
+        )}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* White Content Section - Show only when sidebar is closed on mobile */}
+  {(!isSidebarOpen || window.innerWidth >= 640) && (
+    <div className="bg-white rounded-b-lg sm:rounded-b-xl">
+      <div className="px-2 py-2 sm:px-3 sm:py-2.5">
+        {/* Tabs */}
+        <div className="flex space-x-1 mb-2 sm:mb-2.5">
+          <button
+            onClick={() => setActiveTab('jobs')}
+            className={`flex-1 py-1.5 px-2 text-center font-medium transition-all rounded-md text-xs ${
+              activeTab === 'jobs'
+                ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-transparent'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-1.5">
+              <Briefcase size={14} />
+              <span>Jobs ({jobStats.total})</span>
+            </div>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('applications');
+              fetchAppStats();
+            }}
+            className={`flex-1 py-1.5 px-2 text-center font-medium transition-all rounded-md text-xs ${
+              activeTab === 'applications'
+                ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-transparent'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-1.5">
+              <Users size={14} />
+              <span>Applications ({appStats.total})</span>
+            </div>
+          </button>
+        </div>
+
+        {/* Stats Cards - Jobs */}
+        {activeTab === 'jobs' && (
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 mb-2 sm:mb-2.5">
+            <div className="bg-blue-50 border border-blue-200 rounded-md px-1.5 py-1 sm:px-2 sm:py-1.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] sm:text-[10px] text-gray-600">Total</p>
+                  <p className="text-xs sm:text-sm font-bold text-gray-900">{jobStats.total}</p>
                 </div>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="sm:hidden bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-lg transition"
-                >
-                  <Plus size={18} />
-                </button>
-                 <div className="flex justify-center sm:justify-end">
- <button
-  onClick={() => setIsModalOpen(true)}
-  className="hidden sm:flex ml-auto bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg items-center space-x-2 transition-all duration-200 shadow-sm text-xs sm:text-sm"
->
-  <Plus size={16} className="sm:size-[18px]" />
-  <span className="font-medium">Add Job</span>
-</button>
-
-</div>
-
+                <Briefcase className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600" />
+              </div>
+            </div>
+            <div className="bg-green-50 border border-green-200 rounded-md px-1.5 py-1 sm:px-2 sm:py-1.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] sm:text-[10px] text-gray-600">Active</p>
+                  <p className="text-xs sm:text-sm font-bold text-green-600">{jobStats.active}</p>
+                </div>
+                <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-green-600" />
+              </div>
+            </div>
+            <div className="bg-gray-50 border border-gray-200 rounded-md px-1.5 py-1 sm:px-2 sm:py-1.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] sm:text-[10px] text-gray-600">Inactive</p>
+                  <p className="text-xs sm:text-sm font-bold text-gray-600">{jobStats.inactive}</p>
+                </div>
+                <EyeOff className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-600" />
+              </div>
+            </div>
+            <div className="bg-purple-50 border border-purple-200 rounded-md px-1.5 py-1 sm:px-2 sm:py-1.5 hidden sm:block">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] sm:text-[10px] text-gray-600">Depts</p>
+                  <p className="text-xs sm:text-sm font-bold text-purple-600">{jobStats.departments}</p>
+                </div>
+                <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-600" />
+              </div>
+            </div>
+            <div className="bg-orange-50 border border-orange-200 rounded-md px-1.5 py-1 sm:px-2 sm:py-1.5 hidden sm:block">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] sm:text-[10px] text-gray-600">Locs</p>
+                  <p className="text-xs sm:text-sm font-bold text-orange-600">{jobStats.locations}</p>
+                </div>
+                <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-600" />
               </div>
             </div>
           </div>
+        )}
 
-          {/* White Content Section - Show only when sidebar is closed on mobile */}
-          {(!isSidebarOpen || window.innerWidth >= 640) && (
-            <div className="bg-white rounded-b-lg sm:rounded-b-xl">
-              <div className="px-3 sm:px-4 pt-2 sm:pt-3 pb-3 sm:pb-4">
-                {/* Tabs */}
-                <div className="flex space-x-1 sm:space-x-2 mb-3 sm:mb-4">
-                  <button
-                    onClick={() => setActiveTab('jobs')}
-                    className={`flex-1 py-2 px-3 sm:px-4 text-center font-medium transition-all relative rounded-lg sm:rounded-xl ${
-                      activeTab === 'jobs'
-                        ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <Briefcase size={16} className="sm:size-[18px]" />
-                      <span className="text-xs sm:text-sm">Jobs ({jobStats.total})</span>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('applications')}
-                    className={`flex-1 py-2 px-3 sm:px-4 text-center font-medium transition-all relative rounded-lg sm:rounded-xl ${
-                      activeTab === 'applications'
-                        ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <Users size={16} className="sm:size-[18px]" />
-                      <span className="text-xs sm:text-sm">Applications ({appStats.total})</span>
-                    </div>
-                  </button>
-                </div>
-
-                {/* Stats Cards */}
-                {activeTab === 'jobs' ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-3 sm:mb-4">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 sm:p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-[10px] sm:text-xs text-gray-600 font-medium">Total Jobs</p>
-                          <p className="text-base sm:text-lg font-bold text-gray-900">{jobStats.total}</p>
-                        </div>
-                        <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                      </div>
-                    </div>
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-2 sm:p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-[10px] sm:text-xs text-gray-600 font-medium">Active</p>
-                          <p className="text-base sm:text-lg font-bold text-green-600">{jobStats.active}</p>
-                        </div>
-                        <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                      </div>
-                    </div>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 sm:p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-[10px] sm:text-xs text-gray-600 font-medium">Inactive</p>
-                          <p className="text-base sm:text-lg font-bold text-gray-600">{jobStats.inactive}</p>
-                        </div>
-                        <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-                      </div>
-                    </div>
-                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-2 sm:p-3 hidden sm:block lg:block">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-[10px] sm:text-xs text-gray-600 font-medium">Departments</p>
-                          <p className="text-base sm:text-lg font-bold text-purple-600">{jobStats.departments}</p>
-                        </div>
-                        <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-                      </div>
-                    </div>
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 sm:p-3 hidden sm:block lg:block">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-[10px] sm:text-xs text-gray-600 font-medium">Locations</p>
-                          <p className="text-base sm:text-lg font-bold text-orange-600">{jobStats.locations}</p>
-                        </div>
-                        <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3 mb-3 sm:mb-4">
-                    {Object.entries(appStats).map(([key, value]) => (
-                      <div key={key} className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-center">
-                        <p className="text-[10px] sm:text-xs text-gray-600 font-medium capitalize truncate">{key}</p>
-                        <p className="text-base sm:text-lg font-bold text-gray-900">{value}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Search and Filters */}
-                <div className="space-y-2 sm:space-y-3">
-                  {/* Search Bar */}
-                 {/* Search Bar */}
-<div className="relative">
-  <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3 sm:w-4 sm:h-4" />
-  <input
-    type="text"
-    placeholder={activeTab === 'jobs' ? "Search jobs..." : "Search applications..."}
-    value={searchTerm}
-    onChange={(e) => {
-      setSearchTerm(e.target.value);
-      // Add a small debounce to avoid too many API calls
-      setCurrentPage(1);
-    }}
-    className="w-full pl-7 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-xs sm:text-sm bg-white shadow-sm"
-  />
-  <div className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 flex items-center space-x-1 sm:space-x-2">
-    <button
-      onClick={handleResetFilters}
-      className="text-gray-600 hover:text-gray-900 p-1 hover:bg-gray-100 rounded-lg transition"
-      title="Reset filters"
-    >
-      <RefreshCw size={14} className="sm:size-[16px]" />
-    </button>
-  </div>
-</div>
-
-                  {/* Filter Controls */}
-                  {activeTab === 'jobs' && (
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                      {/* View Mode Toggle */}
-                      <div className="flex items-center space-x-1 bg-gray-100 p-0.5 sm:p-1 rounded-lg">
-                        <button
-                          onClick={() => setViewMode('grid')}
-                          className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md transition ${
-                            viewMode === 'grid' 
-                              ? 'bg-white text-blue-600 shadow-sm' 
-                              : 'text-gray-600 hover:text-gray-900'
-                          }`}
-                        >
-                          <Grid size={14} className="sm:size-[16px]" />
-                        </button>
-                        <button
-                          onClick={() => setViewMode('list')}
-                          className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md transition ${
-                            viewMode === 'list' 
-                              ? 'bg-white text-blue-600 shadow-sm' 
-                              : 'text-gray-600 hover:text-gray-900'
-                          }`}
-                        >
-                          <List size={14} className="sm:size-[16px]" />
-                        </button>
-                      </div>
-
-                      {/* Status Filter */}
-                      <div className="flex items-center space-x-1 sm:space-x-2">
-                        <span className="text-xs text-gray-600 font-medium hidden sm:inline">Status:</span>
-                        <div className="flex items-center space-x-1 bg-gray-100 p-0.5 sm:p-1 rounded-lg">
-                          <button
-                            onClick={() => setStatusViewFilter('all')}
-                            className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md transition text-xs ${
-                              statusViewFilter === 'all' 
-                                ? 'bg-white text-blue-600 shadow-sm font-medium' 
-                                : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                          >
-                            All
-                          </button>
-                          <button
-                            onClick={() => setStatusViewFilter('active')}
-                            className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md transition text-xs ${
-                              statusViewFilter === 'active' 
-                                ? 'bg-green-100 text-green-600 shadow-sm font-medium' 
-                                : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                          >
-                            Active
-                          </button>
-                          <button
-                            onClick={() => setStatusViewFilter('inactive')}
-                            className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md transition text-xs ${
-                              statusViewFilter === 'inactive' 
-                                ? 'bg-gray-200 text-gray-600 shadow-sm font-medium' 
-                                : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                          >
-                            Inactive
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Other Filters */}
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <select
-                          value={departmentFilter}
-                          onChange={(e) => {
-                            setDepartmentFilter(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm shadow-sm min-w-[100px] sm:min-w-[140px]"
-                        >
-                          <option value="all">All Departments</option>
-                         {Array.from(
-  new Set(
-    jobs
-      .map(job => job.department)
-      .filter((dept): dept is string => Boolean(dept)) // ✅ fix
-  )
-).map(dept => (
-  <option key={dept} value={dept}>{dept}</option>
-))}
-                        </select>
-
-                        <select
-                          value={locationFilter}
-                          onChange={(e) => {
-                            setLocationFilter(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm shadow-sm min-w-[80px] sm:min-w-[120px]"
-                        >
-                          <option value="all">All Locations</option>
-                         {Array.from(
-  new Set(
-    jobs
-      .map(job => job.location)
-      .filter((loc): loc is string => Boolean(loc)) // ✅ type guard
-  )
-).map(loc => (
-  <option key={loc} value={loc}>{loc}</option>
-))}
-                        </select>
-
-                        <select
-                          value={jobTypeFilter}
-                          onChange={(e) => {
-                            setJobTypeFilter(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm shadow-sm min-w-[80px] sm:min-w-[120px]"
-                        >
-                          <option value="all">All Types</option>
-                          {Array.from(new Set(jobs.map(job => job.job_type).filter(Boolean))).map(type => (
-                            <option key={type} value={type}>{type}</option>
-                          ))}
-                        </select>
-
-                        <select
-                          value={itemsPerPage}
-                          onChange={(e) => {
-                            setItemsPerPage(Number(e.target.value));
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm shadow-sm"
-                        >
-                          <option value="6">6 per page</option>
-                          <option value="12">12 per page</option>
-                          <option value="24">24 per page</option>
-                          <option value="48">48 per page</option>
-                        </select>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Applications Tab Filters */}
-                  {activeTab === 'applications' && (
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                      <select
-                        value={statusFilter}
-                        onChange={(e) => {
-                          setStatusFilter(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                        className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm shadow-sm min-w-[120px] sm:min-w-[150px]"
-                      >
-                        <option value="all">All Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="reviewed">Reviewed</option>
-                        <option value="shortlisted">Shortlisted</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="hired">Hired</option>
-                      </select>
-                      
-                      <select
-                        value={itemsPerPage}
-                        onChange={(e) => {
-                          setItemsPerPage(Number(e.target.value));
-                          setCurrentPage(1);
-                        }}
-                        className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm shadow-sm"
-                      >
-                        <option value="10">10 per page</option>
-                        <option value="25">25 per page</option>
-                        <option value="50">50 per page</option>
-                      </select>
-                      
-                     
-                    </div>
-                  )}
-                </div>
-              </div>
+        {/* Stats Cards - Applications */}
+        {activeTab === 'applications' && appStats && (
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mb-2 sm:mb-2.5">
+            <div className="bg-gray-50 border border-gray-200 rounded-md px-1.5 py-1 text-center">
+              <p className="text-[8px] sm:text-[9px] text-gray-500">Total</p>
+              <p className="text-xs sm:text-sm font-bold text-gray-900">{appStats.total || 0}</p>
             </div>
-          )}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md px-1.5 py-1 text-center">
+              <p className="text-[8px] sm:text-[9px] text-gray-500">Pending</p>
+              <p className="text-xs sm:text-sm font-bold text-yellow-600">{appStats.pending || 0}</p>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-md px-1.5 py-1 text-center">
+              <p className="text-[8px] sm:text-[9px] text-gray-500">Reviewed</p>
+              <p className="text-xs sm:text-sm font-bold text-blue-600">{appStats.reviewed || 0}</p>
+            </div>
+            <div className="bg-green-50 border border-green-200 rounded-md px-1.5 py-1 text-center">
+              <p className="text-[8px] sm:text-[9px] text-gray-500">Listed</p>
+              <p className="text-xs sm:text-sm font-bold text-green-600">{appStats.shortlisted || 0}</p>
+            </div>
+            <div className="bg-red-50 border border-red-200 rounded-md px-1.5 py-1 text-center">
+              <p className="text-[8px] sm:text-[9px] text-gray-500">Rejected</p>
+              <p className="text-xs sm:text-sm font-bold text-red-600">{appStats.rejected || 0}</p>
+            </div>
+            <div className="bg-purple-50 border border-purple-200 rounded-md px-1.5 py-1 text-center">
+              <p className="text-[8px] sm:text-[9px] text-gray-500">Hired</p>
+              <p className="text-xs sm:text-sm font-bold text-purple-600">{appStats.hired || 0}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Search Bar - Compact */}
+        <div className="relative mb-2">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-2.5 h-2.5 sm:w-3 sm:h-3" />
+          <input
+            type="text"
+            placeholder={activeTab === 'jobs' ? "Search jobs..." : "Search applications..."}
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full pl-6 sm:pl-8 pr-8 py-1 sm:py-1.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+          />
+          <button
+            onClick={handleResetFilters}
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600"
+          >
+            <RefreshCw size={10} className="sm:size-3" />
+          </button>
         </div>
+
+        {/* Filter Controls - Jobs */}
+        {activeTab === 'jobs' && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex items-center bg-gray-100 p-0.5 rounded-md">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
+              >
+                <Grid size={12} />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1 rounded ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
+              >
+                <List size={12} />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-md">
+              <button
+                onClick={() => setStatusViewFilter('all')}
+                className={`px-1.5 py-0.5 rounded text-[10px] ${statusViewFilter === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setStatusViewFilter('active')}
+                className={`px-1.5 py-0.5 rounded text-[10px] ${statusViewFilter === 'active' ? 'bg-green-100 text-green-600' : 'text-gray-600'}`}
+              >
+                Active
+              </button>
+              <button
+                onClick={() => setStatusViewFilter('inactive')}
+                className={`px-1.5 py-0.5 rounded text-[10px] ${statusViewFilter === 'inactive' ? 'bg-gray-200 text-gray-600' : 'text-gray-600'}`}
+              >
+                Inactive
+              </button>
+            </div>
+
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="px-1.5 py-0.5 text-[10px] border border-gray-300 rounded bg-white"
+            >
+              <option value="all">All Depts</option>
+              {Array.from(new Set(jobs.map(job => job.department).filter(Boolean))).map(dept => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
+            </select>
+
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="px-1.5 py-0.5 text-[10px] border border-gray-300 rounded bg-white"
+            >
+              <option value="all">All Locs</option>
+              {Array.from(new Set(jobs.map(job => job.location).filter(Boolean))).map(loc => (
+                <option key={loc} value={loc}>{loc}</option>
+              ))}
+            </select>
+
+            <select
+              value={jobTypeFilter}
+              onChange={(e) => setJobTypeFilter(e.target.value)}
+              className="px-1.5 py-0.5 text-[10px] border border-gray-300 rounded bg-white"
+            >
+              <option value="all">All Types</option>
+              {Array.from(new Set(jobs.map(job => job.job_type).filter(Boolean))).map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              className="px-1.5 py-0.5 text-[10px] border border-gray-300 rounded bg-white"
+            >
+              <option value="6">6</option>
+              <option value="12">12</option>
+              <option value="24">24</option>
+              <option value="48">48</option>
+            </select>
+          </div>
+        )}
+
+        {/* Filter Controls - Applications */}
+        {activeTab === 'applications' && (
+  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+    <button
+      onClick={async () => {
+        await fetchAppStats();
+        await fetchApplications();
+        toast.success('Stats refreshed!');
+      }}
+      className="px-2 py-1 sm:px-3 sm:py-2 bg-blue-50 text-blue-600 rounded-lg text-xs flex items-center gap-1"
+    >
+      <RefreshCw size={12} />
+      Refresh Stats
+    </button>
+    
+    <select
+      value={statusFilter}
+      onChange={(e) => {
+        setStatusFilter(e.target.value);
+        setCurrentPage(1);
+      }}
+      className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm shadow-sm min-w-[120px] sm:min-w-[150px]"
+    >
+      <option value="all">All Status</option>
+      <option value="pending">Pending</option>
+      <option value="reviewed">Reviewed</option>
+      <option value="shortlisted">Shortlisted</option>
+      <option value="rejected">Rejected</option>
+      <option value="hired">Hired</option>
+    </select>
+    
+    <select
+      value={itemsPerPage}
+      onChange={(e) => {
+        setItemsPerPage(Number(e.target.value));
+        setCurrentPage(1);
+      }}
+      className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm shadow-sm"
+    >
+      <option value="10">10 per page</option>
+      <option value="25">25 per page</option>
+      <option value="50">50 per page</option>
+    </select>
+  </div>
+)}
+
+      </div>
+    </div>
+  )}
+</div>
 
         {/* Bulk Actions Bar - Hide when sidebar is open on mobile */}
         {((activeTab === 'jobs' && selectedJobs.length > 0) || 
@@ -1118,8 +1156,7 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
               </div>
             ) : (
               // List View Table
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[300px] sm:max-h-[330px]">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
@@ -1206,12 +1243,11 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
                     </tbody>
                   </table>
                 </div>
-              </div>
+              
             )
           ) : (
             // Applications Table
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[340px]">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -1267,11 +1303,11 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
                           <div className="text-xs text-gray-500">{formatDate(app.applied_at)}</div>
                         </td>
                         <td className="px-3 sm:px-6 py-4">
-                          <select
-                            value={app.status}
-                            onChange={(e) => handleUpdateApplicationStatus(app.id, e.target.value)}
-                            className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(app.status)}`}
-                          >
+                         <select
+  value={app.status}
+  onChange={(e) => handleUpdateApplicationStatus(app.id, e.target.value as 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired')}
+  className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(app.status)}`}
+>
                             <option value="pending">Pending</option>
                             <option value="reviewed">Reviewed</option>
                             <option value="shortlisted">Shortlisted</option>
@@ -1304,7 +1340,7 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
                   </tbody>
                 </table>
               </div>
-            </div>
+           
           )}
 
           {/* Empty State */}
@@ -1334,408 +1370,459 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
           )}
 
           {/* Pagination - Hide when sidebar is open on mobile */}
-          {filteredItems.length > 0 && (!isSidebarOpen || window.innerWidth >= 640) && (
-            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-lg">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="text-xs sm:text-sm text-gray-700">
-                  Showing <span className="font-semibold">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
-                  <span className="font-semibold">
-                    {Math.min(currentPage * itemsPerPage, totalItems)}
-                  </span>{' '}
-                  of <span className="font-semibold">{totalItems}</span> results
-                </div>
-                
-                <div className="flex items-center justify-between sm:justify-start space-x-1 sm:space-x-2">
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="p-1.5 sm:p-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition"
-                  >
-                    <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-                  </button>
-                  
-                  <div className="flex items-center space-x-0.5 sm:space-x-1">
-                    {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-                      let pageNumber;
-                      if (totalPages <= 3) {
-                        pageNumber = i + 1;
-                      } else if (currentPage <= 2) {
-                        pageNumber = i + 1;
-                      } else if (currentPage >= totalPages - 1) {
-                        pageNumber = totalPages - 2 + i;
-                      } else {
-                        pageNumber = currentPage - 1 + i;
-                      }
-                      
-                      return (
-                        <button
-                          key={pageNumber}
-                          onClick={() => setCurrentPage(pageNumber)}
-                          className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm rounded-lg transition ${
-                            currentPage === pageNumber
-                              ? 'bg-blue-600 text-white shadow-sm'
-                              : 'border border-gray-300 text-gray-700 hover:bg-white hover:shadow-sm'
-                          }`}
-                        >
-                          {pageNumber}
-                        </button>
-                      );
-                    })}
-                    
-                    {totalPages > 3 && currentPage < totalPages - 1 && (
-                      <>
-                        <span className="px-0.5 sm:px-1 text-gray-500">...</span>
-                        <button
-                          onClick={() => setCurrentPage(totalPages)}
-                          className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm transition"
-                        >
-                          {totalPages}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  
-                  <button
-                    onClick={() => setCurrentPage(p => p + 1)}
-                    disabled={currentPage >= totalPages}
-                    className="p-1.5 sm:p-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition"
-                  >
-                    <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
+         {filteredItems.length > 0 && (!isSidebarOpen || window.innerWidth >= 640) && (
+  <div className="mt-3 sm:mt-4 p-2 sm:p-2.5 bg-gray-50 border border-gray-200 rounded-md">
+    <div className="flex items-center justify-between gap-2">
+      {/* Left side - showing info compact */}
+      <div className="text-[10px] sm:text-xs text-gray-600 whitespace-nowrap">
+        <span className="hidden sm:inline">Showing </span>
+        <span className="font-semibold text-gray-800">{(currentPage - 1) * itemsPerPage + 1}</span>
+        <span className="hidden sm:inline"> - </span>
+        <span className="sm:hidden">-</span>
+        <span className="font-semibold text-gray-800">
+          {Math.min(currentPage * itemsPerPage, totalItems)}
+        </span>
+        <span className="hidden sm:inline"> of </span>
+        <span className="sm:hidden">/</span>
+        <span className="font-semibold text-gray-800">{totalItems}</span>
+      </div>
+      
+      {/* Pagination controls - compact row */}
+      <div className="flex items-center gap-0.5 sm:gap-1">
+        {/* Previous button */}
+        <button
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+        </button>
+        
+        {/* Page numbers - Desktop */}
+        <div className="hidden sm:flex items-center gap-0.5 sm:gap-1">
+          {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+            let pageNumber;
+            if (totalPages <= 3) {
+              pageNumber = i + 1;
+            } else if (currentPage <= 2) {
+              pageNumber = i + 1;
+            } else if (currentPage >= totalPages - 1) {
+              pageNumber = totalPages - 2 + i;
+            } else {
+              pageNumber = currentPage - 1 + i;
+            }
+            
+            return (
+              <button
+                key={pageNumber}
+                onClick={() => setCurrentPage(pageNumber)}
+                className={`min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs rounded-md transition ${
+                  currentPage === pageNumber
+                    ? 'bg-blue-600 text-white font-medium shadow-sm'
+                    : 'border border-gray-300 text-gray-700 hover:bg-white'
+                }`}
+              >
+                {pageNumber}
+              </button>
+            );
+          })}
+          
+          {totalPages > 3 && currentPage < totalPages - 1 && (
+            <>
+              <span className="text-gray-400 text-[10px] sm:text-xs px-0.5">...</span>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                className="min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-white transition"
+              >
+                {totalPages}
+              </button>
+            </>
           )}
+        </div>
+        
+        {/* Mobile: Current page indicator */}
+        <span className="sm:hidden text-[10px] font-medium text-gray-700 px-1">
+          {currentPage}/{totalPages}
+        </span>
+        
+        {/* Next button */}
+        <button
+          onClick={() => setCurrentPage(p => p + 1)}
+          disabled={currentPage >= totalPages}
+          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+        </button>
+      </div>
+    </div>
+  </div>
+)}
         </div>
       </div>
 
       {/* Job Modal - Responsive */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black/50" onClick={handleCloseModal} />
-          <div className="flex min-h-full items-center justify-center p-2 sm:p-4">
-            <div className="relative bg-white rounded-lg sm:rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-4 sm:p-6">
-                <div className="flex justify-between items-center mb-4 sm:mb-6">
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">
-                    {editingJob ? 'Edit Job' : 'Create New Job Opening'}
-                  </h2>
-                  <button
-                    onClick={handleCloseModal}
-                    className="text-gray-400 hover:text-gray-600 transition"
-                  >
-                    <X size={20} className="sm:size-[24px]" />
-                  </button>
-                </div>
+   {isModalOpen && (
+  <div className="fixed inset-0 z-50 overflow-y-auto">
+    {/* Backdrop - Black */}
+    <div
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+      onClick={handleCloseModal}
+    />
 
-                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                    {/* Job Title */}
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Job Title *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.job_title}
-                        onChange={(e) => setFormData({...formData, job_title: e.target.value})}
-                        className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                        required
-                        placeholder="e.g., Senior Frontend Developer"
-                      />
-                    </div>
-
-                    {/* Department */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Department *
-                      </label>
-                      {!showCustomDept ? (
-                        <select
-                          value={formData.department}
-                          onChange={(e) => {
-                            if (e.target.value === 'custom') {
-                              setShowCustomDept(true);
-                            } else {
-                              setFormData({...formData, department: e.target.value});
-                            }
-                          }}
-                          className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                          required
-                        >
-                          <option value="">Select Department</option>
-                          {predefinedDepartments.map(dept => (
-                            <option key={dept} value={dept}>{dept}</option>
-                          ))}
-                          <option value="custom">+ Add Custom</option>
-                        </select>
-                      ) : (
-                        <div className="flex space-x-2">
-                          <input
-                            type="text"
-                            value={customDept}
-                            onChange={(e) => setCustomDept(e.target.value)}
-                            className="flex-1 px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                            placeholder="Enter department"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAddCustomDept}
-                            className="px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg sm:rounded-xl hover:bg-blue-700 transition text-sm"
-                          >
-                            Add
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowCustomDept(false)}
-                            className="px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-50 transition text-sm"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Location */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Location *
-                      </label>
-                      {!showCustomLoc ? (
-                        <select
-                          value={formData.location}
-                          onChange={(e) => {
-                            if (e.target.value === 'custom') {
-                              setShowCustomLoc(true);
-                            } else {
-                              setFormData({...formData, location: e.target.value});
-                            }
-                          }}
-                          className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                          required
-                        >
-                          <option value="">Select Location</option>
-                          {predefinedLocations.map(loc => (
-                            <option key={loc} value={loc}>{loc}</option>
-                          ))}
-                          <option value="custom">+ Add Custom</option>
-                        </select>
-                      ) : (
-                        <div className="flex space-x-2">
-                          <input
-                            type="text"
-                            value={customLoc}
-                            onChange={(e) => setCustomLoc(e.target.value)}
-                            className="flex-1 px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                            placeholder="Enter location"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAddCustomLoc}
-                            className="px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg sm:rounded-xl hover:bg-blue-700 transition text-sm"
-                          >
-                            Add
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowCustomLoc(false)}
-                            className="px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-50 transition text-sm"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Job Type */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Job Type *
-                      </label>
-                      <select
-                        value={formData.job_type}
-                        onChange={(e) => setFormData({...formData, job_type: e.target.value})}
-                        className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                        required
-                      >
-                        {predefinedJobTypes.map(type => (
-                          <option key={type} value={type}>{type}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Salary Range */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Salary Range
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.salary_range}
-                        onChange={(e) => setFormData({...formData, salary_range: e.target.value})}
-                        className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                        placeholder="e.g., ₹8L - ₹12L PA"
-                      />
-                    </div>
-
-                    {/* Experience Level */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Experience Level
-                      </label>
-                      <select
-                        value={formData.experience_level}
-                        onChange={(e) => setFormData({...formData, experience_level: e.target.value})}
-                        className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                      >
-                        <option value="">Select Level</option>
-                        {experienceLevels.map(level => (
-                          <option key={level} value={level}>{level}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Vacancy Count */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Vacancy Count *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.vacancy_count}
-                        onChange={(e) => setFormData({...formData, vacancy_count: parseInt(e.target.value) || 0})}
-                        min="0"
-                        max="100"
-                        className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                        required
-                      />
-                    </div>
-
-                    {/* Application Deadline */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Application Deadline
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.application_deadline}
-                        onChange={(e) => setFormData({...formData, application_deadline: e.target.value})}
-                        min={new Date().toISOString().split('T')[0]}
-                        className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Job Description *
-                    </label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData({...formData, description: e.target.value})}
-                      rows={3}
-                      className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                      required
-                      placeholder="Brief description of the job..."
-                    />
-                  </div>
-
-                  {/* Requirements */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Requirements *
-                    </label>
-                    <textarea
-                      value={formData.requirements}
-                      onChange={(e) => setFormData({...formData, requirements: e.target.value})}
-                      rows={3}
-                      className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                      required
-                      placeholder="One requirement per line..."
-                    />
-                  </div>
-
-                  {/* Responsibilities */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Responsibilities *
-                    </label>
-                    <textarea
-                      value={formData.responsibilities}
-                      onChange={(e) => setFormData({...formData, responsibilities: e.target.value})}
-                      rows={3}
-                      className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                      required
-                      placeholder="One responsibility per line..."
-                    />
-                  </div>
-
-                  {/* Benefits */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Benefits *
-                    </label>
-                    <textarea
-                      value={formData.benefits}
-                      onChange={(e) => setFormData({...formData, benefits: e.target.value})}
-                      rows={3}
-                      className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                      required
-                      placeholder="One benefit per line..."
-                    />
-                  </div>
-
-                  {/* Status */}
-                  <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-200">
-                    <label className="flex items-center space-x-2 sm:space-x-3">
-                      <input
-                        type="checkbox"
-                        checked={formData.is_active}
-                        onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
-                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">Active Job Opening</span>
-                        <p className="text-xs text-gray-500">
-                          {formData.is_active 
-                            ? 'Visible to candidates'
-                            : 'Hidden from candidates'}
-                        </p>
-                      </div>
-                    </label>
-
-                    {editingJob && (
-                      <div className="text-xs text-gray-500 text-right">
-                        <p>Created: {formatDate(editingJob.created_at)}</p>
-                        <p>Updated: {formatDate(editingJob.updated_at)}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Form Actions */}
-                  <div className="flex justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-gray-200">
-                    <button
-                      type="button"
-                      onClick={handleCloseModal}
-                      className="px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-50 transition text-sm"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-3 sm:px-5 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg sm:rounded-xl hover:bg-blue-700 transition flex items-center space-x-1.5 sm:space-x-2 text-sm shadow-md"
-                    >
-                      <Save size={16} className="sm:size-[18px]" />
-                      <span>{editingJob ? 'Update' : 'Create'} Job</span>
-                    </button>
-                  </div>
-                </form>
+    {/* Center wrapper */}
+    <div className="flex min-h-full items-center justify-center p-2 sm:p-3">
+      <div className="relative w-full max-w-[95%] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-2xl bg-white rounded-lg sm:rounded-xl shadow-lg">
+        
+        {/* ─── Header ─── */}
+        <div className="bg-gradient-to-r from-[#0D47A1] to-[#1976D2] rounded-t-lg sm:rounded-t-xl">
+          <div className="flex items-center justify-between px-2.5 py-1.5 sm:px-4 sm:py-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="bg-[#FFC107] rounded-md w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center font-bold text-[9px] sm:text-xs text-[#0D47A1] shrink-0">
+                jb
+              </div>
+              <div>
+                <h2 className="text-white font-medium text-xs sm:text-sm">
+                  {editingJob ? 'Edit Job' : 'Create New Job Opening'}
+                </h2>
+                <p className="text-white/70 text-[8px] sm:text-[10px] hidden sm:block">
+                  {editingJob ? 'Update job details' : 'Add a new job opening to your career page'}
+                </p>
               </div>
             </div>
+            <button
+              onClick={handleCloseModal}
+              className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-white/30 bg-white/10 text-white flex items-center justify-center cursor-pointer shrink-0 hover:bg-white/20 transition"
+            >
+              <X size={10} className="sm:w-3 sm:h-3" />
+            </button>
           </div>
         </div>
-      )}
+
+        {/* ─── Scrollable Body ─── */}
+        <div className="max-h-[70vh] sm:max-h-[75vh] overflow-y-auto">
+          <div className="p-2.5 sm:p-4">
+            <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-3">
+
+              {/* Job Title - Full Width */}
+              <div>
+                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                  Job Title <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.job_title}
+                  onChange={(e) => setFormData({...formData, job_title: e.target.value})}
+                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+                  required
+                  placeholder="e.g., Senior Frontend Developer"
+                />
+              </div>
+
+              {/* Row 1: Department + Location */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                    Department <span className="text-red-600">*</span>
+                  </label>
+                  {!showCustomDept ? (
+                    <select
+                      value={formData.department}
+                      onChange={(e) => {
+                        if (e.target.value === 'custom') {
+                          setShowCustomDept(true);
+                        } else {
+                          setFormData({...formData, department: e.target.value});
+                        }
+                      }}
+                      className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+                      required
+                    >
+                      <option value="">Select Department</option>
+                      {predefinedDepartments.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                      <option value="custom">+ Add Custom</option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-1">
+                      <input
+                        type="text"
+                        value={customDept}
+                        onChange={(e) => setCustomDept(e.target.value)}
+                        className="flex-1 px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff]"
+                        placeholder="Enter department"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCustomDept}
+                        className="px-2 py-1 bg-blue-600 text-white rounded-lg text-[9px] sm:text-xs hover:bg-blue-700 transition"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomDept(false)}
+                        className="px-2 py-1 border border-gray-300 text-gray-700 rounded-lg text-[9px] sm:text-xs hover:bg-gray-50 transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                    Location <span className="text-red-600">*</span>
+                  </label>
+                  {!showCustomLoc ? (
+                    <select
+                      value={formData.location}
+                      onChange={(e) => {
+                        if (e.target.value === 'custom') {
+                          setShowCustomLoc(true);
+                        } else {
+                          setFormData({...formData, location: e.target.value});
+                        }
+                      }}
+                      className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+                      required
+                    >
+                      <option value="">Select Location</option>
+                      {predefinedLocations.map(loc => (
+                        <option key={loc} value={loc}>{loc}</option>
+                      ))}
+                      <option value="custom">+ Add Custom</option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-1">
+                      <input
+                        type="text"
+                        value={customLoc}
+                        onChange={(e) => setCustomLoc(e.target.value)}
+                        className="flex-1 px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff]"
+                        placeholder="Enter location"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCustomLoc}
+                        className="px-2 py-1 bg-blue-600 text-white rounded-lg text-[9px] sm:text-xs hover:bg-blue-700 transition"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomLoc(false)}
+                        className="px-2 py-1 border border-gray-300 text-gray-700 rounded-lg text-[9px] sm:text-xs hover:bg-gray-50 transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 2: Job Type + Salary Range */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                    Job Type <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={formData.job_type}
+                    onChange={(e) => setFormData({...formData, job_type: e.target.value})}
+                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+                    required
+                  >
+                    {predefinedJobTypes.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                    Salary Range
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.salary_range}
+                    onChange={(e) => setFormData({...formData, salary_range: e.target.value})}
+                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+                    placeholder="e.g., ₹8L - ₹12L PA"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Experience Level + Vacancy Count */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                    Experience Level
+                  </label>
+                  <select
+                    value={formData.experience_level}
+                    onChange={(e) => setFormData({...formData, experience_level: e.target.value})}
+                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+                  >
+                    <option value="">Select Level</option>
+                    {experienceLevels.map(level => (
+                      <option key={level} value={level}>{level}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                    Vacancy Count <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.vacancy_count}
+                    onChange={(e) => setFormData({...formData, vacancy_count: parseInt(e.target.value) || 0})}
+                    min="0"
+                    max="100"
+                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] text-center"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Application Deadline */}
+              <div>
+                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                  Application Deadline
+                </label>
+                <input
+                  type="date"
+                  value={formData.application_deadline}
+                  onChange={(e) => setFormData({...formData, application_deadline: e.target.value})}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+                />
+              </div>
+
+              {/* Divider */}
+              <hr className="border-t border-gray-100 my-1" />
+
+              {/* Job Description */}
+              <div>
+                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                  Job Description <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  rows={3}
+                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] resize-none"
+                  required
+                  placeholder="Brief description of the job..."
+                />
+              </div>
+
+              {/* Requirements */}
+              <div>
+                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                  Requirements <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  value={formData.requirements}
+                  onChange={(e) => setFormData({...formData, requirements: e.target.value})}
+                  rows={3}
+                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] resize-none"
+                  required
+                  placeholder="One requirement per line..."
+                />
+              </div>
+
+              {/* Responsibilities */}
+              <div>
+                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                  Responsibilities <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  value={formData.responsibilities}
+                  onChange={(e) => setFormData({...formData, responsibilities: e.target.value})}
+                  rows={3}
+                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] resize-none"
+                  required
+                  placeholder="One responsibility per line..."
+                />
+              </div>
+
+              {/* Benefits */}
+              <div>
+                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+                  Benefits <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  value={formData.benefits}
+                  onChange={(e) => setFormData({...formData, benefits: e.target.value})}
+                  rows={3}
+                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] resize-none"
+                  required
+                  placeholder="One benefit per line..."
+                />
+              </div>
+
+              {/* Divider */}
+              <hr className="border-t border-gray-100 my-1" />
+
+              {/* Status */}
+              <div className="flex flex-col sm:flex-row justify-between gap-2 pt-1">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+                    className="w-3.5 h-3.5 text-blue-600 rounded accent-blue-600"
+                  />
+                  <div>
+                    <span className="text-[9px] sm:text-xs font-medium text-gray-700">Active Job Opening</span>
+                    <p className="text-[7px] sm:text-[8px] text-gray-500">
+                      {formData.is_active 
+                        ? 'Visible to candidates'
+                        : 'Hidden from candidates'}
+                    </p>
+                  </div>
+                </label>
+
+                {editingJob && (
+                  <div className="text-[7px] sm:text-[8px] text-gray-400 text-right">
+                    <p>Created: {formatDate(editingJob.created_at)}</p>
+                    <p>Updated: {formatDate(editingJob.updated_at)}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Divider */}
+              <hr className="border-t border-gray-100 my-1" />
+
+              {/* Form Actions */}
+              <div className="flex justify-end gap-1.5 sm:gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-2 py-1 sm:px-3 sm:py-1 border border-gray-300 rounded-lg text-[9px] sm:text-xs text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 text-white rounded-lg text-[9px] sm:text-xs hover:bg-blue-700 flex items-center gap-1 transition"
+                >
+                  <Save size={10} className="sm:w-3 sm:h-3" />
+                  <span>{editingJob ? 'Update' : 'Create'}</span>
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };

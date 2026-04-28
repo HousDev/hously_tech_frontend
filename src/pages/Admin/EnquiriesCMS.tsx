@@ -697,7 +697,7 @@ const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white">
       <Toaster position="top-right" />
       
       {/* Main Container */}
@@ -705,192 +705,185 @@ const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
         isSidebarOpen ? 'ml-0 sm:ml-0' : ''
       }`}>
         {/* Header - Fixed with sidebar consideration */}
-        <div className={`${isSidebarOpen ? 'relative sm:sticky sm:top-4 lg:top-16' : 'sticky top-0 sm:top-4 lg:top-16'} z-30 bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4`}>
-          {/* Blue Title Section */}
-          <div className="bg-blue-200 text-black  rounded-t-lg sm:rounded-t-xl">
-            <div className="px-3 sm:px-4 py-2 sm:py-3">
-              <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <div className="bg-white/20 p-1.5 sm:p-2 rounded-md sm:rounded-lg">
-                    <Inbox className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="flex flex-col">
-                    <h1 className="text-sm sm:text-base lg:text-lg font-bold tracking-tight truncate">
-                      Enquiries Management
-                    </h1>
-                    <p className="text-black text-[10px] sm:text-xs mt-0.5 hidden sm:block">
-                      Track, manage, and nurture client relationships
-                    </p>
-                  </div>
+     <div className={`${isSidebarOpen ? 'relative sm:sticky sm:top-4 lg:top-16' : 'sticky top-0 sm:top-4 lg:top-16'} z-30 bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4`}>
+  {/* Blue Title Section */}
+  <div className="bg-blue-200 text-black rounded-t-lg sm:rounded-t-xl">
+    <div className="px-2 py-1.5 sm:px-3 sm:py-2">
+      <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-2">
+        <div className="flex items-center space-x-2">
+          <div className="bg-white/20 p-1 rounded-md">
+            <Inbox className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </div>
+          <h1 className="text-sm sm:text-base font-bold tracking-tight">
+            Enquiries Management
+          </h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* White Content Section - Show only when sidebar is closed on mobile */}
+  {(!isSidebarOpen || window.innerWidth >= 640) && (
+    <div className="bg-white rounded-b-lg sm:rounded-b-xl">
+      <div className="px-2 py-2 sm:px-3 sm:py-2.5">
+        {/* Header with Actions */}
+        <div className="flex flex-row justify-between items-center gap-1.5 mb-2 sm:mb-2.5">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-xs sm:text-sm font-semibold text-gray-800">
+              Enquiries ({enquiries.length})
+            </h2>
+            <span className="text-[11px] text-gray-500 hidden sm:inline">Track & manage relationships</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="hidden sm:flex items-center gap-1.5">
+              <label className="cursor-pointer">
+                <input type="file" accept=".csv" onChange={handleImportCSV} className="hidden" />
+                <div className="bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded-md items-center gap-1.5 transition-all shadow-sm text-xs flex">
+                  <Upload size={12} />
+                  <span>Import</span>
                 </div>
+              </label>
+              <button
+                onClick={handleExportCSV}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded-md items-center gap-1.5 transition-all shadow-sm text-xs flex"
+              >
+                <Download size={12} />
+                <span>Export</span>
+              </button>
+            </div>
+            <div className="sm:hidden flex items-center gap-1.5 ml-auto">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+              >
+                <Grid size={16} />
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`p-1 rounded ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+              >
+                <List size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Compact Stats Cards */}
+        <div className="hidden sm:grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-1.5 mb-2 sm:mb-2.5">
+          {statsCards.map((stat, idx) => (
+            <div key={idx} className="bg-white rounded border border-gray-200 px-2 py-1 sm:px-3 sm:py-1.5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] sm:text-xs text-gray-500 font-medium">{stat.label}</p>
+                  <p className={`text-sm sm:text-base font-bold text-${stat.color}-600 mt-0.5`}>{stat.value}</p>
+                </div>
+                <div className={`p-1 bg-${stat.color}-100 rounded-lg`}>
+                  <stat.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-${stat.color}-600`} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile Stats Summary */}
+        <div className="sm:hidden grid grid-cols-2 md:grid-cols-4 gap-1.5 mb-2">
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 text-center">
+            <p className="text-[9px] text-gray-500">Total</p>
+            <p className="text-sm font-bold text-indigo-600">{stats?.total || 0}</p>
+          </div>
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 text-center">
+            <p className="text-[9px] text-gray-500">New</p>
+            <p className="text-sm font-bold text-blue-600">{stats?.new || 0}</p>
+          </div>
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 text-center">
+            <p className="text-[9px] text-gray-500">Urgent</p>
+            <p className="text-sm font-bold text-red-600">{stats?.urgent || 0}</p>
+          </div>
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 text-center">
+            <p className="text-[9px] text-gray-500">Today</p>
+            <p className="text-sm font-bold text-orange-600">{stats?.today || 0}</p>
+          </div>
+        </div>
+
+        {/* Compact Search and Filter Bar */}
+        <div className="bg-white rounded p-1.5 sm:p-2">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-1.5 sm:gap-2">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search enquiries..."
+                  value={filters.search}
+                  onChange={(e) => {
+                    setFilters({...filters, search: e.target.value});
+                    setCurrentPage(1);
+                  }}
+                  className="w-full pl-6 sm:pl-8 pr-2 sm:pr-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1">
+                <Filter className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 hidden sm:block" />
+                <select
+                  value={filters.status}
+                  onChange={(e) => {
+                    setFilters({...filters, status: e.target.value});
+                    setCurrentPage(1);
+                  }}
+                  className="px-1.5 py-1 sm:px-2 sm:py-1 text-[10px] sm:text-xs border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                >
+                  <option value="all">All Status</option>
+                  <option value="new">New</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="contacted">Contacted</option>
+                  <option value="closed">Closed</option>
+                  <option value="converted">Converted</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <select
+                  value={filters.priority}
+                  onChange={(e) => {
+                    setFilters({...filters, priority: e.target.value});
+                    setCurrentPage(1);
+                  }}
+                  className="px-1.5 py-1 sm:px-2 sm:py-1 text-[10px] sm:text-xs border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                >
+                  <option value="all">All Priority</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <span className="text-[9px] sm:text-xs text-gray-600 hidden sm:inline">Show:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-1.5 py-1 sm:px-2 sm:py-1 text-[10px] sm:text-xs border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                >
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                </select>
+                <span className="text-[9px] sm:text-xs text-gray-600 hidden sm:inline">/pg</span>
               </div>
             </div>
           </div>
-
-          {/* White Content Section - Show only when sidebar is closed on mobile */}
-          {(!isSidebarOpen || window.innerWidth >= 640) && (
-            <div className="bg-white rounded-b-lg sm:rounded-b-xl">
-              <div className="px-3 sm:px-4 pt-2 sm:pt-3 pb-3 sm:pb-4">
-                {/* Header with Actions */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div>
-                    <h2 className="text-sm sm:text-base font-semibold text-gray-800">
-                      All Enquiries ({enquiries.length})
-                    </h2>
-                    <p className="text-[10px] sm:text-xs text-gray-600 hidden sm:block">
-                      Manage interactions, meetings, and follow-ups
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2 w-full sm:w-auto">
-                    <div className="flex items-center space-x-1 sm:space-x-2">
-                      <label className="cursor-pointer">
-                        <input type="file" accept=".csv" onChange={handleImportCSV} className="hidden" />
-                        <div className="bg-emerald-600 hover:bg-emerald-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg items-center space-x-2 transition-all shadow-sm text-xs sm:text-sm hidden sm:flex">
-                          <Upload size={14} className="sm:size-[16px]" />
-                          <span className="font-medium">Import CSV</span>
-                        </div>
-                      </label>
-                      <button
-                        onClick={handleExportCSV}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg items-center space-x-2 transition-all shadow-sm text-xs sm:text-sm hidden sm:flex"
-                      >
-                        <Download size={14} className="sm:size-[16px]" />
-                        <span className="font-medium">Export CSV</span>
-                      </button>
-                    </div>
-                    <div className="sm:hidden flex items-center space-x-2 ml-auto">
-                      <button
-                        onClick={() => setViewMode('grid')}
-                        className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
-                      >
-                        <Grid size={18} />
-                      </button>
-                      <button
-                        onClick={() => setViewMode('table')}
-                        className={`p-1.5 rounded ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
-                      >
-                        <List size={18} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Compact Stats Cards */}
-                <div className="hidden sm:grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  {statsCards.map((stat, idx) => (
-                    <div key={idx} className="bg-white rounded border border-gray-200 p-2 sm:p-3 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-[10px] sm:text-xs text-gray-500 font-medium">{stat.label}</p>
-                          <p className={`text-lg sm:text-xl font-bold text-${stat.color}-600 mt-1`}>{stat.value}</p>
-                        </div>
-                        <div className={`p-1 sm:p-1.5 bg-${stat.color}-100 rounded-lg`}>
-                          <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 text-${stat.color}-600`} />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Mobile Stats Summary */}
-                <div className="sm:hidden grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Total</p>
-                    <p className="text-base font-bold text-indigo-600">{stats?.total || 0}</p>
-                  </div>
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">New</p>
-                    <p className="text-base font-bold text-blue-600">{stats?.new || 0}</p>
-                  </div>
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Urgent</p>
-                    <p className="text-base font-bold text-red-600">{stats?.urgent || 0}</p>
-                  </div>
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Today</p>
-                    <p className="text-base font-bold text-orange-600">{stats?.today || 0}</p>
-                  </div>
-                </div>
-
-                {/* Compact Search and Filter Bar */}
-                <div className="bg-white rounded p-2 sm:p-3">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-3">
-                    <div className="flex-1">
-                      <div className="relative">
-                        <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Search enquiries..."
-                          value={filters.search}
-                          onChange={(e) => {
-                            setFilters({...filters, search: e.target.value});
-                            setCurrentPage(1);
-                          }}
-                          className="w-full pl-7 sm:pl-9 pr-3 sm:pr-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <Filter className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 hidden sm:block" />
-                        <select
-                          value={filters.status}
-                          onChange={(e) => {
-                            setFilters({...filters, status: e.target.value});
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="all">All Status</option>
-                          <option value="new">New</option>
-                          <option value="in_progress">In Progress</option>
-                          <option value="contacted">Contacted</option>
-                          <option value="closed">Closed</option>
-                          <option value="converted">Converted</option>
-                        </select>
-                      </div>
-                      
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <select
-                          value={filters.priority}
-                          onChange={(e) => {
-                            setFilters({...filters, priority: e.target.value});
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="all">All Priority</option>
-                          <option value="urgent">Urgent</option>
-                          <option value="high">High</option>
-                          <option value="medium">Medium</option>
-                          <option value="low">Low</option>
-                        </select>
-                      </div>
-                      
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <span className="text-xs text-gray-600 hidden sm:inline">Show:</span>
-                        <select
-                          value={itemsPerPage}
-                          onChange={(e) => {
-                            setItemsPerPage(Number(e.target.value));
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="5">5</option>
-                          <option value="10">10</option>
-                          <option value="25">25</option>
-                        </select>
-                        <span className="text-xs text-gray-600 hidden sm:inline">per page</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
+      </div>
+    </div>
+  )}
+</div>
 
         {/* Bulk Actions Bar */}
         {selectedEnquiries.length > 0 && (!isSidebarOpen || window.innerWidth >= 640) && (
@@ -1028,7 +1021,7 @@ const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[calc(100vh-250px)] sm:max-h-[calc(100vh-300px)]">
+                <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[calc(100vh-390px)] sm:max-h-[calc(100vh-370px)]">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-20">
                       <tr>
@@ -1150,90 +1143,102 @@ const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
                 </div>
 
                 {/* Pagination Controls */}
-                {filteredEnquiries.length > 0 && (
-                  <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-3 sm:px-4 py-2 sm:py-3 z-10">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
-                      <div className="text-xs sm:text-sm text-gray-700">
-                        <span className="hidden sm:inline">Showing </span>
-                        <span className="font-semibold">{indexOfFirstItem + 1}</span>
-                        <span className="hidden sm:inline"> to </span>
-                        <span className="sm:hidden">-</span>
-                        <span className="font-semibold">
-                          {Math.min(indexOfLastItem, filteredEnquiries.length)}
-                        </span>
-                        <span className="hidden sm:inline"> of </span>
-                        <span className="sm:hidden">/</span>
-                        <span className="font-semibold">{filteredEnquiries.length}</span>
-                        {(filters.search || filters.status !== 'all' || filters.priority !== 'all') && (
-                          <span className="ml-1 sm:ml-2 text-indigo-600 text-[10px] sm:text-xs hidden sm:inline">
-                            {filters.search && `(Search: "${filters.search}")`}
-                            {filters.status !== 'all' && ` (Status: ${filters.status})`}
-                            {filters.priority !== 'all' && ` (Priority: ${filters.priority})`}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center justify-between sm:justify-start space-x-1 sm:space-x-2">
-                        <button
-                          onClick={prevPage}
-                          disabled={currentPage === 1}
-                          className="p-1.5 sm:p-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition"
-                        >
-                          <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
-                        
-                        <div className="flex items-center space-x-0.5 sm:space-x-1">
-                          {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-                            let pageNumber;
-                            if (totalPages <= 3) {
-                              pageNumber = i + 1;
-                            } else if (currentPage <= 2) {
-                              pageNumber = i + 1;
-                            } else if (currentPage >= totalPages - 1) {
-                              pageNumber = totalPages - 2 + i;
-                            } else {
-                              pageNumber = currentPage - 1 + i;
-                            }
-                            
-                            return (
-                              <button
-                                key={pageNumber}
-                                onClick={() => goToPage(pageNumber)}
-                                className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm rounded-lg transition ${
-                                  currentPage === pageNumber
-                                    ? 'bg-indigo-600 text-white shadow-sm'
-                                    : 'border border-gray-300 text-gray-700 hover:bg-white hover:shadow-sm'
-                                }`}
-                              >
-                                {pageNumber}
-                              </button>
-                            );
-                          })}
-                          
-                          {totalPages > 3 && currentPage < totalPages - 1 && (
-                            <>
-                              <span className="px-0.5 sm:px-1 text-gray-500">...</span>
-                              <button
-                                onClick={() => goToPage(totalPages)}
-                                className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm transition"
-                              >
-                                {totalPages}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                        
-                        <button
-                          onClick={nextPage}
-                          disabled={currentPage === totalPages}
-                          className="p-1.5 sm:p-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition"
-                        >
-                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              {filteredEnquiries.length > 0 && (
+  <div className="bg-gray-50 border-t border-gray-200 px-2 py-1.5 sm:px-4 sm:py-2">
+    <div className="flex items-center justify-between gap-1 sm:gap-2">
+      {/* Left side - Showing info compact */}
+      <div className="text-[9px] sm:text-xs text-gray-600 whitespace-nowrap">
+        <span className="hidden sm:inline">Showing </span>
+        <span className="font-semibold text-gray-800">{indexOfFirstItem + 1}</span>
+        <span className="hidden sm:inline"> - </span>
+        <span className="sm:hidden">-</span>
+        <span className="font-semibold text-gray-800">
+          {Math.min(indexOfLastItem, filteredEnquiries.length)}
+        </span>
+        <span className="hidden sm:inline"> of </span>
+        <span className="sm:hidden">/</span>
+        <span className="font-semibold text-gray-800">{filteredEnquiries.length}</span>
+        
+        {/* Filter indicators - compact */}
+        {(filters.search || filters.status !== 'all' || filters.priority !== 'all') && (
+          <span className="ml-1 text-indigo-600 text-[8px] sm:text-[10px] hidden sm:inline">
+            {filters.search && `🔍 "${filters.search.slice(0, 8)}${filters.search.length > 8 ? '…' : ''}"`}
+            {filters.status !== 'all' && ` • ${filters.status === 'in_progress' ? 'In Prog' : filters.status === 'converted' ? 'Conv' : filters.status}`}
+            {filters.priority !== 'all' && ` • ${filters.priority === 'urgent' ? 'Urg' : filters.priority === 'medium' ? 'Med' : filters.priority === 'high' ? 'High' : filters.priority}`}
+          </span>
+        )}
+      </div>
+      
+      {/* Pagination controls - compact row */}
+      <div className="flex items-center gap-0.5 sm:gap-1">
+        {/* Previous button */}
+        <button
+          onClick={prevPage}
+          disabled={currentPage === 1}
+          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+        </button>
+        
+        {/* Page numbers - Desktop */}
+        <div className="hidden sm:flex items-center gap-0.5 sm:gap-1">
+          {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+            let pageNumber;
+            if (totalPages <= 3) {
+              pageNumber = i + 1;
+            } else if (currentPage <= 2) {
+              pageNumber = i + 1;
+            } else if (currentPage >= totalPages - 1) {
+              pageNumber = totalPages - 2 + i;
+            } else {
+              pageNumber = currentPage - 1 + i;
+            }
+            
+            return (
+              <button
+                key={pageNumber}
+                onClick={() => goToPage(pageNumber)}
+                className={`min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs rounded-md transition ${
+                  currentPage === pageNumber
+                    ? 'bg-indigo-600 text-white font-medium shadow-sm'
+                    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {pageNumber}
+              </button>
+            );
+          })}
+          
+          {totalPages > 3 && currentPage < totalPages - 1 && (
+            <>
+              <span className="text-gray-400 text-[10px] sm:text-xs px-0.5">...</span>
+              <button
+                onClick={() => goToPage(totalPages)}
+                className="min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition"
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+        </div>
+        
+        {/* Mobile: Current page indicator */}
+        <span className="sm:hidden text-[10px] font-medium text-gray-700 px-1">
+          {currentPage}/{totalPages}
+        </span>
+        
+        {/* Next button */}
+        <button
+          onClick={nextPage}
+          disabled={currentPage === totalPages}
+          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+        </button>
+      </div>
+    </div>
+  </div>
+)}
               </>
             )}
           </div>

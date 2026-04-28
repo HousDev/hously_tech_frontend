@@ -58,7 +58,7 @@ const TechFeaturesSection: React.FC = () => {
                         <img
                           alt="IT Consulting"
                           src="https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?auto=format&fit=crop&w=800&q=80"
-                          className="w-250 h-156"
+                          className="w-250 h-136"
                         />
                       </div>
                     </div>
@@ -67,14 +67,14 @@ const TechFeaturesSection: React.FC = () => {
                         <img
                           alt="IT service"
                           src="https://html.themehour.net/robor/demo/assets/img/feature/4-2.jpg"
-                          className="w-full h-auto"
+                          className="w-full h-[300px] object-cover"
                         />
                       </div>
                       <div className="rounded-3xl overflow-hidden">
                         <img
                           alt="IT service"
                           src="https://html.themehour.net/robor/demo/assets/img/feature/4-3.jpg"
-                          className="w-full h-auto"
+                          className="w-full h-[230px] object-cover"
                         />
                       </div>
                     </div>

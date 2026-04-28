@@ -463,7 +463,7 @@ toast.success('Slide moved successfully!', { id: reorderToast });
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white ">
       <Toaster 
         position="top-right"
         toastOptions={{
@@ -497,188 +497,141 @@ toast.success('Slide moved successfully!', { id: reorderToast });
         {/* Header - Fixed with sidebar consideration */}
 {/* Header - Keep it sticky but add isolation */}
 <div className={`${isSidebarOpen ? 'relative sm:sticky sm:top-4 lg:top-16' : 'sticky top-0 sm:top-4 lg:top-16'} 
-  bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4 z-20`}> {/* Reduced z-index to 20 */}
-          <div className=" bg-blue-200 text-black rounded-t-lg sm:rounded-t-xl">
-            <div className="px-3 sm:px-4 py-2 sm:py-3">
-              <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <div className="bg-white/20 p-1.5 sm:p-2 rounded-md sm:rounded-lg">
-                    <Home className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="flex flex-col">
-                    <h1 className="text-sm sm:text-base lg:text-lg font-bold tracking-tight truncate">
-                      Home Page Slides
-                    </h1>
-                    <p className="text-black text-[10px] sm:text-xs mt-0.5 hidden sm:block">
-                      Manage hero slider content for your homepage
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="sm:hidden bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-lg transition"
-                >
-                  <Plus size={18} />
-                </button>
-              </div>
+  bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4 z-20`}>
+  <div className="bg-blue-200 text-black rounded-t-lg sm:rounded-t-xl">
+    <div className="px-2 py-1.5 sm:px-3 sm:py-2">
+      <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-2">
+        <div className="flex items-center space-x-2">
+          <div className="bg-white/20 p-1 rounded-md">
+            <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </div>
+          <h1 className="text-sm sm:text-base font-bold tracking-tight">
+            Home Page Slides
+          </h1>
+        </div>
+       <button
+  onClick={() => setIsModalOpen(true)}
+  className="sm:hidden flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-md items-center gap-1.5 text-xs"
+>
+  <Plus size={16} />
+  <span>Add Slide</span>
+</button>
+      </div>
+    </div>
+  </div>
+
+  {/* White Content Section - Show only when sidebar is closed on mobile */}
+  {(!isSidebarOpen || window.innerWidth >= 640) && (
+    <div className="bg-white rounded-b-lg sm:rounded-b-xl">
+      <div className="px-2 py-2 sm:px-3 sm:py-2.5">
+        {/* Header with Actions */}
+        <div className="flex flex-row justify-between items-center gap-1.5 mb-2 sm:mb-2.5">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-sm font-semibold text-gray-800">
+              Slides ({slides.length})
+            </h2>
+            <span className="text-[11px] text-gray-500 hidden sm:inline">Manage hero slider</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="hidden sm:flex bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-md items-center gap-1.5 text-xs"
+            >
+              <Plus size={14} />
+              <span>Add Slide</span>
+            </button>
+            <div className="sm:hidden flex items-center gap-1.5">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+              >
+                <Grid size={16} />
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`p-1 rounded ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+              >
+                <List size={16} />
+                
+              </button>
             </div>
           </div>
+        </div>
 
-          {/* White Content Section - Show only when sidebar is closed on mobile */}
-          {(!isSidebarOpen || window.innerWidth >= 640) && (
-            <div className="bg-white rounded-b-lg sm:rounded-b-xl">
-              <div className="px-3 sm:px-4 pt-2 sm:pt-3 pb-3 sm:pb-4">
-                {/* Header with Actions */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div>
-                    <h2 className="text-sm sm:text-base font-semibold text-gray-800">
-                      All Slides ({slides.length})
-                    </h2>
-                    <p className="text-[10px] sm:text-xs text-gray-600 hidden sm:block">
-                      Create, edit, and organize your homepage slides
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2 w-full sm:w-auto">
-                    <button
-                      onClick={() => setIsModalOpen(true)}
-                      className="hidden sm:flex bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg items-center space-x-2 transition-all duration-200 shadow-sm text-xs sm:text-sm w-full sm:w-auto justify-center"
-                    >
-                      <Plus size={16} className="sm:size-[18px]" />
-                      <span className="font-medium">Add Slide</span>
-                    </button>
-                    <div className="sm:hidden flex items-center space-x-2 ml-auto">
-                      <button
-                        onClick={() => setViewMode('grid')}
-                        className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
-                      >
-                        <Grid size={18} />
-                      </button>
-                      <button
-                        onClick={() => setViewMode('table')}
-                        className={`p-1.5 rounded ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
-                      >
-                        <List size={18} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+        {/* Stats Cards - Responsive */}
+        <div className="grid grid-cols-3 gap-1.5 mb-2 sm:mb-3">
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 sm:p-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] sm:text-xs text-gray-500">Total</p>
+              <p className="text-sm sm:text-base font-bold text-gray-900">{totalSlides}</p>
+            </div>
+          </div>
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 sm:p-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] sm:text-xs text-gray-500">Active</p>
+              <p className="text-sm sm:text-base font-bold text-green-600">{activeSlides}</p>
+            </div>
+          </div>
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 sm:p-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] sm:text-xs text-gray-500">Inactive</p>
+              <p className="text-sm sm:text-base font-bold text-gray-600">{inactiveSlides}</p>
+            </div>
+          </div>
+        </div>
 
-                {/* Compact Stats Cards - Hide on mobile, show on tablet+ */}
-                <div className="hidden sm:grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="bg-white rounded border border-gray-200 p-2 sm:p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] sm:text-xs text-gray-500">Total</p>
-                        <p className="text-lg sm:text-xl font-bold text-gray-900">{totalSlides}</p>
-                      </div>
-                      <div className="p-1 sm:p-1.5 bg-blue-100 rounded-lg">
-                        <div className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex items-center justify-center text-xs sm:text-sm font-bold">
-                          {totalSlides}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white rounded border border-gray-200 p-2 sm:p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] sm:text-xs text-gray-500">Active</p>
-                        <p className="text-lg sm:text-xl font-bold text-green-600">{activeSlides}</p>
-                      </div>
-                      <div className="p-1 sm:p-1.5 bg-green-100 rounded-lg">
-                        <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white rounded border border-gray-200 p-2 sm:p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] sm:text-xs text-gray-500">Inactive</p>
-                        <p className="text-lg sm:text-xl font-bold text-gray-600">{inactiveSlides}</p>
-                      </div>
-                      <div className="p-1 sm:p-1.5 bg-gray-100 rounded-lg">
-                        <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mobile Stats Summary */}
-                <div className="sm:hidden grid grid-cols-3 gap-2 mb-3">
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Total</p>
-                    <p className="text-base font-bold text-gray-900">{totalSlides}</p>
-                  </div>
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Active</p>
-                    <p className="text-base font-bold text-green-600">{activeSlides}</p>
-                  </div>
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Inactive</p>
-                    <p className="text-base font-bold text-gray-600">{inactiveSlides}</p>
-                  </div>
-                </div>
-
-                {/* Compact Search and Filter Bar */}
-                <div className="bg-white rounded  p-2 sm:p-3">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-3">
-                    <div className="flex-1">
-                      <div className="relative">
-                        <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Search slides..."
-                          value={searchTerm}
-                          onChange={(e) => {
-                            setSearchTerm(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                          className="w-full pl-7 sm:pl-9 pr-3 sm:pr-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <Filter className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 hidden sm:block" />
-                        <select
-                          value={statusFilter}
-                          onChange={(e) => {
-                            setStatusFilter(e.target.value as any);
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="all">All</option>
-                          <option value="active">Active</option>
-                          <option value="inactive">Inactive</option>
-                        </select>
-                      </div>
-                      
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <span className="text-xs text-gray-600 hidden sm:inline">Show:</span>
-                        <select
-                          value={itemsPerPage}
-                          onChange={(e) => {
-                            setItemsPerPage(Number(e.target.value));
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="5">5</option>
-                          <option value="10">10</option>
-                          <option value="25">25</option>
-                        </select>
-                        <span className="text-xs text-gray-600 hidden sm:inline">per page</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        {/* Search and Filter Bar */}
+        <div className="bg-white rounded">
+          <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search slides..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full pl-6 pr-2 py-1 sm:py-1.5 text-xs sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                />
               </div>
             </div>
-          )}
+            
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as any);
+                  setCurrentPage(1);
+                }}
+                className="px-1.5 py-1 sm:px-2 sm:py-1.5 text-xs sm:text-sm border border-gray-300 rounded bg-white"
+              >
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-1.5 py-1 sm:px-2 sm:py-1.5 text-xs sm:text-sm border border-gray-300 rounded bg-white"
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+              </select>
+            </div>
+          </div>
         </div>
+      </div>
+    </div>
+  )}
+</div>
 
         {/* Bulk Actions Bar - Hide when sidebar is open on mobile */}
         {selectedSlides.length > 0 && (!isSidebarOpen || window.innerWidth >= 640) && (
@@ -829,9 +782,9 @@ toast.success('Slide moved successfully!', { id: reorderToast });
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[calc(100vh-250px)] sm:max-h-[calc(100vh-300px)]">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky  z-20">
+<div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[400px] sm:max-h-[390px]">               
+     <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky  top-0 z-10">
                       <tr>
                         <th className="px-3 sm:px-6 py-2 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-10 sm:w-12">
                           <div className="flex items-center">
@@ -987,89 +940,109 @@ toast.success('Slide moved successfully!', { id: reorderToast });
                 </div>
 
                 {/* Pagination Controls */}
-                {filteredSlides.length > 0 && (
-                  <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-3 sm:px-6 py-2 sm:py-4 z-10">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
-                      <div className="text-xs sm:text-sm text-gray-700">
-                        <span className="hidden sm:inline">Showing </span>
-                        <span className="font-semibold">{indexOfFirstItem + 1}</span>
-                        <span className="hidden sm:inline"> to </span>
-                        <span className="sm:hidden">-</span>
-                        <span className="font-semibold">
-                          {Math.min(indexOfLastItem, filteredSlides.length)}
-                        </span>
-                        <span className="hidden sm:inline"> of </span>
-                        <span className="sm:hidden">/</span>
-                        <span className="font-semibold">{filteredSlides.length}</span>
-                        {(searchTerm || statusFilter !== 'all') && (
-                          <span className="ml-1 sm:ml-2 text-blue-600 text-[10px] sm:text-xs hidden sm:inline">
-                            {searchTerm && `(Search: "${searchTerm}")`}
-                            {statusFilter !== 'all' && ` (Filter: ${statusFilter})`}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center justify-between sm:justify-start space-x-1 sm:space-x-2">
-                        <button
-                          onClick={prevPage}
-                          disabled={currentPage === 1}
-                          className="p-1.5 sm:p-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition"
-                        >
-                          <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
-                        
-                        <div className="flex items-center space-x-0.5 sm:space-x-1">
-                          {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-                            let pageNumber;
-                            if (totalPages <= 3) {
-                              pageNumber = i + 1;
-                            } else if (currentPage <= 2) {
-                              pageNumber = i + 1;
-                            } else if (currentPage >= totalPages - 1) {
-                              pageNumber = totalPages - 2 + i;
-                            } else {
-                              pageNumber = currentPage - 1 + i;
-                            }
-                            
-                            return (
-                              <button
-                                key={pageNumber}
-                                onClick={() => goToPage(pageNumber)}
-                                className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm rounded-lg transition ${
-                                  currentPage === pageNumber
-                                    ? 'bg-blue-600 text-white shadow-sm'
-                                    : 'border border-gray-300 text-gray-700 hover:bg-white hover:shadow-sm'
-                                }`}
-                              >
-                                {pageNumber}
-                              </button>
-                            );
-                          })}
-                          
-                          {totalPages > 3 && currentPage < totalPages - 1 && (
-                            <>
-                              <span className="px-0.5 sm:px-1 text-gray-500">...</span>
-                              <button
-                                onClick={() => goToPage(totalPages)}
-                                className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm transition"
-                              >
-                                {totalPages}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                        
-                        <button
-                          onClick={nextPage}
-                          disabled={currentPage === totalPages}
-                          className="p-1.5 sm:p-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition"
-                        >
-                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+             {filteredSlides.length > 0 && (
+  <div className="bg-gray-50 border-t border-gray-200 px-2 py-1 sm:px-4 sm:py-2">
+    <div className="flex items-center justify-between gap-1 sm:gap-2">
+      {/* Showing info - compact */}
+      <div className="text-[9px] sm:text-xs text-gray-600 whitespace-nowrap">
+        <span className="hidden sm:inline">Showing </span>
+        <span className="font-semibold text-gray-800">{indexOfFirstItem + 1}</span>
+        <span className="hidden sm:inline"> to </span>
+        <span className="sm:hidden">-</span>
+        <span className="font-semibold text-gray-800">
+          {Math.min(indexOfLastItem, filteredSlides.length)}
+        </span>
+        <span className="hidden sm:inline"> of </span>
+        <span className="sm:hidden">/</span>
+        <span className="font-semibold text-gray-800">{filteredSlides.length}</span>
+        
+        {/* Filter/Search badge - compact on mobile, full on desktop */}
+        {(searchTerm || statusFilter !== 'all') && (
+          <span className="ml-1 text-blue-600 text-[8px] sm:text-[10px]">
+            {searchTerm && (
+              <span className="hidden xs:inline">
+                🔍 "{searchTerm.slice(0, 10)}{searchTerm.length > 10 ? '…' : ''}"
+              </span>
+            )}
+            {statusFilter !== 'all' && (
+              <span className="ml-0.5">• {statusFilter === 'active' ? 'Active' : statusFilter === 'inactive' ? 'Inactive' : statusFilter}</span>
+            )}
+          </span>
+        )}
+      </div>
+      
+      {/* Pagination controls - compact row */}
+      <div className="flex items-center gap-0.5 sm:gap-1">
+        {/* Previous button */}
+        <button
+          onClick={prevPage}
+          disabled={currentPage === 1}
+          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          title="Previous page"
+        >
+          <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+        </button>
+        
+        {/* Page numbers - shows on desktop, compact on mobile */}
+        <div className="hidden sm:flex items-center gap-0.5 sm:gap-1">
+          {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+            let pageNumber;
+            if (totalPages <= 3) {
+              pageNumber = i + 1;
+            } else if (currentPage <= 2) {
+              pageNumber = i + 1;
+            } else if (currentPage >= totalPages - 1) {
+              pageNumber = totalPages - 2 + i;
+            } else {
+              pageNumber = currentPage - 1 + i;
+            }
+            
+            return (
+              <button
+                key={pageNumber}
+                onClick={() => goToPage(pageNumber)}
+                className={`min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs rounded-md transition ${
+                  currentPage === pageNumber
+                    ? 'bg-blue-600 text-white font-medium shadow-sm'
+                    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {pageNumber}
+              </button>
+            );
+          })}
+          
+          {totalPages > 3 && currentPage < totalPages - 1 && (
+            <>
+              <span className="text-gray-400 text-[10px] sm:text-xs px-0.5">...</span>
+              <button
+                onClick={() => goToPage(totalPages)}
+                className="min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition"
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+        </div>
+        
+        {/* Mobile: Current page indicator */}
+        <span className="sm:hidden text-[10px] font-medium text-gray-700 px-1">
+          {currentPage}/{totalPages}
+        </span>
+        
+        {/* Next button */}
+        <button
+          onClick={nextPage}
+          disabled={currentPage === totalPages}
+          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          title="Next page"
+        >
+          <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+        </button>
+      </div>
+    </div>
+  </div>
+)}
               </>
             )}
           </div>
@@ -1078,271 +1051,296 @@ toast.success('Slide moved successfully!', { id: reorderToast });
 
       {/* Modal - Responsive */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black/50" onClick={handleCloseModal} />
-          <div className="flex min-h-full items-center justify-center p-2 sm:p-4">
-            <div className="relative bg-white rounded-lg sm:rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-4 sm:p-6">
-                <div className="flex justify-between items-center mb-4 sm:mb-6">
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">
-                    {editingSlide ? 'Edit Slide' : 'Add New Slide'}
-                  </h2>
+  <div className="fixed inset-0 z-50 overflow-y-auto">
+    {/* Backdrop */}
+    <div
+      className="fixed inset-0 bg-black/60"
+      onClick={handleCloseModal}
+    />
+
+    {/* Center wrapper */}
+    <div className="flex min-h-full items-center justify-center p-3 sm:p-4">
+      <div className="relative w-full max-w-[95%] sm:max-w-[500px] md:max-w-[650px] bg-white rounded-xl border border-[#E3F0FF] shadow-[0_8px_40px_rgba(13,71,161,0.18)] overflow-hidden">
+        {/* ─── Header (Sticky on mobile) ─── */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-3 py-2.5 sm:px-4 bg-gradient-to-r from-[#0D47A1] to-[#1976D2]">
+          <div className="flex items-center gap-2">
+            <div className="bg-[#FFC107] rounded-md w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center font-bold text-xs sm:text-sm text-[#0D47A1] shrink-0">
+              ly
+            </div>
+            <h2 className="text-white font-medium text-sm sm:text-base">
+              {editingSlide ? 'Edit Slide' : 'Add New Slide'}
+            </h2>
+          </div>
+          <button
+            onClick={handleCloseModal}
+            className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-white/30 bg-white/10 text-white flex items-center justify-center cursor-pointer shrink-0 hover:bg-white/20 transition"
+          >
+            <X size={12} className="sm:w-3.5 sm:h-3.5" />
+          </button>
+        </div>
+
+        {/* ─── Scrollable Body (only on mobile) ─── */}
+        <div className="max-h-[60vh] sm:max-h-none overflow-y-auto sm:overflow-visible">
+          <div className="p-3 sm:p-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+
+              {/* ROW 1: Title + Subtitle - Grid format on mobile (1fr 1fr) */}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3">
+                <div>
+                  <label className="block mb-1 text-[11px] sm:text-xs font-medium text-[#0D47A1]">
+                    Title <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Transform Your Business with"
+                    required
+                    className="w-full px-2.5 py-1.5 sm:px-3 sm:py-1.5 border border-[#D0DCF0] rounded-lg text-xs sm:text-sm text-[#1a1a2e] bg-[#fafbff] outline-none focus:border-[#1565C0] transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-[11px] sm:text-xs font-medium text-[#0D47A1]">
+                    Subtitle
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.subtitle}
+                    onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
+                    placeholder="Advanced IT Solutions"
+                    className="w-full px-2.5 py-1.5 sm:px-3 sm:py-1.5 border border-[#D0DCF0] rounded-lg text-xs sm:text-sm text-[#1a1a2e] bg-[#fafbff] outline-none focus:border-[#1565C0] transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* ROW 2: Description - Full width */}
+              <div>
+                <label className="block mb-1 text-[11px] sm:text-xs font-medium text-[#0D47A1]">
+                  Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Delivering scalable software, cloud infrastructure, and intelligent IT services..."
+                  className="w-full px-2.5 py-1.5 sm:px-3 sm:py-1.5 border border-[#D0DCF0] rounded-lg text-xs sm:text-sm text-[#1a1a2e] bg-[#fafbff] resize-none outline-none focus:border-[#1565C0] transition-colors"
+                />
+              </div>
+
+              {/* Divider */}
+              <hr className="border-t border-[#E3F0FF]" />
+
+              {/* ROW 3: Image - Grid format on mobile */}
+              <div>
+                <label className="block mb-1.5 text-[11px] sm:text-xs font-medium text-[#0D47A1]">
+                  Image <span className="text-red-600">*</span>
+                </label>
+                
+                {/* Tabs - Grid 2 columns on mobile */}
+                <div className="grid grid-cols-2 gap-1 sm:flex sm:w-fit mb-2 border border-[#D0DCF0] rounded-lg overflow-hidden sm:gap-0">
                   <button
-                    onClick={handleCloseModal}
-                    className="text-gray-400 hover:text-gray-600 transition"
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('url');
+                      setSelectedFile(null);
+                      setImagePreview('');
+                    }}
+                    className={`px-2 py-1.5 sm:px-3 sm:py-1 text-[10px] sm:text-[11px] font-medium cursor-pointer transition-all ${
+                      activeTab === 'url' 
+                        ? 'bg-[#1565C0] text-white' 
+                        : 'bg-[#f4f7ff] text-[#6b7db3] hover:bg-[#e8eef8]'
+                    }`}
                   >
-                    <X size={20} className="sm:size-[24px]" />
+                    Image URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('upload')}
+                    className={`px-2 py-1.5 sm:px-3 sm:py-1 text-[10px] sm:text-[11px] font-medium cursor-pointer transition-all ${
+                      activeTab === 'upload' 
+                        ? 'bg-[#1565C0] text-white' 
+                        : 'bg-[#f4f7ff] text-[#6b7db3] hover:bg-[#e8eef8]'
+                    }`}
+                  >
+                    Upload Image
                   </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-                  {/* ROW 1: Title + Subtitle */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Title *
-                      </label>
+                {/* Content area with preview */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {/* Input area */}
+                  <div className="sm:col-span-2">
+                    {activeTab === 'url' && (
                       <input
-                        type="text"
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        placeholder="Transform Your Business with"
-                        className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                        required
+                        type="url"
+                        value={formData.image_url}
+                        onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                        placeholder="https://images.unsplash.com/photo-..."
+                        className="w-full px-2.5 py-1.5 sm:px-3 border border-[#D0DCF0] rounded-lg text-xs text-[#1a1a2e] bg-[#fafbff] outline-none focus:border-[#1565C0] transition-colors"
                       />
-                    </div>
+                    )}
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Subtitle
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.subtitle}
-                        onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-                        placeholder="Advanced IT Solutions"
-                        className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  {/* ROW 2: Description */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={formData.description}
-                      onChange={(e) =>
-                        setFormData({ ...formData, description: e.target.value })
-                      }
-                      placeholder="Delivering scalable software, cloud infrastructure, and intelligent IT services..."
-                      className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl resize-none focus:ring-2 focus:ring-blue-500 transition text-sm"
-                    />
-                  </div>
-
-                  {/* ROW 3: Image + Preview */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5">
-                    {/* Image Input */}
-                    <div className="lg:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Image *
-                      </label>
-
-                      {/* Tabs */}
-                      <div className="flex space-x-2 sm:space-x-4 border-b mb-2 sm:mb-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveTab('url');
-                            setSelectedFile(null);
-                            setImagePreview('');
-                          }}
-                          className={`pb-2 text-xs sm:text-sm font-medium transition ${
-                            activeTab === 'url'
-                              ? 'border-b-2 border-blue-600 text-blue-600'
-                              : 'text-gray-400 hover:text-gray-600'
-                          }`}
-                        >
-                          Image URL
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab('upload')}
-                          className={`pb-2 text-xs sm:text-sm font-medium transition ${
-                            activeTab === 'upload'
-                              ? 'border-b-2 border-blue-600 text-blue-600'
-                              : 'text-gray-400 hover:text-gray-600'
-                          }`}
-                        >
-                          Upload Image
-                        </button>
-                      </div>
-
-                      {/* URL INPUT */}
-                      {activeTab === 'url' && (
+                    {activeTab === 'upload' && (
+                      <div className="border-2 border-dashed border-[#D0DCF0] rounded-lg p-3 text-center bg-[#fafbff] cursor-pointer hover:bg-[#f5f7ff] transition">
                         <input
-                          type="url"
-                          value={formData.image_url}
-                          onChange={(e) =>
-                            setFormData({ ...formData, image_url: e.target.value })
-                          }
-                          placeholder="https://images.unsplash.com/photo-..."
-                          className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 transition text-sm"
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChange}
+                          accept="image/*"
+                          className="hidden"
                         />
-                      )}
-
-                      {/* UPLOAD */}
-                      {activeTab === 'upload' && (
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center">
-                          <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            accept="image/*"
-                            className="hidden"
-                          />
-
-                          {!selectedFile ? (
+                        {!selectedFile ? (
+                          <>
+                            <div className="w-8 h-8 rounded-full bg-[#E3F0FF] flex items-center justify-center mx-auto mb-1.5">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1565C0" strokeWidth="2">
+                                <polyline points="16 16 12 12 8 16" />
+                                <line x1="12" y1="12" x2="12" y2="21" />
+                                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                              </svg>
+                            </div>
                             <button
                               type="button"
                               onClick={() => fileInputRef.current?.click()}
-                              className="text-blue-600 text-xs sm:text-sm font-medium hover:underline"
+                              className="text-[11px] text-[#1565C0] font-medium bg-none border-none cursor-pointer hover:underline"
                             >
-                              Click to browse image
+                              Click to browse
                             </button>
-                          ) : (
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                              <span className="text-xs sm:text-sm text-gray-700 truncate">
-                                {selectedFile.name}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={handleImageUpload}
-                                disabled={uploadingImage}
-                                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-600 text-white rounded-lg text-xs sm:text-sm hover:bg-blue-700 disabled:opacity-50"
-                              >
-                                {uploadingImage ? 'Uploading...' : 'Upload'}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Preview */}
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">
-                        Preview
-                      </p>
-                      <div className="h-24 sm:h-32 rounded-lg sm:rounded-xl border bg-gray-100 overflow-hidden">
-                        {(formData.image_url || imagePreview) && (
-                          <img
-                            src={getModalImagePreview()}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
-                          />
+                            <p className="text-[10px] text-[#8fa6cc] mt-1">
+                              PNG, JPG, WebP (max 2MB)
+                            </p>
+                          </>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            <span className="text-[11px] text-[#1a1a2e] truncate">
+                              {selectedFile.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handleImageUpload}
+                              disabled={uploadingImage}
+                              className="px-3 py-1.5 bg-[#1565C0] text-white border-none rounded-md text-[11px] cursor-pointer disabled:opacity-60 hover:bg-[#0e3e8a] transition"
+                            >
+                              {uploadingImage ? 'Uploading...' : 'Upload'}
+                            </button>
+                          </div>
                         )}
                       </div>
+                    )}
+                  </div>
+
+                  {/* Preview - On mobile, below the input */}
+                  <div className="mt-2 sm:mt-0">
+                    <p className="text-[10px] font-medium text-[#0D47A1] mb-1">
+                      Preview
+                    </p>
+                    <div className="h-[70px] sm:h-[70px] w-full rounded-lg bg-[#E3F0FF] border border-[#D0DCF0] overflow-hidden flex items-center justify-center">
+                      {(formData.image_url || imagePreview) ? (
+                        <img
+                          src={getModalImagePreview()}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-[10px] text-[#8fa6cc]">No image</span>
+                      )}
                     </div>
                   </div>
-
-                  {/* ROW 4: Gradient + Active */}
-                  {/* ROW 4: Display Order + Gradient */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
-  {/* Display Order */}
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">
-      Display Order *
-    </label>
-    <div className="relative">
-      <input
-        type="text"
-        min="1"
-        value={formData.display_order}
-        onChange={(e) => handleDisplayOrderChange(parseInt(e.target.value) || 1)}
-        className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm text-center font-bold"
-        required
-      />
-      {/* <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex flex-col space-y-0.5">
-        <button
-          type="button"
-          onClick={incrementDisplayOrder}
-          className="p-0.5 hover:bg-blue-50 rounded"
-        >
-          <ChevronUp className="w-3 h-3 text-blue-600" />
-        </button>
-        <button
-          type="button"
-          onClick={decrementDisplayOrder}
-          className="p-0.5 hover:bg-blue-50 rounded"
-        >
-          <ChevronDown className="w-3 h-3 text-blue-600" />
-        </button>
-      </div> */}
-    </div>
-    <p className="text-xs text-gray-500 mt-1">
-      Position: {formData.display_order} of {slides.length + 1}
-    </p>
-  </div>
-
-  {/* Gradient */}
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">
-      Background Gradient
-    </label>
-    <input
-      type="text"
-      value={formData.bg_gradient}
-      onChange={(e) =>
-        setFormData({ ...formData, bg_gradient: e.target.value })
-      }
-      placeholder="from-[#0b3a66]/95 via-[#0b3a66]/70 to-[#00c6ff]/20"
-      className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 transition text-sm"
-    />
-  </div>
-</div>
-
-{/* ROW 5: Active Status */}
-<div className="flex items-center space-x-2 sm:space-x-3 pt-2">
-  <input
-    type="checkbox"
-    checked={formData.is_active}
-    onChange={(e) =>
-      setFormData({ ...formData, is_active: e.target.checked })
-    }
-    className="h-4 w-4 text-blue-600 rounded"
-  />
-  <span className="text-sm text-gray-700">
-    Active Slide
-  </span>
-</div>
-                  {/* FOOTER */}
-                  <div className="flex justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
-                    <button
-                      type="button"
-                      onClick={handleCloseModal}
-                      className="px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition text-xs sm:text-sm"
-                    >
-                      Cancel
-                    </button>
-
-                    <button
-                      type="submit"
-                      disabled={uploadingImage || !formData.image_url.trim()}
-                      className="px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl bg-blue-600 text-white text-xs sm:text-sm hover:bg-blue-700 transition disabled:opacity-50"
-                    >
-                      {editingSlide ? 'Update' : 'Create'} Slide
-                    </button>
-                  </div>
-                </form>
+                </div>
               </div>
-            </div>
+
+              {/* Divider */}
+              <hr className="border-t border-[#E3F0FF]" />
+
+              {/* ROW 4: Display Order + Gradient - Grid 2 cols on mobile */}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3">
+                <div>
+                  <label className="block mb-1 text-[11px] sm:text-xs font-medium text-[#0D47A1]">
+                    Order <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.display_order}
+                    onChange={(e) => handleDisplayOrderChange(parseInt(e.target.value) || 1)}
+                    required
+                    className="w-full px-2.5 py-1.5 sm:px-3 border border-[#D0DCF0] rounded-lg text-xs sm:text-sm font-semibold text-[#0D47A1] bg-[#fafbff] text-center outline-none focus:border-[#1565C0] transition-colors"
+                  />
+                  <p className="text-[9px] text-[#6b7db3] mt-1 hidden sm:block">
+                    Position: {formData.display_order} of {slides.length + 1}
+                  </p>
+                </div>
+                <div>
+                  <label className="block mb-1 text-[11px] sm:text-xs font-medium text-[#0D47A1]">
+                    Background
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.bg_gradient}
+                    onChange={(e) => setFormData({ ...formData, bg_gradient: e.target.value })}
+                    placeholder="Gradient class"
+                    className="w-full px-2.5 py-1.5 sm:px-3 border border-[#D0DCF0] rounded-lg text-[10px] sm:text-[11px] text-[#1a1a2e] bg-[#fafbff] outline-none focus:border-[#1565C0] transition-colors"
+                  />
+                </div>
+              </div>
+              
+              {/* Mobile only: Position info */}
+              <p className="text-[9px] text-[#6b7db3] mt-0 sm:hidden">
+                Position: {formData.display_order} of {slides.length + 1}
+              </p>
+
+              {/* ROW 5: Active toggle - Full width */}
+              <div className="flex items-center gap-2 px-2 py-2 sm:px-3 bg-[#E3F0FF] rounded-lg border border-[#b8d0f0]">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-[#1565C0] cursor-pointer shrink-0"
+                />
+                <label
+                  htmlFor="is_active"
+                  className="flex flex-wrap items-center gap-1.5 cursor-pointer text-[11px] sm:text-xs font-medium text-[#0D47A1]"
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${formData.is_active ? 'bg-[#27ae60]' : 'bg-gray-400'} transition-colors shrink-0`} />
+                  Active Slide
+                  {formData.is_active && (
+                    <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium bg-[#FFFDE7] text-[#F9A825] border border-[#ffe082] whitespace-nowrap">
+                      Visible
+                    </span>
+                  )}
+                </label>
+              </div>
+
+            </form>
           </div>
         </div>
-      )}
+
+        {/* ─── Footer (Sticky on mobile) ─── */}
+        <div className="sticky bottom-0 z-10 flex justify-end gap-2 px-3 py-2.5 sm:px-4 sm:py-3 bg-[#f6f9ff] border-t border-[#E3F0FF] shadow-[0_-2px_10px_rgba(0,0,0,0.05)] sm:shadow-none">
+          <button
+            type="button"
+            onClick={handleCloseModal}
+            className="px-3 py-1.5 sm:px-5 sm:py-2 rounded-lg border border-[#D0DCF0] bg-white text-gray-600 text-[11px] sm:text-xs font-medium cursor-pointer hover:bg-gray-50 transition flex-1 sm:flex-none"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="slide-form"
+            onClick={handleSubmit}
+            disabled={uploadingImage || !formData.image_url.trim()}
+            className="px-3 py-1.5 sm:px-6 sm:py-2 rounded-lg border-none bg-[#1565C0] text-white text-[11px] sm:text-xs font-medium cursor-pointer flex items-center justify-center gap-1 disabled:opacity-50 hover:bg-[#0e3e8a] transition flex-1 sm:flex-none"
+          >
+            <svg width="11" height="11" className="sm:w-3 sm:h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            {editingSlide ? 'Update' : 'Create'} Slide
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };
