@@ -10,7 +10,7 @@ interface SignupProps {
   onSuccess: () => void;
 }
 
-const Signup: React.FC<SignupProps> = ({ onToggle, onSuccess }) => {
+const Signup: React.FC<SignupProps> = ({ onToggle }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<SignupCredentials>({

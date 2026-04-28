@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, MessageSquare, TrendingUp, Activity, 
-  BarChart3, LineChart, FileText, 
-  Eye, UserPlus, Briefcase, 
-  Calendar, Clock, Mail, Target,
-  RefreshCw  // Added import
-} from 'lucide-react';
+  BarChart3, 
+  Eye, UserPlus, 
+  Calendar, Mail, Target} from 'lucide-react';
 import {
-  BarChart as RechartsBarChart, Bar,
+  Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area,
   BarChart
@@ -62,12 +60,6 @@ interface ChartDataItem {
   conversions?: number;
 }
 
-interface QuickAction {
-  label: string;
-  icon: React.ElementType;
-  path: string;
-  color: 'blue' | 'green' | 'purple' | 'orange';
-}
 
 interface RecentActivity {
   id: string | number;
@@ -113,7 +105,7 @@ export default function Dashboard() {
   const [recentEnquiries, setRecentEnquiries] = useState<Enquiry[]>([]);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [trafficData, setTrafficData] = useState<ChartDataItem[]>([]);
-  const [performanceData, setPerformanceData] = useState<ChartDataItem[]>([]);
+  const [ performanceData ,setPerformanceData] = useState<any[]>([]);
 
   // Quote states
   const [quote, setQuote] = useState<Quote>({
@@ -121,7 +113,7 @@ export default function Dashboard() {
     author: "Winston Churchill",
     category: "motivation"
   });
-  const [lastQuoteUpdate, setLastQuoteUpdate] = useState<Date>(new Date());
+  const [ lastQuoteUpdate, setLastQuoteUpdate] = useState<any>(new Date());
 
   // Motivational quotes array
   const motivationalQuotes: Quote[] = [
@@ -461,12 +453,6 @@ export default function Dashboard() {
     return colors[status] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
-  const quickActions: QuickAction[] = [
-    { label: 'View Enquiries', icon: MessageSquare, path: '/admin/enquiries', color: 'blue' },
-    { label: 'View Applications', icon: UserPlus, path: '/admin/career', color: 'green' },
-    { label: 'Schedule Meeting', icon: Calendar, path: '/admin/schedule', color: 'purple' },
-    { label: 'Analytics Report', icon: BarChart3, path: '/admin/analytics', color: 'orange' },
-  ];
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -478,7 +464,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-0 md:p-0">
       <div className="max-w-7xl mx-auto">
         
         {/* Greeting Section */}
@@ -732,7 +718,7 @@ export default function Dashboard() {
                             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                             fontSize: '12px'
                           }}
-                          formatter={(value, name) => {
+                          formatter={(value:any, name) => {
                             if (name === 'visitors') return [`${value.toLocaleString()} visitors`, 'Visitors'];
                             if (name === 'bounce') return [`${value}%`, 'Bounce Rate'];
                             return [value, name];

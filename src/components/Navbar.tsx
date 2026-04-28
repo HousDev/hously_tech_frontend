@@ -252,7 +252,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
                     />
                   </svg>
                 </div>
-                <p className="text-gray-700">info@hously.in</p>
+                <p className="text-gray-700">careers@hously.in</p>
               </div>
             </div>
           </div>

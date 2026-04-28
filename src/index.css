@@ -1,13 +1,9 @@
-/* ✅ All imports at top (only once) */
 @import "tailwindcss";
 
-/* ✅ Custom styles */
 @layer base {
-  .font-space-grotesk {
-    font-family: 'Space Grotesk', sans-serif;
-  }
+ 
 
-  .font-dm-sans {
-    font-family: 'DM Sans', sans-serif;
+  .font-poppins {
+    font-family: 'Poppins', sans-serif;
   }
 }

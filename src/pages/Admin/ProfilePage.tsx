@@ -1,6 +1,6 @@
 {/* eslint-disable @typescript-eslint/no-explicit-any */}
 // ProfilePage.tsx
-import React, { useState, useEffect, type JSX } from 'react';
+import { useState, useEffect, type JSX } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -61,7 +61,7 @@ const ProfilePage = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [currentPasswordFromServer, setCurrentPasswordFromServer] = useState<string>('********');
+  const [, setCurrentPasswordFromServer] = useState<string>('********');
 
   const { register: registerProfile, handleSubmit: handleProfileSubmit, reset: resetProfile } = useForm<ProfileFormData>();
   const { register: registerPassword, handleSubmit: handlePasswordSubmit, reset: resetPassword, watch, formState: { errors: passwordErrors } } = useForm<PasswordFormData>();
@@ -106,7 +106,7 @@ const ProfilePage = () => {
 
   const fetchAccountStats = async () => {
     try {
-      const response = await getAccountStats();
+      const response:any = await getAccountStats();
       if (response.success && response.data) {
         setAccountStats(response.data);
       }

@@ -1,3 +1,6 @@
+
+
+
 import React, { useState, useEffect } from 'react';
 import { 
   FaTimes, 
@@ -8,24 +11,7 @@ import {
   FaExclamationTriangle,
   FaImages
 } from "react-icons/fa";
-import api from '../services/authService'; 
-import type { ApiResponse } from '../types/auth.types'; 
-
-interface BlogPost {
-  id: number;
-  title: string;
-  excerpt: string;
-  content: string;
-  category: string;
-  featured_image: string;
-  read_time: string;
-  published_at: string;
-  is_published: boolean;
-  views: number;
-  slug: string;
-  author_name?: string;
-  tags?: string[];
-}
+import { blogApi, type BlogPost } from '../lib/blogApi';
 
 const BlogSection: React.FC = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -52,7 +38,13 @@ The future of IT infrastructure lies in autonomous systems that can self-heal, s
       is_published: true,
       views: 1234,
       slug: "enterprise-it-transformation",
-      author_name: "Kamlesh Shah"
+      author_name: "Kamlesh Shah",
+      author_id: 1,
+      tags: ["Cloud", "AI"],
+      meta_title: "",
+      meta_description: "",
+      created_at: "",
+      updated_at: ""
     },
     {
       id: 2,
@@ -70,7 +62,13 @@ Organizations that prioritize proactive security measures not only reduce risk b
       is_published: true,
       views: 987,
       slug: "cybersecurity-strategies",
-      author_name: "Kamlesh Shah"
+      author_name: "Kamlesh Shah",
+      author_id: 1,
+      tags: ["Security"],
+      meta_title: "",
+      meta_description: "",
+      created_at: "",
+      updated_at: ""
     },
     {
       id: 3,
@@ -88,7 +86,13 @@ The future of IT service management is personalized, predictive, and deeply inte
       is_published: true,
       views: 765,
       slug: "modern-it-service-management",
-      author_name: "Kamlesh Shah"
+      author_name: "Kamlesh Shah",
+      author_id: 1,
+      tags: ["ITSM"],
+      meta_title: "",
+      meta_description: "",
+      created_at: "",
+      updated_at: ""
     },
   ];
 
@@ -98,15 +102,13 @@ The future of IT service management is personalized, predictive, and deeply inte
       return fallbackUrl;
     }
     
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-    
     // If it's already a full URL, return as is
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       return imageUrl;
     }
     
-    // If it's a relative path, prepend backend URL
-    return `${backendUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+    // If it's a relative path, return as is (API returns full URL)
+    return imageUrl;
   };
 
   // Format date for display
@@ -132,24 +134,19 @@ The future of IT service management is personalized, predictive, and deeply inte
         setError(null);
         console.log('🔍 Fetching blog posts from API...');
         
-        const response = await api.get<ApiResponse<BlogPost[]>>('/blog', {
-          params: {
-            published: 'true',
-            limit: '3'
-          }
-        });
+        const data = await blogApi.getAll();
         
-        if (response.data.success && response.data.data) {
-          console.log('✅ Blog posts fetched successfully:', response.data.data.length);
+        if (data && data.length > 0) {
+          console.log('✅ Blog posts fetched successfully:', data.length);
           
-          // Filter only published posts
-          const publishedPosts = response.data.data
-            .filter((post: { is_published: any; }) => post.is_published)
-            .slice(0, 3); // Get only first 3 for the section
+          // Filter only published posts and get first 3
+          const publishedPosts = data
+            .filter((post: BlogPost) => post.is_published)
+            .slice(0, 3);
           
           setPosts(publishedPosts);
         } else {
-          console.warn('⚠️ Using fallback posts - API response invalid');
+          console.warn('⚠️ Using fallback posts - API returned empty');
           setPosts(fallbackPosts);
         }
       } catch (err) {
@@ -204,9 +201,9 @@ The future of IT service management is personalized, predictive, and deeply inte
     return (
       <section id="blog" className="py-[30px] relative overflow-hidden min-h-[600px] flex items-center justify-center">
         <div className="container mx-auto px-6 max-w-[1488px] text-center">
-          <div className="flex flex-col items-center space-y-4">
-            <FaSpinner className="w-12 h-12 text-blue-600 animate-spin" />
-            <p className="text-gray-600">Loading blog posts...</p>
+          <div className="flex flex-col items-center space-y-3">
+            <FaSpinner className="w-10 h-10 text-blue-600 animate-spin" />
+            <p className="text-sm text-gray-600">Loading blog posts...</p>
           </div>
         </div>
       </section>
@@ -221,20 +218,20 @@ The future of IT service management is personalized, predictive, and deeply inte
           {error && (
             <div className="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
               <div className="flex items-center">
-                <FaExclamationTriangle className="mr-2" />
-                <span className="text-sm">{error}</span>
+                <FaExclamationTriangle className="mr-2 text-sm" />
+                <span className="text-xs">{error}</span>
               </div>
             </div>
           )}
 
-          {/* Title Section */}
+          {/* Title Section - FONT SIZES REDUCED */}
           <div className="flex flex-wrap justify-between items-end -mx-3">
             {/* Left Column - Title */}
             <div className="w-full lg:w-6/12 px-3">
-              <div className="mb-[42px] relative z-10 -mt-4">
+              <div className="mb-[30px] relative z-10 -mt-4">
                 {/* Sub Title */}
                 <span
-                  className="inline-block text-[16px] font-medium uppercase tracking-wider text-blue-600 mb-7 relative pb-1 animate-slideInLeft"
+                  className="inline-block text-[13px] font-medium uppercase tracking-wider text-blue-600 mb-4 relative pb-1 animate-slideInLeft"
                   style={{
                     fontFamily: '"Space Grotesk", sans-serif',
                     animationDelay: '0ms',
@@ -246,13 +243,13 @@ The future of IT service management is personalized, predictive, and deeply inte
                 {/* Main Title */}
                 <h2
                   className="
-                    text-[36px] 
-                    sm:text-[64px] 
+                    text-[23px] 
+                    sm:text-[37px] 
                     font-bold 
                     leading-tight 
                     text-gray-900 
-                    mb-5 
-                    -mt-7 
+                    mb-12
+                    -mt-5 
                     animate-slideInLeft
                   "
                   style={{
@@ -276,14 +273,14 @@ The future of IT service management is personalized, predictive, and deeply inte
                 return (
                   <div
                     key={post.id}
-                    className={`w-full lg:w-1/2 xl:w-1/3 px-3 mt-10 animate-slideInUp`}
+                    className={`w-full lg:w-1/2 xl:w-1/3 px-3 mt-8 animate-slideInUp`}
                     style={{
                       animationDelay: delay,
                     }}
                   >
                     <div className="group h-full flex flex-col">
                       {/* Image */}
-                      <div className="rounded-[30px] overflow-hidden mb-6 flex-shrink-0">
+                      <div className="rounded-2xl overflow-hidden mb-4 flex-shrink-0">
                         <button 
                           onClick={() => openModal(post)}
                           className="block w-full text-left"
@@ -291,7 +288,7 @@ The future of IT service management is personalized, predictive, and deeply inte
                           <img
                             alt={post.title}
                             src={getImageUrl(post.featured_image, fallbackImage)}
-                            className="w-[470px] h-[280px] object-cover transition-transform duration-500 group-hover:scale-110"
+                            className="w-full h-[250px] object-cover transition-transform duration-500 group-hover:scale-110"
                             onError={(e) => {
                               e.currentTarget.src = fallbackImage;
                             }}
@@ -301,39 +298,34 @@ The future of IT service management is personalized, predictive, and deeply inte
 
                       {/* Content */}
                       <div className="flex-1 flex flex-col">
-                        {/* Meta Information */}
-                        <div className="flex flex-wrap items-center gap-4 mb-4">
-                          {/* Date */}
-                          <span className="inline-flex items-center text-gray-600 text-sm">
-                            <FaRegCalendarAlt className="mr-2 text-blue-600" />
+                        {/* Meta Information - FONT SIZES REDUCED */}
+                        <div className="flex flex-wrap items-center gap-3 mb-3">
+                          <span className="inline-flex items-center text-gray-600 text-[11px]">
+                            <FaRegCalendarAlt className="mr-1.5 text-blue-600 text-[10px]" />
                             {formatDate(post.published_at)}
                           </span>
-
-                          {/* Author */}
-                          <span className="inline-flex items-center text-gray-600 text-sm">
-                            <FaRegUser className="mr-2 text-blue-600" />
+                          <span className="inline-flex items-center text-gray-600 text-[11px]">
+                            <FaRegUser className="mr-1.5 text-blue-600 text-[10px]" />
                             {post.author_name || 'Admin'}
                           </span>
-
-                          {/* Read Time */}
-                          <span className="inline-flex items-center text-gray-600 text-sm">
-                            <FaRegClock className="mr-2 text-blue-600" />
+                          <span className="inline-flex items-center text-gray-600 text-[11px]">
+                            <FaRegClock className="mr-1.5 text-blue-600 text-[10px]" />
                             {post.read_time || '5 min read'}
                           </span>
                         </div>
 
                         {/* Category Badge */}
-                        <div className="mb-3">
-                          <span className="inline-block bg-blue-100 text-blue-600 text-xs font-medium px-3 py-1 rounded-full">
+                        <div className="mb-2">
+                          <span className="inline-block bg-blue-100 text-blue-600 text-[10px] font-medium px-2 py-0.5 rounded-full">
                             {post.category || 'General'}
                           </span>
                         </div>
 
-                        {/* Title */}
-                        <h3 className="mb-3 flex-1">
+                        {/* Title - FONT SIZE REDUCED */}
+                        <h3 className="mb-2 flex-1">
                           <button
                             onClick={() => openModal(post)}
-                            className="text-[24px] font-bold text-gray-900 leading-[1.42] relative inline-block hover:text-blue-600 transition-colors duration-300 text-left w-full"
+                            className="text-lg font-bold text-gray-900 leading-[1.42] relative inline-block hover:text-blue-600 transition-colors duration-300 text-left w-full"
                             style={{
                               fontFamily: '"Space Grotesk", sans-serif',
                             }}
@@ -342,18 +334,18 @@ The future of IT service management is personalized, predictive, and deeply inte
                           </button>
                         </h3>
 
-                        {/* Excerpt */}
-                        <p className="text-gray-600 mb-4 line-clamp-2">
+                        {/* Excerpt - FONT SIZE REDUCED */}
+                        <p className="text-gray-600 mb-3 line-clamp-2 text-xs">
                           {post.excerpt}
                         </p>
 
-                        {/* Read More Button */}
+                        {/* Read More Button - FONT SIZE REDUCED */}
                         <button
                           onClick={() => openModal(post)}
-                          className="inline-flex items-center text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors duration-300 mt-auto w-fit"
+                          className="inline-flex items-center text-[11px] font-semibold text-gray-900 hover:text-blue-600 transition-colors duration-300 mt-auto w-fit"
                         >
                           Read More
-                          <i className="fas fa-long-arrow-right ml-2 text-sm relative transition-transform duration-300 group-hover:translate-x-1" />
+                          <i className="fas fa-long-arrow-right ml-1.5 text-[10px] relative transition-transform duration-300 group-hover:translate-x-1" />
                         </button>
                       </div>
                     </div>
@@ -363,17 +355,17 @@ The future of IT service management is personalized, predictive, and deeply inte
             ) : (
               <div className="w-full text-center py-12">
                 <div className="text-gray-300 mb-4">
-                  <FaImages className="w-16 h-16 mx-auto" />
+                  <FaImages className="w-12 h-12 mx-auto" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">No blog posts available</h3>
-                <p className="text-gray-600">Check back later for updates.</p>
+                <h3 className="text-base font-semibold text-gray-800 mb-2">No blog posts available</h3>
+                <p className="text-xs text-gray-600">Check back later for updates.</p>
               </div>
             )}
           </div>
         </div>
       </section>
 
-      {/* Blog Post Modal */}
+      {/* Blog Post Modal - FONT SIZES REDUCED */}
       {isModalOpen && selectedPost && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           {/* Backdrop */}
@@ -384,19 +376,19 @@ The future of IT service management is personalized, predictive, and deeply inte
           
           {/* Modal Container */}
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+            <div className="relative bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
               {/* Close Button */}
               <button
                 onClick={closeModal}
-                className="absolute right-6 top-6 z-10 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-gray-700 hover:text-gray-900 hover:bg-white transition-colors shadow-lg"
+                className="absolute right-4 top-4 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-gray-700 hover:text-gray-900 hover:bg-white transition-colors shadow-lg"
               >
-                <FaTimes className="text-xl" />
+                <FaTimes className="text-sm" />
               </button>
 
               {/* Modal Content */}
               <div className="overflow-y-auto max-h-[90vh]">
                 {/* Hero Image */}
-                <div className="relative h-64 md:h-80 lg:h-96">
+                <div className="relative h-56 md:h-64 lg:h-72">
                   <img
                     src={getImageUrl(
                       selectedPost.featured_image, 
@@ -412,57 +404,57 @@ The future of IT service management is personalized, predictive, and deeply inte
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                 </div>
 
-                <div className="p-6 md:p-8 lg:p-10">
-                  {/* Meta Information */}
-                  <div className="flex flex-wrap items-center gap-4 mb-6">
-                    <div className="flex items-center text-gray-600">
-                      <FaRegCalendarAlt className="mr-2 text-blue-600" />
+                <div className="p-5 md:p-6 lg:p-8">
+                  {/* Meta Information - FONT SIZES REDUCED */}
+                  <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <div className="flex items-center text-gray-600 text-xs">
+                      <FaRegCalendarAlt className="mr-1.5 text-blue-600 text-[11px]" />
                       {formatDate(selectedPost.published_at)}
                     </div>
-                    <div className="flex items-center text-gray-600">
-                      <FaRegUser className="mr-2 text-blue-600" />
+                    <div className="flex items-center text-gray-600 text-xs">
+                      <FaRegUser className="mr-1.5 text-blue-600 text-[11px]" />
                       {selectedPost.author_name || 'Admin'}
                     </div>
-                    <div className="flex items-center text-gray-600">
-                      <FaRegClock className="mr-2 text-blue-600" />
+                    <div className="flex items-center text-gray-600 text-xs">
+                      <FaRegClock className="mr-1.5 text-blue-600 text-[11px]" />
                       {selectedPost.read_time || '5 min read'}
                     </div>
                   </div>
 
                   {/* Category Badge */}
-                  <div className="mb-6">
-                    <span className="inline-block bg-blue-100 text-blue-600 text-sm font-medium px-4 py-2 rounded-full">
+                  <div className="mb-4">
+                    <span className="inline-block bg-blue-100 text-blue-600 text-[11px] font-medium px-3 py-1 rounded-full">
                       {selectedPost.category || 'General'}
                     </span>
                   </div>
 
-                  {/* Title */}
+                  {/* Title - FONT SIZE REDUCED */}
                   <h1 
-                    className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6"
+                    className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     {selectedPost.title}
                   </h1>
 
-                  {/* Excerpt */}
-                  <p className="text-lg text-gray-700 mb-8 font-medium">
+                  {/* Excerpt - FONT SIZE REDUCED */}
+                  <p className="text-sm text-gray-700 mb-5 font-medium">
                     {selectedPost.excerpt}
                   </p>
 
-                  {/* Full Content */}
-                  <div className="prose prose-lg max-w-none mb-8">
+                  {/* Full Content - FONT SIZE REDUCED */}
+                  <div className="prose prose-sm max-w-none mb-6">
                     {selectedPost.content?.split('\n\n').map((paragraph, index) => (
-                      <p key={index} className="text-gray-600 mb-4 leading-relaxed">
+                      <p key={index} className="text-gray-600 mb-3 leading-relaxed text-sm">
                         {paragraph}
                       </p>
                     ))}
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-4 pt-6 border-t">
+                  <div className="flex flex-wrap gap-3 pt-4 border-t">
                     <button
                       onClick={closeModal}
-                      className="px-6 py-3 text-gray-700 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors"
+                      className="px-4 py-2 text-xs text-gray-700 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors"
                     >
                       Close
                     </button>

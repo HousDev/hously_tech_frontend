@@ -427,7 +427,7 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const HouslyContactPage = () => {
-    const [stats, setStats] = useState({
+    const [ stats,setStats] = useState<any>({
     projects: 0,
     clients: 0,
     satisfaction: 0,
@@ -441,7 +441,7 @@ const HouslyContactPage = () => {
     };
 
     const interval = setInterval(() => {
-      setStats((prev) => ({
+      setStats((prev:any) => ({
         projects: prev.projects < targets.projects ? prev.projects + 1 : targets.projects,
         clients: prev.clients < targets.clients ? prev.clients + 1 : targets.clients,
         satisfaction: prev.satisfaction < targets.satisfaction ? prev.satisfaction + 1 : targets.satisfaction,
@@ -475,6 +475,7 @@ const HouslyContactPage = () => {
 
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
+  let originalText = '';
   
   try {
     // Basic validation
@@ -509,7 +510,6 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     // Show loading state
     const submitButton = e.currentTarget.querySelector('button[type="submit"]') as HTMLButtonElement;
-    const originalText = submitButton.textContent;
     submitButton.textContent = 'Sending...';
     submitButton.disabled = true;
 
@@ -568,8 +568,8 @@ const handleSubmit = async (e: React.FormEvent) => {
          {/* Hero Section */}
       <div className="bg-[#dbeafe] text-black py-8 px-4">
         <div className="max-w-6xl mx-auto text-center">
-          <h1 className="text-2xl md:text-5xl font-bold mb-4">Let's Build Something Great Together</h1>
-          <p className="text-lg mb-8 max-w-2xl mx-auto">
+          <h1 className="text-2xl md:text-4xl font-bold mb-4">Let's Build Something Great Together</h1>
+          <p className="text-md mb-8 max-w-2xl mx-auto">
             Transform your business with cutting-edge IT solutions. Our expert team is ready to help you innovate, scale, and succeed in the digital world.
           </p>
           
@@ -764,7 +764,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     <h3 className="font-semibold text-lg mb-1">Email Us</h3>
                     <p className="text-gray-600 text-sm mb-1">Send your project requirements</p>
                     <a href="mailto:info@houslyfinntech.com" className="text-[#0270e1] font-medium hover:underline text-lg">
-                      info@hously.in
+                      careers@hously.in
                     </a>
                   </div>
                 </div>
@@ -814,7 +814,7 @@ Pune, 411017
           <span className="text-xs font-medium">24/7 Emergency Support</span>
         </div>
         
-        <h3 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 leading-tight">
+        <h3 className="text-2xl md:text-2xl lg:text-3xl font-bold mb-4 leading-tight">
           Need <span className="text-yellow-300">Urgent</span> IT Support?
         </h3>
         
@@ -849,7 +849,7 @@ Pune, 411017
               </svg>
             </div>
             <div className="text-left">
-              <div className="text-lg font-bold">Call Now</div>
+              <div className="text-md font-bold">Call Now</div>
               <div className="text-sm text-gray-600">Emergency Line</div>
             </div>
           </button>
@@ -866,7 +866,7 @@ Pune, 411017
               </svg>
             </div>
             <div className="text-left">
-              <div className="text-lg font-bold">WhatsApp Chat</div>
+              <div className="text-md font-bold">WhatsApp Chat</div>
               <div className="text-sm text-white/90">Quick text support</div>
             </div>
           </button>

@@ -2,106 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, Filter, Eye, MessageSquare, Phone, Mail, 
   Calendar, AlertCircle, CheckCircle, Clock, User, 
-  Building, DollarSign, Trash2, Edit, MoreVertical,
-  Download, Upload, RefreshCw, FileText, Star, TrendingUp,
-  Activity, Inbox, Video, PhoneCall, MapPin, Users,
-  ThumbsUp, ThumbsDown, MessageCircle, CalendarCheck,
-  PhoneOutgoing, PhoneIncoming, History, Tag,
-  Send, Paperclip, Smile, Frown, Meh,
-  Grid, List, Home, Check, Plus,
-  CheckSquare, Square,
+  Building, DollarSign, Trash2, Edit, 
+  Download, Upload, FileText, Star, TrendingUp,
+  Activity, Inbox, Video, PhoneCall, MapPin, 
+  ThumbsUp, ThumbsDown, CalendarCheck,
+  Meh,
+  Grid, List, Check, 
+  
   ChevronLeft,
   ChevronRight,
   X
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import axios from 'axios';
+// ADD this:
+import { enquiryApi, type Enquiry, type EnquiryStats } from '../../lib/enquiryApi';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-interface Enquiry {
-  id: number;
-  full_name: string;
-  company_name: string | null;
-  email: string;
-  phone_number: string | null;
-  inquiry_type: string;
-  service_type: string | null;
-  project_budget: string | null;
-  message: string;
-  status: 'new' | 'in_progress' | 'contacted' | 'closed' | 'converted';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  ip_address: string | null;
-  assigned_to: number | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-  interaction_history?: Interaction[];
-  scheduled_meetings?: Meeting[];
-  follow_up_actions?: FollowUpAction[];
-}
 
-interface Interaction {
-  id: number;
-  enquiry_id: number;
-  type: 'call' | 'email' | 'meeting' | 'note';
-  direction: 'outgoing' | 'incoming';
-  subject: string;
-  content: string;
-  duration?: number;
-  sentiment?: 'positive' | 'neutral' | 'negative';
-  created_by: number;
-  created_at: string;
-  metadata?: {
-    call_type?: 'cold' | 'follow_up' | 'discovery' | 'closing';
-    email_subject?: string;
-    meeting_type?: 'virtual' | 'in_person';
-  };
-}
 
-interface Meeting {
-  id: number;
-  enquiry_id: number;
-  title: string;
-  description: string;
-  meeting_type: 'virtual' | 'in_person';
-  platform?: string;
-  location?: string;
-  start_time: string;
-  end_time: string;
-  status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
-  participants: string[];
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface FollowUpAction {
-  id: number;
-  enquiry_id: number;
-  type: 'call' | 'email' | 'meeting' | 'task';
-  title: string;
-  description: string;
-  due_date: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'pending' | 'in_progress' | 'completed' | 'overdue';
-  assigned_to: number | null;
-  completed_at: string | null;
-  created_at: string;
-}
-
-interface EnquiryStats {
-  total: number;
-  new: number;
-  in_progress: number;
-  contacted: number;
-  closed: number;
-  converted: number;
-  urgent: number;
-  today: number;
-  meetings_today: number;
-  follow_ups_overdue: number;
-}
 
 interface EnquiriesCMSProps {
   isSidebarOpen?: boolean;
@@ -165,75 +83,41 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
     fetchStats();
   }, [filters]);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-      headers: { 
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    };
-  };
+  
 
-  const fetchEnquiries = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      
-      if (filters.status !== 'all') params.append('status', filters.status);
-      if (filters.priority !== 'all') params.append('priority', filters.priority);
-      if (filters.search) params.append('search', filters.search);
-      if (filters.dateRange !== 'all') params.append('dateRange', filters.dateRange);
-      if (filters.hasFollowUp !== 'all') params.append('hasFollowUp', filters.hasFollowUp);
-      
-      const response = await axios.get(
-        `${API_BASE_URL}/enquiries?${params}`,
-        getAuthHeaders()
-      );
+ // REPLACE with:
+const fetchEnquiries = async () => {
+  try {
+    setLoading(true);
+    const data = await enquiryApi.getAll(filters);
+    setEnquiries(data);
+  } catch (error: any) {
+    console.error('Failed to fetch enquiries:', error);
+    toast.error(error.message || 'Failed to load enquiries');
+  } finally {
+    setLoading(false);
+  }
+};
 
-      if (response.data.success) {
-        setEnquiries(response.data.data);
-      } else {
-        toast.error(response.data.message || 'Failed to fetch enquiries');
-      }
-    } catch (error) {
-      console.error('Failed to fetch enquiries:', error);
-      toast.error('Failed to load enquiries');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchEnquiryDetails = async (id: number) => {
-    try {
-      const response = await axios.get(
-        `${API_BASE_URL}/enquiries/${id}/details`,
-        getAuthHeaders()
-      );
-
-      if (response.data.success) {
-        return response.data.data;
-      }
-    } catch (error) {
-      console.error('Failed to fetch enquiry details:', error);
-    }
+  // REPLACE with:
+const fetchEnquiryDetails = async (id: number) => {
+  try {
+    return await enquiryApi.getDetails(id);
+  } catch (error) {
+    console.error('Failed to fetch enquiry details:', error);
     return null;
-  };
+  }
+};
 
-  const fetchStats = async () => {
-    try {
-      const response = await axios.get(
-        `${API_BASE_URL}/enquiries/stats`,
-        getAuthHeaders()
-      );
-
-      if (response.data.success) {
-        setStats(response.data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch stats:', error);
-    }
-  };
+  // REPLACE with:
+const fetchStats = async () => {
+  try {
+    const data = await enquiryApi.getStats();
+    setStats(data);
+  } catch (error) {
+    console.error('Failed to fetch stats:', error);
+  }
+};
 
   const handleViewDetails = async (enquiry: Enquiry) => {
     try {
@@ -250,332 +134,245 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
     }
   };
 
-  const handleUpdateStatus = async (id: number, status: string) => {
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          await axios.put(
-            `${API_BASE_URL}/enquiries/${id}/status`,
-            { status },
-            getAuthHeaders()
-          );
-          
-          setEnquiries(enquiries.map(e => 
-            e.id === id ? { ...e, status: status as Enquiry['status'] } : e
-          ));
-          
-          if (selectedEnquiry?.id === id) {
-            setSelectedEnquiry(prev => prev ? { ...prev, status: status as Enquiry['status'] } : null);
-          }
-          
-          fetchStats();
-          resolve(true);
-        } catch (error) {
-          reject(error);
+  // REPLACE with:
+const handleUpdateStatus = async (id: number, status: string) => {
+  toast.promise(
+    enquiryApi.updateStatus(id, status as Enquiry['status']),
+    {
+      loading: 'Updating status...',
+      success: () => {
+        setEnquiries(enquiries.map(e => 
+          e.id === id ? { ...e, status: status as Enquiry['status'] } : e
+        ));
+        if (selectedEnquiry?.id === id) {
+          setSelectedEnquiry(prev => prev ? { ...prev, status: status as Enquiry['status'] } : null);
         }
-      }),
-      {
-        loading: 'Updating status...',
-        success: 'Status updated successfully!',
-        error: 'Failed to update status',
-      }
-    );
-  };
-
-  const handleAddNote = async () => {
-    if (!selectedEnquiry || !newNote.trim()) {
-      toast.error('Please enter a note');
-      return;
+        fetchStats();
+        return 'Status updated successfully!';
+      },
+      error: 'Failed to update status',
     }
+  );
+};
 
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          const response = await axios.post(
-            `${API_BASE_URL}/enquiries/${selectedEnquiry.id}/interactions`,
-            {
-              type: 'note',
-              direction: 'outgoing',
-              subject: `Note added to enquiry #${selectedEnquiry.id}`,
-              content: newNote.trim(),
-              sentiment: 'neutral',
-              metadata: {}
-            },
-            getAuthHeaders()
-          );
+  // REPLACE with:
+const handleAddNote = async () => {
+  if (!selectedEnquiry || !newNote.trim()) {
+    toast.error('Please enter a note');
+    return;
+  }
 
-          if (response.data.success) {
-            const updatedInteraction = response.data.data;
-            setEnquiries(enquiries.map(e => 
-              e.id === selectedEnquiry.id ? {
-                ...e,
-                interaction_history: [...(e.interaction_history || []), updatedInteraction]
-              } : e
-            ));
-
-            if (selectedEnquiry) {
-              setSelectedEnquiry({
-                ...selectedEnquiry,
-                interaction_history: [...(selectedEnquiry.interaction_history || []), updatedInteraction]
-              });
-            }
-
-            setNewNote('');
-            setIsNoteModalOpen(false);
-            resolve(true);
-          } else {
-            reject(new Error(response.data.message));
-          }
-        } catch (error: any) {
-          console.error('Note error:', error.response?.data || error.message);
-          reject(error);
+  toast.promise(
+    enquiryApi.addInteraction(selectedEnquiry.id, {
+      type: 'note',
+      direction: 'outgoing',
+      subject: `Note added to enquiry #${selectedEnquiry.id}`,
+      content: newNote.trim(),
+      sentiment: 'neutral',
+      metadata: {}
+    }),
+    {
+      loading: 'Adding note...',
+      success: (updatedInteraction) => {
+        setEnquiries(enquiries.map(e => 
+          e.id === selectedEnquiry.id ? {
+            ...e,
+            interaction_history: [...(e.interaction_history || []), updatedInteraction]
+          } : e
+        ));
+        if (selectedEnquiry) {
+          setSelectedEnquiry({
+            ...selectedEnquiry,
+            interaction_history: [...(selectedEnquiry.interaction_history || []), updatedInteraction]
+          });
         }
-      }),
-      {
-        loading: 'Adding note...',
-        success: 'Note added successfully!',
-        error: (err) => err.response?.data?.message || 'Failed to add note',
-      }
-    );
-  };
-
-  const handleScheduleMeeting = async () => {
-    if (!selectedEnquiry) return;
-
-    if (!newMeeting.title.trim()) {
-      toast.error('Meeting title is required');
-      return;
+        setNewNote('');
+        setIsNoteModalOpen(false);
+        return 'Note added successfully!';
+      },
+      error: (err) => err.message || 'Failed to add note',
     }
-    
-    if (!newMeeting.start_time || !newMeeting.end_time) {
-      toast.error('Start and end times are required');
-      return;
-    }
-    
-    const start = new Date(newMeeting.start_time);
-    const end = new Date(newMeeting.end_time);
-    
-    if (start >= end) {
-      toast.error('End time must be after start time');
-      return;
-    }
-    
-    const formatForBackend = (datetimeLocal: string) => {
-      if (!datetimeLocal) return '';
-      const date = new Date(datetimeLocal);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      
-      return `${year}-${month}-${day} ${hours}:${minutes}:00`;
-    };
+  );
+};
 
-    const meetingData = {
-      ...newMeeting,
-      start_time: formatForBackend(newMeeting.start_time),
-      end_time: formatForBackend(newMeeting.end_time),
-      participants: newMeeting.participants,
+ // REPLACE with:
+const handleScheduleMeeting = async () => {
+  if (!selectedEnquiry) return;
+
+  if (!newMeeting.title.trim()) {
+    toast.error('Meeting title is required');
+    return;
+  }
+  
+  if (!newMeeting.start_time || !newMeeting.end_time) {
+    toast.error('Start and end times are required');
+    return;
+  }
+  
+  const start = new Date(newMeeting.start_time);
+  const end = new Date(newMeeting.end_time);
+  
+  if (start >= end) {
+    toast.error('End time must be after start time');
+    return;
+  }
+
+  toast.promise(
+    enquiryApi.scheduleMeeting(selectedEnquiry.id, {
+      title: newMeeting.title,
+      description: newMeeting.description,
+      meeting_type: newMeeting.meeting_type,
       platform: newMeeting.meeting_type === 'virtual' ? newMeeting.platform : undefined,
-      location: newMeeting.meeting_type === 'in_person' ? newMeeting.location : undefined
-    };
-
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          const response = await axios.post(
-            `${API_BASE_URL}/enquiries/${selectedEnquiry.id}/meetings`,
-            meetingData,
-            getAuthHeaders()
-          );
-          
-          if (response.data.success) {
-            const newMeetingData = response.data.data;
-            
-            setEnquiries(enquiries.map(e => 
-              e.id === selectedEnquiry.id ? {
-                ...e,
-                scheduled_meetings: [...(e.scheduled_meetings || []), newMeetingData]
-              } : e
-            ));
-
-            if (selectedEnquiry) {
-              setSelectedEnquiry({
-                ...selectedEnquiry,
-                scheduled_meetings: [...(selectedEnquiry.scheduled_meetings || []), newMeetingData]
-              });
-            }
-
-            setNewMeeting({
-              title: '',
-              description: '',
-              meeting_type: 'virtual',
-              platform: 'Zoom',
-              location: '',
-              start_time: '',
-              end_time: '',
-              participants: [],
-              notes: ''
-            });
-            setIsMeetingModalOpen(false);
-            resolve(true);
-          } else {
-            reject(new Error(response.data.message));
-          }
-        } catch (error: any) {
-          console.error('Meeting error:', error.response?.data || error.message);
-          reject(error);
+      location: newMeeting.meeting_type === 'in_person' ? newMeeting.location : undefined,
+      start_time: newMeeting.start_time,
+      end_time: newMeeting.end_time,
+      participants: newMeeting.participants,
+      notes: newMeeting.notes,
+      status: 'scheduled'
+    }),
+    {
+      loading: 'Scheduling meeting...',
+      success: (newMeetingData) => {
+        setEnquiries(enquiries.map(e => 
+          e.id === selectedEnquiry.id ? {
+            ...e,
+            scheduled_meetings: [...(e.scheduled_meetings || []), newMeetingData]
+          } : e
+        ));
+        if (selectedEnquiry) {
+          setSelectedEnquiry({
+            ...selectedEnquiry,
+            scheduled_meetings: [...(selectedEnquiry.scheduled_meetings || []), newMeetingData]
+          });
         }
-      }),
-      {
-        loading: 'Scheduling meeting...',
-        success: 'Meeting scheduled successfully!',
-        error: (err) => err.response?.data?.message || 'Failed to schedule meeting',
-      }
-    );
-  };
-
-  const handleLogCall = async () => {
-    if (!selectedEnquiry) return;
-
-    if (!newCallLog.content.trim()) {
-      toast.error('Call summary is required');
-      return;
+        setNewMeeting({
+          title: '',
+          description: '',
+          meeting_type: 'virtual',
+          platform: 'Zoom',
+          location: '',
+          start_time: '',
+          end_time: '',
+          participants: [],
+          notes: ''
+        });
+        setIsMeetingModalOpen(false);
+        return 'Meeting scheduled successfully!';
+      },
+      error: (err) => err.message || 'Failed to schedule meeting',
     }
+  );
+};
 
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          const response = await axios.post(
-            `${API_BASE_URL}/enquiries/${selectedEnquiry.id}/interactions`,
-            {
-              type: 'call',
-              direction: newCallLog.type,
-              subject: `Call with ${selectedEnquiry.full_name}`,
-              content: newCallLog.content.trim(),
-              duration: newCallLog.duration || 0,
-              sentiment: newCallLog.sentiment,
-              metadata: {
-                call_type: newCallLog.metadata.call_type
-              }
-            },
-            getAuthHeaders()
-          );
+ // REPLACE with:
+const handleLogCall = async () => {
+  if (!selectedEnquiry) return;
 
-          if (response.data.success) {
-            const newInteraction = response.data.data;
-            
-            setEnquiries(enquiries.map(e => 
-              e.id === selectedEnquiry.id ? {
-                ...e,
-                interaction_history: [...(e.interaction_history || []), newInteraction]
-              } : e
-            ));
+  if (!newCallLog.content.trim()) {
+    toast.error('Call summary is required');
+    return;
+  }
 
-            if (selectedEnquiry) {
-              setSelectedEnquiry({
-                ...selectedEnquiry,
-                interaction_history: [...(selectedEnquiry.interaction_history || []), newInteraction]
-              });
-            }
-
-            setNewCallLog({
-              type: 'outgoing',
-              subject: '',
-              content: '',
-              duration: 0,
-              sentiment: 'neutral',
-              metadata: {
-                call_type: 'follow_up'
-              }
-            });
-            setIsCallLogModalOpen(false);
-            resolve(true);
-          } else {
-            reject(new Error(response.data.message || 'Failed to log call'));
-          }
-        } catch (error: any) {
-          console.error('Error logging call:', error);
-          const errorMessage = error.response?.data?.message || error.message || 'Failed to log call';
-          reject(new Error(errorMessage));
-        }
-      }),
-      {
-        loading: 'Logging call...',
-        success: 'Call logged successfully!',
-        error: (err) => err.message || 'Failed to log call',
+  toast.promise(
+    enquiryApi.addInteraction(selectedEnquiry.id, {
+      type: 'call',
+      direction: newCallLog.type,
+      subject: `Call with ${selectedEnquiry.full_name}`,
+      content: newCallLog.content.trim(),
+      duration: newCallLog.duration || 0,
+      sentiment: newCallLog.sentiment,
+      metadata: {
+        call_type: newCallLog.metadata.call_type
       }
-    );
-  };
-
-  const handleCreateFollowUp = async () => {
-    if (!selectedEnquiry) return;
-
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          const response = await axios.post(
-            `${API_BASE_URL}/enquiries/${selectedEnquiry.id}/follow-ups`,
-            newFollowUp,
-            getAuthHeaders()
-          );
-
-          if (response.data.success) {
-            const newFollowUpData = response.data.data;
-            
-            setEnquiries(enquiries.map(e => 
-              e.id === selectedEnquiry.id ? {
-                ...e,
-                follow_up_actions: [...(e.follow_up_actions || []), newFollowUpData]
-              } : e
-            ));
-
-            if (selectedEnquiry) {
-              setSelectedEnquiry({
-                ...selectedEnquiry,
-                follow_up_actions: [...(selectedEnquiry.follow_up_actions || []), newFollowUpData]
-              });
-            }
-
-            setNewFollowUp({
-              type: 'call',
-              title: '',
-              description: '',
-              due_date: '',
-              priority: 'medium'
-            });
-            setIsFollowUpModalOpen(false);
-            resolve(true);
-          } else {
-            reject(new Error(response.data.message));
-          }
-        } catch (error) {
-          reject(error);
+    }),
+    {
+      loading: 'Logging call...',
+      success: (newInteraction) => {
+        setEnquiries(enquiries.map(e => 
+          e.id === selectedEnquiry.id ? {
+            ...e,
+            interaction_history: [...(e.interaction_history || []), newInteraction]
+          } : e
+        ));
+        if (selectedEnquiry) {
+          setSelectedEnquiry({
+            ...selectedEnquiry,
+            interaction_history: [...(selectedEnquiry.interaction_history || []), newInteraction]
+          });
         }
-      }),
-      {
-        loading: 'Creating follow-up...',
-        success: 'Follow-up created successfully!',
-        error: 'Failed to create follow-up',
-      }
-    );
-  };
+        setNewCallLog({
+          type: 'outgoing',
+          subject: '',
+          content: '',
+          duration: 0,
+          sentiment: 'neutral',
+          metadata: { call_type: 'follow_up' }
+        });
+        setIsCallLogModalOpen(false);
+        return 'Call logged successfully!';
+      },
+      error: (err) => err.message || 'Failed to log call',
+    }
+  );
+};
 
-  const handleDeleteEnquiry = async (id: number) => {
+  // REPLACE with:
+const handleCreateFollowUp = async () => {
+  if (!selectedEnquiry) return;
+
+  toast.promise(
+    enquiryApi.createFollowUp(selectedEnquiry.id, {
+      type: newFollowUp.type,
+      title: newFollowUp.title,
+      description: newFollowUp.description,
+      due_date: newFollowUp.due_date,
+      priority: newFollowUp.priority
+    }),
+    {
+      loading: 'Creating follow-up...',
+      success: (newFollowUpData) => {
+        setEnquiries(enquiries.map(e => 
+          e.id === selectedEnquiry.id ? {
+            ...e,
+            follow_up_actions: [...(e.follow_up_actions || []), newFollowUpData]
+          } : e
+        ));
+        if (selectedEnquiry) {
+          setSelectedEnquiry({
+            ...selectedEnquiry,
+            follow_up_actions: [...(selectedEnquiry.follow_up_actions || []), newFollowUpData]
+          });
+        }
+        setNewFollowUp({
+          type: 'call',
+          title: '',
+          description: '',
+          due_date: '',
+          priority: 'medium'
+        });
+        setIsFollowUpModalOpen(false);
+        return 'Follow-up created successfully!';
+      },
+      error: 'Failed to create follow-up',
+    }
+  );
+};
+
+ // REPLACE with:
+const handleDeleteEnquiry = async (id: number) => {
   const deleteToast = toast.loading('Deleting enquiry...');
 
   try {
-    await axios.delete(`${API_BASE_URL}/enquiries/${id}`, getAuthHeaders());
+    await enquiryApi.delete(id);
     setEnquiries(enquiries.filter(e => e.id !== id));
     fetchStats();
-
     toast.success('Deleted successfully', { id: deleteToast });
-  } catch (error) {
-    toast.error('Failed to delete enquiry', { id: deleteToast });
+  } catch (error: any) {
+    toast.error(error.message || 'Failed to delete enquiry', { id: deleteToast });
   }
 };
 
+// REPLACE with:
 const handleBulkDelete = async () => {
   if (selectedEnquiries.length === 0) {
     toast.error('Please select enquiries to delete');
@@ -585,26 +382,18 @@ const handleBulkDelete = async () => {
   const deleteToast = toast.loading(`Deleting ${selectedEnquiries.length} enquiry(s)...`);
 
   try {
-    const token = localStorage.getItem('token');
-    await Promise.all(
-      selectedEnquiries.map(id =>
-        axios.delete(`${API_BASE_URL}/enquiries/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-      )
-    );
-
+    await enquiryApi.bulkDelete(selectedEnquiries);
     toast.success('Deleted successfully', { id: deleteToast });
     setSelectedEnquiries([]);
     fetchEnquiries();
     fetchStats();
   } catch (error: any) {
-    toast.error('Failed to delete enquiries', { id: deleteToast });
+    toast.error(error.message || 'Failed to delete enquiries', { id: deleteToast });
   }
 };
 
 // Add state for export options
-const [exportOptions, setExportOptions] = useState({
+const [exportOptions, ] = useState({
   mode: 'selected', // 'selected', 'filtered', or 'all'
   includeInteractions: false,
   includeMeetings: false,
@@ -612,7 +401,7 @@ const [exportOptions, setExportOptions] = useState({
   dateFormat: 'MM/DD/YYYY'
 });
 
-// Updated export function
+
 const handleExportCSV = () => {
   let dataToExport: Enquiry[];
   
@@ -741,7 +530,6 @@ const handleExportCSV = () => {
   window.URL.revokeObjectURL(url);
   
   toast.success(`Exported ${dataToExport.length} enquiry(s)`);
-  setIsNoteModalOpen(false);
 };
 
 // Helper function for date formatting
@@ -778,47 +566,26 @@ const formatDateForCSV = (dateString: string, format: string) => {
   </button>
 </div>
 
-  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // REPLACE with:
+const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
+  toast.promise(
+    enquiryApi.importCSV(file),
+    {
+      loading: 'Importing CSV...',
+      success: (result:any) => {
+        fetchEnquiries();
+        fetchStats();
+        return result.message || `Successfully imported ${result.successful} enquiries`;
+      },
+      error: 'Failed to import CSV',
+    }
+  );
 
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          const response = await axios.post(
-            `${API_BASE_URL}/enquiries/import`,
-            formData,
-            {
-              headers: {
-                ...getAuthHeaders().headers,
-                'Content-Type': 'multipart/form-data',
-              }
-            }
-          );
-
-          if (response.data.success) {
-            fetchEnquiries();
-            fetchStats();
-            resolve(response.data.message);
-          } else {
-            reject(new Error(response.data.message));
-          }
-        } catch (error) {
-          reject(error);
-        }
-      }),
-      {
-        loading: 'Importing CSV...',
-        success: (message) => message || 'CSV imported successfully!',
-        error: 'Failed to import CSV',
-      }
-    );
-
-    e.target.value = '';
-  };
+  e.target.value = '';
+};
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -851,13 +618,6 @@ const formatDateForCSV = (dateString: string, format: string) => {
     return colors[status] || 'bg-gray-100 text-gray-700 border-gray-300';
   };
 
-  const getSentimentIcon = (sentiment?: string) => {
-    switch (sentiment) {
-      case 'positive': return <Smile className="w-4 h-4 text-green-500" />;
-      case 'negative': return <Frown className="w-4 h-4 text-red-500" />;
-      default: return <Meh className="w-4 h-4 text-yellow-500" />;
-    }
-  };
 
   // Filter enquiries
   const filteredEnquiries = enquiries.filter(e => {
@@ -937,7 +697,7 @@ const formatDateForCSV = (dateString: string, format: string) => {
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white">
       <Toaster position="top-right" />
       
       {/* Main Container */}
@@ -945,192 +705,185 @@ const formatDateForCSV = (dateString: string, format: string) => {
         isSidebarOpen ? 'ml-0 sm:ml-0' : ''
       }`}>
         {/* Header - Fixed with sidebar consideration */}
-        <div className={`${isSidebarOpen ? 'relative sm:sticky sm:top-4 lg:top-16' : 'sticky top-0 sm:top-4 lg:top-16'} z-30 bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4`}>
-          {/* Blue Title Section */}
-          <div className="bg-blue-200 text-black  rounded-t-lg sm:rounded-t-xl">
-            <div className="px-3 sm:px-4 py-2 sm:py-3">
-              <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <div className="bg-white/20 p-1.5 sm:p-2 rounded-md sm:rounded-lg">
-                    <Inbox className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="flex flex-col">
-                    <h1 className="text-sm sm:text-base lg:text-lg font-bold tracking-tight truncate">
-                      Enquiries Management
-                    </h1>
-                    <p className="text-black text-[10px] sm:text-xs mt-0.5 hidden sm:block">
-                      Track, manage, and nurture client relationships
-                    </p>
-                  </div>
+     <div className={`${isSidebarOpen ? 'relative sm:sticky sm:top-4 lg:top-16' : 'sticky top-0 sm:top-4 lg:top-16'} z-30 bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4`}>
+  {/* Blue Title Section */}
+  <div className="bg-blue-200 text-black rounded-t-lg sm:rounded-t-xl">
+    <div className="px-2 py-1.5 sm:px-3 sm:py-2">
+      <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-2">
+        <div className="flex items-center space-x-2">
+          <div className="bg-white/20 p-1 rounded-md">
+            <Inbox className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </div>
+          <h1 className="text-sm sm:text-base font-bold tracking-tight">
+            Enquiries Management
+          </h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* White Content Section - Show only when sidebar is closed on mobile */}
+  {(!isSidebarOpen || window.innerWidth >= 640) && (
+    <div className="bg-white rounded-b-lg sm:rounded-b-xl">
+      <div className="px-2 py-2 sm:px-3 sm:py-2.5">
+        {/* Header with Actions */}
+        <div className="flex flex-row justify-between items-center gap-1.5 mb-2 sm:mb-2.5">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-xs sm:text-sm font-semibold text-gray-800">
+              Enquiries ({enquiries.length})
+            </h2>
+            <span className="text-[11px] text-gray-500 hidden sm:inline">Track & manage relationships</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="hidden sm:flex items-center gap-1.5">
+              <label className="cursor-pointer">
+                <input type="file" accept=".csv" onChange={handleImportCSV} className="hidden" />
+                <div className="bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded-md items-center gap-1.5 transition-all shadow-sm text-xs flex">
+                  <Upload size={12} />
+                  <span>Import</span>
                 </div>
+              </label>
+              <button
+                onClick={handleExportCSV}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded-md items-center gap-1.5 transition-all shadow-sm text-xs flex"
+              >
+                <Download size={12} />
+                <span>Export</span>
+              </button>
+            </div>
+            <div className="sm:hidden flex items-center gap-1.5 ml-auto">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+              >
+                <Grid size={16} />
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`p-1 rounded ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+              >
+                <List size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Compact Stats Cards */}
+        <div className="hidden sm:grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-1.5 mb-2 sm:mb-2.5">
+          {statsCards.map((stat, idx) => (
+            <div key={idx} className="bg-white rounded border border-gray-200 px-2 py-1 sm:px-3 sm:py-1.5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] sm:text-xs text-gray-500 font-medium">{stat.label}</p>
+                  <p className={`text-sm sm:text-base font-bold text-${stat.color}-600 mt-0.5`}>{stat.value}</p>
+                </div>
+                <div className={`p-1 bg-${stat.color}-100 rounded-lg`}>
+                  <stat.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-${stat.color}-600`} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile Stats Summary */}
+        <div className="sm:hidden grid grid-cols-2 md:grid-cols-4 gap-1.5 mb-2">
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 text-center">
+            <p className="text-[9px] text-gray-500">Total</p>
+            <p className="text-sm font-bold text-indigo-600">{stats?.total || 0}</p>
+          </div>
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 text-center">
+            <p className="text-[9px] text-gray-500">New</p>
+            <p className="text-sm font-bold text-blue-600">{stats?.new || 0}</p>
+          </div>
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 text-center">
+            <p className="text-[9px] text-gray-500">Urgent</p>
+            <p className="text-sm font-bold text-red-600">{stats?.urgent || 0}</p>
+          </div>
+          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 text-center">
+            <p className="text-[9px] text-gray-500">Today</p>
+            <p className="text-sm font-bold text-orange-600">{stats?.today || 0}</p>
+          </div>
+        </div>
+
+        {/* Compact Search and Filter Bar */}
+        <div className="bg-white rounded p-1.5 sm:p-2">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-1.5 sm:gap-2">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search enquiries..."
+                  value={filters.search}
+                  onChange={(e) => {
+                    setFilters({...filters, search: e.target.value});
+                    setCurrentPage(1);
+                  }}
+                  className="w-full pl-6 sm:pl-8 pr-2 sm:pr-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1">
+                <Filter className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 hidden sm:block" />
+                <select
+                  value={filters.status}
+                  onChange={(e) => {
+                    setFilters({...filters, status: e.target.value});
+                    setCurrentPage(1);
+                  }}
+                  className="px-1.5 py-1 sm:px-2 sm:py-1 text-[10px] sm:text-xs border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                >
+                  <option value="all">All Status</option>
+                  <option value="new">New</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="contacted">Contacted</option>
+                  <option value="closed">Closed</option>
+                  <option value="converted">Converted</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <select
+                  value={filters.priority}
+                  onChange={(e) => {
+                    setFilters({...filters, priority: e.target.value});
+                    setCurrentPage(1);
+                  }}
+                  className="px-1.5 py-1 sm:px-2 sm:py-1 text-[10px] sm:text-xs border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                >
+                  <option value="all">All Priority</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <span className="text-[9px] sm:text-xs text-gray-600 hidden sm:inline">Show:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-1.5 py-1 sm:px-2 sm:py-1 text-[10px] sm:text-xs border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                >
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                </select>
+                <span className="text-[9px] sm:text-xs text-gray-600 hidden sm:inline">/pg</span>
               </div>
             </div>
           </div>
-
-          {/* White Content Section - Show only when sidebar is closed on mobile */}
-          {(!isSidebarOpen || window.innerWidth >= 640) && (
-            <div className="bg-white rounded-b-lg sm:rounded-b-xl">
-              <div className="px-3 sm:px-4 pt-2 sm:pt-3 pb-3 sm:pb-4">
-                {/* Header with Actions */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <div>
-                    <h2 className="text-sm sm:text-base font-semibold text-gray-800">
-                      All Enquiries ({enquiries.length})
-                    </h2>
-                    <p className="text-[10px] sm:text-xs text-gray-600 hidden sm:block">
-                      Manage interactions, meetings, and follow-ups
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2 w-full sm:w-auto">
-                    <div className="flex items-center space-x-1 sm:space-x-2">
-                      <label className="cursor-pointer">
-                        <input type="file" accept=".csv" onChange={handleImportCSV} className="hidden" />
-                        <div className="bg-emerald-600 hover:bg-emerald-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg items-center space-x-2 transition-all shadow-sm text-xs sm:text-sm hidden sm:flex">
-                          <Upload size={14} className="sm:size-[16px]" />
-                          <span className="font-medium">Import CSV</span>
-                        </div>
-                      </label>
-                      <button
-                        onClick={handleExportCSV}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg items-center space-x-2 transition-all shadow-sm text-xs sm:text-sm hidden sm:flex"
-                      >
-                        <Download size={14} className="sm:size-[16px]" />
-                        <span className="font-medium">Export CSV</span>
-                      </button>
-                    </div>
-                    <div className="sm:hidden flex items-center space-x-2 ml-auto">
-                      <button
-                        onClick={() => setViewMode('grid')}
-                        className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
-                      >
-                        <Grid size={18} />
-                      </button>
-                      <button
-                        onClick={() => setViewMode('table')}
-                        className={`p-1.5 rounded ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
-                      >
-                        <List size={18} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Compact Stats Cards */}
-                <div className="hidden sm:grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  {statsCards.map((stat, idx) => (
-                    <div key={idx} className="bg-white rounded border border-gray-200 p-2 sm:p-3 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-[10px] sm:text-xs text-gray-500 font-medium">{stat.label}</p>
-                          <p className={`text-lg sm:text-xl font-bold text-${stat.color}-600 mt-1`}>{stat.value}</p>
-                        </div>
-                        <div className={`p-1 sm:p-1.5 bg-${stat.color}-100 rounded-lg`}>
-                          <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 text-${stat.color}-600`} />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Mobile Stats Summary */}
-                <div className="sm:hidden grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Total</p>
-                    <p className="text-base font-bold text-indigo-600">{stats?.total || 0}</p>
-                  </div>
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">New</p>
-                    <p className="text-base font-bold text-blue-600">{stats?.new || 0}</p>
-                  </div>
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Urgent</p>
-                    <p className="text-base font-bold text-red-600">{stats?.urgent || 0}</p>
-                  </div>
-                  <div className="bg-white rounded border border-gray-200 p-2 text-center">
-                    <p className="text-[10px] text-gray-500">Today</p>
-                    <p className="text-base font-bold text-orange-600">{stats?.today || 0}</p>
-                  </div>
-                </div>
-
-                {/* Compact Search and Filter Bar */}
-                <div className="bg-white rounded p-2 sm:p-3">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-3">
-                    <div className="flex-1">
-                      <div className="relative">
-                        <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Search enquiries..."
-                          value={filters.search}
-                          onChange={(e) => {
-                            setFilters({...filters, search: e.target.value});
-                            setCurrentPage(1);
-                          }}
-                          className="w-full pl-7 sm:pl-9 pr-3 sm:pr-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <Filter className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 hidden sm:block" />
-                        <select
-                          value={filters.status}
-                          onChange={(e) => {
-                            setFilters({...filters, status: e.target.value});
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="all">All Status</option>
-                          <option value="new">New</option>
-                          <option value="in_progress">In Progress</option>
-                          <option value="contacted">Contacted</option>
-                          <option value="closed">Closed</option>
-                          <option value="converted">Converted</option>
-                        </select>
-                      </div>
-                      
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <select
-                          value={filters.priority}
-                          onChange={(e) => {
-                            setFilters({...filters, priority: e.target.value});
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="all">All Priority</option>
-                          <option value="urgent">Urgent</option>
-                          <option value="high">High</option>
-                          <option value="medium">Medium</option>
-                          <option value="low">Low</option>
-                        </select>
-                      </div>
-                      
-                      <div className="flex items-center space-x-1 sm:space-x-1.5">
-                        <span className="text-xs text-gray-600 hidden sm:inline">Show:</span>
-                        <select
-                          value={itemsPerPage}
-                          onChange={(e) => {
-                            setItemsPerPage(Number(e.target.value));
-                            setCurrentPage(1);
-                          }}
-                          className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-xs sm:text-sm"
-                        >
-                          <option value="5">5</option>
-                          <option value="10">10</option>
-                          <option value="25">25</option>
-                        </select>
-                        <span className="text-xs text-gray-600 hidden sm:inline">per page</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
+      </div>
+    </div>
+  )}
+</div>
 
         {/* Bulk Actions Bar */}
         {selectedEnquiries.length > 0 && (!isSidebarOpen || window.innerWidth >= 640) && (
@@ -1268,7 +1021,7 @@ const formatDateForCSV = (dateString: string, format: string) => {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[calc(100vh-250px)] sm:max-h-[calc(100vh-300px)]">
+                <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[calc(100vh-390px)] sm:max-h-[calc(100vh-370px)]">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-20">
                       <tr>
@@ -1390,90 +1143,102 @@ const formatDateForCSV = (dateString: string, format: string) => {
                 </div>
 
                 {/* Pagination Controls */}
-                {filteredEnquiries.length > 0 && (
-                  <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-3 sm:px-4 py-2 sm:py-3 z-10">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
-                      <div className="text-xs sm:text-sm text-gray-700">
-                        <span className="hidden sm:inline">Showing </span>
-                        <span className="font-semibold">{indexOfFirstItem + 1}</span>
-                        <span className="hidden sm:inline"> to </span>
-                        <span className="sm:hidden">-</span>
-                        <span className="font-semibold">
-                          {Math.min(indexOfLastItem, filteredEnquiries.length)}
-                        </span>
-                        <span className="hidden sm:inline"> of </span>
-                        <span className="sm:hidden">/</span>
-                        <span className="font-semibold">{filteredEnquiries.length}</span>
-                        {(filters.search || filters.status !== 'all' || filters.priority !== 'all') && (
-                          <span className="ml-1 sm:ml-2 text-indigo-600 text-[10px] sm:text-xs hidden sm:inline">
-                            {filters.search && `(Search: "${filters.search}")`}
-                            {filters.status !== 'all' && ` (Status: ${filters.status})`}
-                            {filters.priority !== 'all' && ` (Priority: ${filters.priority})`}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center justify-between sm:justify-start space-x-1 sm:space-x-2">
-                        <button
-                          onClick={prevPage}
-                          disabled={currentPage === 1}
-                          className="p-1.5 sm:p-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition"
-                        >
-                          <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
-                        
-                        <div className="flex items-center space-x-0.5 sm:space-x-1">
-                          {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-                            let pageNumber;
-                            if (totalPages <= 3) {
-                              pageNumber = i + 1;
-                            } else if (currentPage <= 2) {
-                              pageNumber = i + 1;
-                            } else if (currentPage >= totalPages - 1) {
-                              pageNumber = totalPages - 2 + i;
-                            } else {
-                              pageNumber = currentPage - 1 + i;
-                            }
-                            
-                            return (
-                              <button
-                                key={pageNumber}
-                                onClick={() => goToPage(pageNumber)}
-                                className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm rounded-lg transition ${
-                                  currentPage === pageNumber
-                                    ? 'bg-indigo-600 text-white shadow-sm'
-                                    : 'border border-gray-300 text-gray-700 hover:bg-white hover:shadow-sm'
-                                }`}
-                              >
-                                {pageNumber}
-                              </button>
-                            );
-                          })}
-                          
-                          {totalPages > 3 && currentPage < totalPages - 1 && (
-                            <>
-                              <span className="px-0.5 sm:px-1 text-gray-500">...</span>
-                              <button
-                                onClick={() => goToPage(totalPages)}
-                                className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm transition"
-                              >
-                                {totalPages}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                        
-                        <button
-                          onClick={nextPage}
-                          disabled={currentPage === totalPages}
-                          className="p-1.5 sm:p-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition"
-                        >
-                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              {filteredEnquiries.length > 0 && (
+  <div className="bg-gray-50 border-t border-gray-200 px-2 py-1.5 sm:px-4 sm:py-2">
+    <div className="flex items-center justify-between gap-1 sm:gap-2">
+      {/* Left side - Showing info compact */}
+      <div className="text-[9px] sm:text-xs text-gray-600 whitespace-nowrap">
+        <span className="hidden sm:inline">Showing </span>
+        <span className="font-semibold text-gray-800">{indexOfFirstItem + 1}</span>
+        <span className="hidden sm:inline"> - </span>
+        <span className="sm:hidden">-</span>
+        <span className="font-semibold text-gray-800">
+          {Math.min(indexOfLastItem, filteredEnquiries.length)}
+        </span>
+        <span className="hidden sm:inline"> of </span>
+        <span className="sm:hidden">/</span>
+        <span className="font-semibold text-gray-800">{filteredEnquiries.length}</span>
+        
+        {/* Filter indicators - compact */}
+        {(filters.search || filters.status !== 'all' || filters.priority !== 'all') && (
+          <span className="ml-1 text-indigo-600 text-[8px] sm:text-[10px] hidden sm:inline">
+            {filters.search && `🔍 "${filters.search.slice(0, 8)}${filters.search.length > 8 ? '…' : ''}"`}
+            {filters.status !== 'all' && ` • ${filters.status === 'in_progress' ? 'In Prog' : filters.status === 'converted' ? 'Conv' : filters.status}`}
+            {filters.priority !== 'all' && ` • ${filters.priority === 'urgent' ? 'Urg' : filters.priority === 'medium' ? 'Med' : filters.priority === 'high' ? 'High' : filters.priority}`}
+          </span>
+        )}
+      </div>
+      
+      {/* Pagination controls - compact row */}
+      <div className="flex items-center gap-0.5 sm:gap-1">
+        {/* Previous button */}
+        <button
+          onClick={prevPage}
+          disabled={currentPage === 1}
+          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+        </button>
+        
+        {/* Page numbers - Desktop */}
+        <div className="hidden sm:flex items-center gap-0.5 sm:gap-1">
+          {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+            let pageNumber;
+            if (totalPages <= 3) {
+              pageNumber = i + 1;
+            } else if (currentPage <= 2) {
+              pageNumber = i + 1;
+            } else if (currentPage >= totalPages - 1) {
+              pageNumber = totalPages - 2 + i;
+            } else {
+              pageNumber = currentPage - 1 + i;
+            }
+            
+            return (
+              <button
+                key={pageNumber}
+                onClick={() => goToPage(pageNumber)}
+                className={`min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs rounded-md transition ${
+                  currentPage === pageNumber
+                    ? 'bg-indigo-600 text-white font-medium shadow-sm'
+                    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {pageNumber}
+              </button>
+            );
+          })}
+          
+          {totalPages > 3 && currentPage < totalPages - 1 && (
+            <>
+              <span className="text-gray-400 text-[10px] sm:text-xs px-0.5">...</span>
+              <button
+                onClick={() => goToPage(totalPages)}
+                className="min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition"
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+        </div>
+        
+        {/* Mobile: Current page indicator */}
+        <span className="sm:hidden text-[10px] font-medium text-gray-700 px-1">
+          {currentPage}/{totalPages}
+        </span>
+        
+        {/* Next button */}
+        <button
+          onClick={nextPage}
+          disabled={currentPage === totalPages}
+          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+        </button>
+      </div>
+    </div>
+  </div>
+)}
               </>
             )}
           </div>
