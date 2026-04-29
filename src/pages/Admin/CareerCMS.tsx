@@ -930,7 +930,7 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
               className="px-1.5 py-0.5 text-[10px] border border-gray-300 rounded bg-white"
             >
               <option value="all">All Depts</option>
-              {Array.from(new Set(jobs.map(job => job.department).filter(Boolean))).map(dept => (
+              {Array.from(new Set(jobs.map(job => job.department).filter((dept): dept is string => dept !== null))).map(dept => (
                 <option key={dept} value={dept}>{dept}</option>
               ))}
             </select>
@@ -941,7 +941,7 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
               className="px-1.5 py-0.5 text-[10px] border border-gray-300 rounded bg-white"
             >
               <option value="all">All Locs</option>
-              {Array.from(new Set(jobs.map(job => job.location).filter(Boolean))).map(loc => (
+              {Array.from(new Set(jobs.map(job => job.location).filter((loc): loc is string => loc !== null))).map(loc => (
                 <option key={loc} value={loc}>{loc}</option>
               ))}
             </select>
@@ -952,7 +952,7 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
               className="px-1.5 py-0.5 text-[10px] border border-gray-300 rounded bg-white"
             >
               <option value="all">All Types</option>
-              {Array.from(new Set(jobs.map(job => job.job_type).filter(Boolean))).map(type => (
+              {Array.from(new Set(jobs.map(job => job.job_type).filter((type): type is string => type !== null))).map(type => (
                 <option key={type} value={type}>{type}</option>
               ))}
             </select>
