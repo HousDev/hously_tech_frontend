@@ -64,7 +64,7 @@ const Login: React.FC<LoginProps> = ({  onSuccess }) => {
         
         toast.success('Admin login successful!');
         setTimeout(() => {
-          navigate('/admin');
+          navigate('/homes/admin');
           onSuccess();
         }, 1000);
       } else {
