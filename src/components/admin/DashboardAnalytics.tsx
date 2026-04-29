@@ -273,8 +273,7 @@ export default function Dashboard() {
         headers: { Authorization: `Bearer ${token}` }
       }).catch(() => ({ data: { data: { total: 0, pending: 0 } } }));
 
-      console.log('Enquiries Stats:', enquiriesRes.data);
-      console.log('Applications Stats:', applicationsRes.data);
+
 
       setDashboardStats(prev => ({
         ...prev,
@@ -882,7 +881,7 @@ export default function Dashboard() {
                 
                 <div className="space-y-2">
                   <button
-                    onClick={() => window.location.href = '/admin/enquiries'}
+                    onClick={() => window.location.href = '/homes/admin/enquiries'}
                     className="w-full flex items-center gap-2 p-3 rounded-lg transition-all hover:shadow-sm bg-blue-50 hover:bg-blue-100"
                   >
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-100">
@@ -891,7 +890,7 @@ export default function Dashboard() {
                     <span className="text-sm font-medium text-blue-700">View Enquiries</span>
                   </button>
                   <button
-                    onClick={() => window.location.href = '/admin/career'}
+                    onClick={() => window.location.href = '/homes/admin/career'}
                     className="w-full flex items-center gap-2 p-3 rounded-lg transition-all hover:shadow-sm bg-green-50 hover:bg-green-100"
                   >
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-green-100">
@@ -900,7 +899,7 @@ export default function Dashboard() {
                     <span className="text-sm font-medium text-green-700">View Applications</span>
                   </button>
                   <button
-                    onClick={() => window.location.href = '/admin/schedule'}
+                    onClick={() => window.location.href = '/homes/admin/schedule'}
                     className="w-full flex items-center gap-2 p-3 rounded-lg transition-all hover:shadow-sm bg-purple-50 hover:bg-purple-100"
                   >
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-purple-100">
@@ -909,7 +908,7 @@ export default function Dashboard() {
                     <span className="text-sm font-medium text-purple-700">Schedule Meeting</span>
                   </button>
                   <button
-                    onClick={() => window.location.href = '/admin/analytics'}
+                    onClick={() => window.location.href = '/homes/admin/analytics'}
                     className="w-full flex items-center gap-2 p-3 rounded-lg transition-all hover:shadow-sm bg-orange-50 hover:bg-orange-100"
                   >
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-orange-100">
@@ -932,7 +931,7 @@ export default function Dashboard() {
                     <p className="text-sm text-gray-500">Latest applications</p>
                   </div>
                   <button 
-                    onClick={() => window.location.href = '/admin/career'}
+                    onClick={() => window.location.href = '/homes/admin/career'}
                     className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
                   >
                     View All
@@ -984,7 +983,7 @@ export default function Dashboard() {
                             <td className="py-3 px-3">
                               <div className="flex gap-2">
                                 <button 
-                                  onClick={() => window.location.href = `/admin/career?application=${application.id}`}
+                                  onClick={() => window.location.href = `/homes/admin/career?application=${application.id}`}
                                   className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg"
                                 >
                                   <Eye className="w-4 h-4" />
@@ -1020,7 +1019,7 @@ export default function Dashboard() {
                     <p className="text-sm text-gray-500">Latest enquiries</p>
                   </div>
                   <button 
-                    onClick={() => window.location.href = '/admin/enquiries'}
+                    onClick={() => window.location.href = '/homes/admin/enquiries'}
                     className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
                   >
                     View All
@@ -1072,7 +1071,7 @@ export default function Dashboard() {
                             <td className="py-3 px-3">
                               <div className="flex gap-2">
                                 <button
-                                  onClick={() => window.location.href = `/admin/enquiries?id=${enquiry.id}`}
+                                  onClick={() => window.location.href = `/homes/admin/enquiries?id=${enquiry.id}`}
                                   className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg"
                                 >
                                   <Eye className="w-4 h-4" />
@@ -1106,7 +1105,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-900">Recent Activity</h3>
                 <button 
-                  onClick={() => window.location.href = '/admin/activity'}
+                  onClick={() => window.location.href = '/homes/admin/activity'}
                   className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
                 >
                   View All

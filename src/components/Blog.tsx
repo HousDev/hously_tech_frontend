@@ -132,12 +132,10 @@ The future of IT service management is personalized, predictive, and deeply inte
       try {
         setLoading(true);
         setError(null);
-        console.log('🔍 Fetching blog posts from API...');
         
         const data = await blogApi.getAll();
         
         if (data && data.length > 0) {
-          console.log('✅ Blog posts fetched successfully:', data.length);
           
           // Filter only published posts and get first 3
           const publishedPosts = data
@@ -146,7 +144,6 @@ The future of IT service management is personalized, predictive, and deeply inte
           
           setPosts(publishedPosts);
         } else {
-          console.warn('⚠️ Using fallback posts - API returned empty');
           setPosts(fallbackPosts);
         }
       } catch (err) {
@@ -225,43 +222,37 @@ The future of IT service management is personalized, predictive, and deeply inte
           )}
 
           {/* Title Section - FONT SIZES REDUCED */}
-          <div className="flex flex-wrap justify-between items-end -mx-3">
-            {/* Left Column - Title */}
-            <div className="w-full lg:w-6/12 px-3">
-              <div className="mb-[30px] relative z-10 -mt-4">
-                {/* Sub Title */}
-                <span
-                  className="inline-block text-[13px] font-medium uppercase tracking-wider text-blue-600 mb-4 relative pb-1 animate-slideInLeft"
-                  style={{
-                    fontFamily: '"Space Grotesk", sans-serif',
-                    animationDelay: '0ms',
-                  }}
-                >
-                  {renderAnimatedText(subTitle)}
-                </span>
+         {/* ✅ NEW - left title + right button */}
+<div className="flex flex-wrap justify-between items-end -mx-3">
+  {/* Left Column - Title */}
+  <div className="w-full lg:w-6/12 px-3">
+    <div className="mb-[30px] relative z-10 -mt-4">
+      <span
+        className="inline-block text-[13px] font-medium uppercase tracking-wider text-blue-600 mb-4 relative pb-1 animate-slideInLeft"
+        style={{ fontFamily: '"Space Grotesk", sans-serif', animationDelay: '0ms' }}
+      >
+        {renderAnimatedText(subTitle)}
+      </span>
+      <h2
+        className="text-[23px] sm:text-[37px] font-bold leading-tight text-gray-900 mb-12 -mt-5 animate-slideInLeft"
+        style={{ fontFamily: '"Space Grotesk", sans-serif', animationDelay: '0ms' }}
+      >
+        {renderAnimatedText(mainTitle)}
+      </h2>
+    </div>
+  </div>
 
-                {/* Main Title */}
-                <h2
-                  className="
-                    text-[23px] 
-                    sm:text-[37px] 
-                    font-bold 
-                    leading-tight 
-                    text-gray-900 
-                    mb-12
-                    -mt-5 
-                    animate-slideInLeft
-                  "
-                  style={{
-                    fontFamily: '"Space Grotesk", sans-serif',
-                    animationDelay: '0ms',
-                  }}
-                >
-                  {renderAnimatedText(mainTitle)}
-                </h2>
-              </div>
-            </div>
-          </div>
+  {/* ✅ ADD THIS - Right Column - View All Button */}
+  <div className=" hidden lg:block  w-full lg:w-auto px-3 sm:mb-[50px]">
+    <button
+      onClick={() => window.location.href = '/blog'}
+      className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-full text-sm font-medium text-gray-900 hover:border-blue-600 hover:text-blue-600 transition-all duration-300 group"
+    >
+      View All Post
+      <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+    </button>
+  </div>
+</div>
 
           {/* Blog Posts Grid */}
           <div className="flex flex-wrap -mx-3 -mt-15">
@@ -282,7 +273,7 @@ The future of IT service management is personalized, predictive, and deeply inte
                       {/* Image */}
                       <div className="rounded-2xl overflow-hidden mb-4 flex-shrink-0">
                         <button 
-                          onClick={() => openModal(post)}
+                          onClick={() => window.location.href = `/blog/${post.id}`}
                           className="block w-full text-left"
                         >
                           <img
@@ -324,7 +315,7 @@ The future of IT service management is personalized, predictive, and deeply inte
                         {/* Title - FONT SIZE REDUCED */}
                         <h3 className="mb-2 flex-1">
                           <button
-                            onClick={() => openModal(post)}
+onClick={() => window.location.href = `/blog/${post.id}`}
                             className="text-lg font-bold text-gray-900 leading-[1.42] relative inline-block hover:text-blue-600 transition-colors duration-300 text-left w-full"
                             style={{
                               fontFamily: '"Space Grotesk", sans-serif',
@@ -341,7 +332,7 @@ The future of IT service management is personalized, predictive, and deeply inte
 
                         {/* Read More Button - FONT SIZE REDUCED */}
                         <button
-                          onClick={() => openModal(post)}
+onClick={() => window.location.href = `/blog/${post.id}`}
                           className="inline-flex items-center text-[11px] font-semibold text-gray-900 hover:text-blue-600 transition-colors duration-300 mt-auto w-fit"
                         >
                           Read More
@@ -362,6 +353,16 @@ The future of IT service management is personalized, predictive, and deeply inte
               </div>
             )}
           </div>
+          <div className="lg:hidden flex justify-center mt-2">
+
+          <button
+      onClick={() => window.location.href = '/blog'}
+      className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-full text-sm font-medium text-gray-900 hover:border-blue-600 hover:text-blue-600 transition-all duration-300 group"
+    >
+      View All Post
+      <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+    </button>
+    </div>
         </div>
       </section>
 

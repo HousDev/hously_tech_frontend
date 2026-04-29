@@ -21,6 +21,21 @@ export interface BlogPost {
   updated_at: string;
   author_name?: string;
   author_avatar?: string;
+  like_count?: number;
+  comment_count?: number;
+}
+
+export interface BlogComment {
+  id: number;
+  post_id: number;
+    parent_id: number | null;  // ✅ ADD THIS
+
+  name: string;
+  email: string | null;
+  content: string;
+  likes: number;
+  created_at: string;
+  replies?: BlogComment[];
 }
 
 export interface BlogStats {
@@ -70,6 +85,38 @@ getAll: (): Promise<BlogPost[]> =>
     await Promise.all(ids.map((id) => blogApi.delete(id)));
   },
 
+  getComments: (postId: number): Promise<BlogComment[]> =>
+  unwrap(api.get<ApiResponse<BlogComment[]>>(`/blog/${postId}/comments`)),
+
+addComment: (postId: number, data: { name: string; email: string | null; content: string }): Promise<BlogComment> =>
+  unwrap(api.post<ApiResponse<BlogComment>>(`/blog/${postId}/comments`, data)),
+
+likeComment: (commentId: number): Promise<void> =>
+  unwrap(api.post<ApiResponse<void>>(`/blog/comments/${commentId}/like`)),
+
+// Add after your existing methods (before closing })
+
+getPostLikeStatus: (postId: number): Promise<{ liked: boolean; likeCount: number }> => {
+  const liked = localStorage.getItem(`liked_post_${postId}`) === 'true';
+  
+  return unwrap(api.get<ApiResponse<{ likeCount: number }>>(`/blog/${postId}/like-status`))
+    .then((res: any) => ({ liked, likeCount: res.likeCount ?? 0 }));
+},
+
+
+likePost: (postId: number): Promise<{ likeCount: number }> =>
+  unwrap(api.post<ApiResponse<{ likeCount: number }>>(`/blog/${postId}/like`)),
+
+unlikePost: (postId: number): Promise<{ likeCount: number }> =>
+  unwrap(api.delete<ApiResponse<{ likeCount: number }>>(`/blog/${postId}/like`)),
+
+
+addReply: (postId: number, parentCommentId: number, data: { name: string; email: string | null; content: string }): Promise<BlogComment> =>
+  unwrap(api.post<ApiResponse<BlogComment>>(`/blog/${postId}/comments`, { 
+    ...data, 
+    parent_id: parentCommentId 
+  })),
+  
   bulkTogglePublish: async (ids: number[], publish: boolean, allPosts: BlogPost[]): Promise<void> => {
     await Promise.all(
       ids.map((id) => {
@@ -104,3 +151,5 @@ const BASE_URL = 'http://localhost:5000';
 // Full URL banao agar relative path hai
 return url.startsWith('http') ? url : `${BASE_URL}${url}`;  },
 };
+
+

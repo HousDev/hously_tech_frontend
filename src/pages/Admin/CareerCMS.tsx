@@ -271,9 +271,7 @@ const fetchJobStats = async () => {
   // REPLACE with:
 const fetchAppStats = async () => {
   try {
-    console.log('Fetching application stats...');
     const stats = await careerApi.getApplicationStats();
-    console.log('Application stats received:', stats);
     setAppStats(stats);
   } catch (error) {
     console.error('Failed to fetch app stats:', error);

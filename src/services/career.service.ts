@@ -103,14 +103,7 @@ class CareerService {
   async submitApplication(formData: ApplicationFormData) {
     const data = new FormData();
     
-    console.log('📤 Frontend: Form data to send:', {
-      job_id: formData.job_id,
-      applicant_name: formData.applicant_name,
-      email: formData.email,
-      phone: formData.phone,
-      cover_letter: formData.cover_letter,
-      resume: formData.resume ? formData.resume.name : 'No file'
-    });
+   
     
     // Append all form data
     data.append('job_id', formData.job_id.toString());
@@ -130,14 +123,12 @@ class CareerService {
     }
 
     try {
-      console.log('🚀 Frontend: Sending application request...');
       const response = await api.post('/career/applications', data, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
       
-      console.log('✅ Frontend: Application response:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ Frontend: Error submitting application:', error);

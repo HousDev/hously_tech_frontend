@@ -50,7 +50,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isHomePage = location.pathname === "/";
+const isHomePage = location.pathname === "/homes";
   const isUserAdmin = isAdmin();
   const currentUser = user || getCurrentUser();
 
@@ -102,16 +102,17 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
 
   // Nav links data
   const navLinks = [
-    { path: "/", label: "Home" },
+{ path: "/homes", label: "Home" },
     { path: "/services", label: "Services" },
     { path: "/about", label: "About" },
+      { path: "/blog", label: "Blogs" },
     { path: "/contact", label: "Contact" },
     { path: "/career", label: "Career" },
   ];
 
   const handleAdminClick = () => {
     if (isUserAdmin) {
-      navigate("/admin");
+navigate("/homes/admin");
     } else {
       onLoginClick();
     }
@@ -267,7 +268,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
                 {isUserAdmin ? (
                   <>
                     <Link
-                      to="/admin"
+  to="/homes/admin"
                       onClick={() => setIsSidebarOpen(false)}
                       className="flex items-center space-x-3 px-4 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
                     >
@@ -472,7 +473,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-[50] border border-gray-100">
                         <button
                           onClick={() => {
-                            navigate("/admin");
+navigate("/homes/admin");
                             setIsProfileDropdownOpen(false);
                           }}
                           className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition flex items-center space-x-2"
@@ -618,7 +619,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
                       <button
                         onClick={() => {
                           setIsOpen(false);
-                          navigate("/admin");
+                          navigate("/homes/admin");
                         }}
                         className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all transform hover:scale-105 ${
                           isScrolled || !isHomePage

@@ -57,17 +57,34 @@ const Breadcrumb: React.FC = () => {
         { path: "/casestudy", label: "CaseStudy" }
       ]
     },
+
+    "/blog": {
+  title: "Our Blogs",
+  items: [
+    { path: "/homes", label: "Home" },
+    { path: "/blog", label: "Blog" }
+  ]
+},
   };
 
   // Get current route data or use default
   const currentPath = location.pathname;
-  const routeData = breadcrumbData[currentPath] || {
-    title: "Page",
-    items: [
-      { path: "/", label: "Home" },
-      { path: currentPath, label: currentPath.replace("/", "") || "Current Page" }
-    ]
-  };
+ const isBlogDetail = currentPath.startsWith("/blog/") && currentPath !== "/blog";
+
+const routeData = breadcrumbData[currentPath] || (isBlogDetail ? {
+  title: "Blog Details",
+  items: [
+    { path: "/homes", label: "Home" },
+    { path: "/blog", label: "Blog" },
+    { path: currentPath, label: "Blog Details" }
+  ]
+} : null) || {
+  title: "Page",
+  items: [
+    { path: "/homes", label: "Home" },
+    { path: currentPath, label: currentPath.replace("/", "") || "Current Page" }
+  ]
+};
 
   // Determine background gradient based on route
   const getBackgroundGradient = () => {
@@ -78,8 +95,10 @@ const Breadcrumb: React.FC = () => {
       "/career": "linear-gradient(135deg, #0076d8 0%, #0066c0 100%)",
       "/contact": "linear-gradient(135deg, #0076d8 0%, #0066c0 100%)",
       "/testimonial": "linear-gradient(135deg, #0076d8 0%, #0066c0 100%)",
+            "/blog": "linear-gradient(135deg, #0076d8 0%, #0066c0 100%)",
+
     };
-    return gradients[currentPath] || "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
+    return gradients[currentPath] || "linear-gradient(135deg, #0076d8 0%, #0066c0 100%)";
   };
 
   return (

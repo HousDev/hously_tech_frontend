@@ -37,13 +37,11 @@
         
         // Add new favicon
         document.head.appendChild(link);
-        console.log('✅ Favicon updated to:', link.href);
       }
 
       // Function to fetch favicon from API
       async function fetchFavicon() {
         try {
-          console.log('🔄 Fetching favicon from API...');
           
           const response = await fetch('http://localhost:5000/api/settings/logos');
           
@@ -54,7 +52,6 @@
               // Update favicon with the one from API
               updateFavicon(data.data.favicon);
             } else {
-              console.log('⚠️ No favicon in API response, using default');
               // Use default favicon with cache busting
               const timestamp = new Date().getTime();
               updateFavicon(`/favicon.png?t=${timestamp}`);

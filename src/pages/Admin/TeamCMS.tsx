@@ -149,26 +149,22 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
   const parseSocialLinks = (socialLinksData: any): SocialLink[] => {
     try {
       if (!socialLinksData) {
-        console.log("No social links data");
         return [];
       }
 
       // If it's already an array
       if (Array.isArray(socialLinksData)) {
-        console.log("Social links is array:", socialLinksData);
         return socialLinksData;
       }
 
       // If it's a string, parse it
       if (typeof socialLinksData === "string") {
-        console.log("Social links is string:", socialLinksData);
         const parsed = JSON.parse(socialLinksData);
         return Array.isArray(parsed) ? parsed : [];
       }
 
       // If it's an object, try to convert
       if (typeof socialLinksData === "object") {
-        console.log("Social links is object:", socialLinksData);
         return [socialLinksData];
       }
 
@@ -247,7 +243,6 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
       display_order: editingMember ? editingMember.display_order : teamMembers.length,
     };
 
-    console.log("📤 Sending team member data:", payload);
 
     if (editingMember) {
       await teamApi.update(editingMember.id, payload);
@@ -1080,12 +1075,7 @@ const handleBulkToggleActive = async (activate: boolean) => {
                                     const links = parseSocialLinks(
                                       member.social_links
                                     );
-                                    console.log(
-                                      "Displaying social links for",
-                                      member.name,
-                                      ":",
-                                      links
-                                    );
+                                    
 
                                     if (!links || links.length === 0) {
                                       return (
@@ -1112,10 +1102,7 @@ const handleBulkToggleActive = async (activate: boolean) => {
                                             social.platform
                                           )}: ${social.url}`}
                                           onClick={(e) => {
-                                            console.log(
-                                              "Clicking social link:",
-                                              social
-                                            );
+                                           
                                             if (
                                               !social.url ||
                                               social.url === "#"

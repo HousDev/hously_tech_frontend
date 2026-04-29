@@ -368,7 +368,7 @@ image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format
 
         {/* Main Content */}
         <div className="relative z-10">
-<div className="container mx-auto px-3 sm:px-4 md:px-6 py-0">
+<div className="container mx-auto px-3 sm:px-0 md:px-0 py-0">
             {/* Hero Section */}
 <section className="min-h-screen px-4 pt-0 pb-0">
   <div className="max-w-6xl mx-auto w-full">
@@ -1011,7 +1011,7 @@ image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format
 
           {/* Footer */}
           <footer className="bg-slate-900 border-t border-slate-800">
-            <div className="container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
+            <div className="container mx-auto px-3 sm:px-4 md:px- py-3 sm:py-4 md:py-6">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 md:gap-4 text-[10px] xs:text-xs sm:text-sm">
                 <p className="text-slate-400 text-center sm:text-left">
                   © {new Date().getFullYear()} Hously Finntech Realty. All rights reserved.
