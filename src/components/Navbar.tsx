@@ -13,9 +13,9 @@ import {
   FaYoutube,
 } from "react-icons/fa";
 import { isAdmin, getCurrentUser, logout } from "../services/authService";
-import axios from "axios";
+import { settingsApi } from "../lib/settingsApi";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 interface NavbarUser {
   id: number;
@@ -72,14 +72,16 @@ const isHomePage = location.pathname === "/homes";
     fetchLogos();
   }, []);
 
-  const fetchLogos = async () => {
+ // REPLACE with this
+const fetchLogos = async () => {
     try {
       setLoadingLogos(true);
-      const response = await axios.get(`${API_BASE_URL}/settings/logos`);
-      
-      if (response.data.success) {
-        setLogoData(response.data.data);
-      }
+      const data = await settingsApi.getLogos();
+      setLogoData({
+        navbarLogo: data.navbarLogo || logo,
+        footerLogo: data.footerLogo || footerLogo,
+        favicon: data.favicon || "/favicon.png"
+      });
     } catch (error) {
       console.error('Failed to fetch logos:', error);
       setLogoData({

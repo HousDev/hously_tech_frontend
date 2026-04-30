@@ -474,6 +474,7 @@ export default function JobApplicationPage() {
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
+                        maxLength={10}
                         className={`w-full px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border ${
                           formErrors.phone
                             ? "border-red-300"

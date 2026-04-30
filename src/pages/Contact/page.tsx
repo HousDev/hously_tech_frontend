@@ -246,6 +246,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       name="phoneNumber"
                       value={formData.phoneNumber}
                       onChange={handleChange}
+                      maxLength={10}
                       placeholder="+91 XXXXX XXXXX"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0270e1] focus:border-transparent outline-none"
                     />
