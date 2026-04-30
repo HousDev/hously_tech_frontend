@@ -132,24 +132,24 @@ addReply: (postId: number, parentCommentId: number, data: { name: string; email:
     );
   },
 
-  uploadImage: async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append("image", file);
-    formData.append("type", "blog");
+// CORRECT - use env variable
+uploadImage: async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append("image", file);
+  formData.append("type", "blog");
 
-    const res = await api.post<ApiResponse<{ url: string; fullUrl: string }>>(
-      "/upload/blog-image",
-      formData
-    );
+  const res = await api.post<ApiResponse<{ url: string; fullUrl: string }>>(
+    "/upload/blog-image",
+    formData
+  );
 
-    if (!res.data.success) {
-      throw new Error(res.data.message || "Image upload failed");
-    }
+  if (!res.data.success) {
+    throw new Error(res.data.message || "Image upload failed");
+  }
 
-const url = res.data.data!.url;
-const BASE_URL = 'http://localhost:5000';
-// Full URL banao agar relative path hai
-return url.startsWith('http') ? url : `${BASE_URL}${url}`;  },
+  // Use fullUrl from server (server builds correct URL using BASE_URL)
+  return res.data.data!.fullUrl;
+},
 };
 
 

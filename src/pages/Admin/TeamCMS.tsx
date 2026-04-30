@@ -411,21 +411,14 @@ const handleBulkToggleActive = async (activate: boolean) => {
     fetchTeamMembers(); // Refresh to fix any inconsistencies
   }
 };
-
-  const getImageDisplayUrl = (url: string) => {
+// CORRECT
+const getImageDisplayUrl = (url: string) => {
   if (!url) return "";
-  
-  // If already a full URL, return as is
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    return url;
-  }
-  
-  // If it's a relative path starting with /uploads, add base URL
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
   if (url.startsWith("/uploads/")) {
     const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
     return `${baseUrl}${url}`;
   }
-  
   return url;
 };
 
@@ -1481,6 +1474,7 @@ const handleBulkToggleActive = async (activate: boolean) => {
                     <input
                       type={link.platform === "whatsapp" ? "text" : "url"}
                       value={link.url}
+                      maxLength={10}
                       onChange={(e) => updateSocialLink(index, "url", e.target.value)}
                       placeholder={
                         link.platform === "whatsapp"
