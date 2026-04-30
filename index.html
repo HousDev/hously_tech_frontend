@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -15,68 +17,47 @@
     
     <!-- Script to dynamically update favicon -->
     <script>
-      // Function to update favicon
       function updateFavicon(faviconUrl) {
-        const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+        const link = document.createElement('link');
         link.type = 'image/x-icon';
         link.rel = 'shortcut icon';
-        link.href = faviconUrl;
-        link.id = 'favicon';
         
-        // Add cache busting
         const timestamp = new Date().getTime();
         link.href = faviconUrl.includes('?') 
           ? `${faviconUrl}&t=${timestamp}` 
           : `${faviconUrl}?t=${timestamp}`;
         
-        // Remove existing favicon
         const existingLink = document.querySelector("link[rel*='icon']");
         if (existingLink) {
           document.head.removeChild(existingLink);
         }
-        
-        // Add new favicon
         document.head.appendChild(link);
       }
 
-      // Function to fetch favicon from API
       async function fetchFavicon() {
         try {
-          
-          const response = await fetch('http://localhost:5000/api/settings/logos');
+          const response = await fetch('/api/settings/logos');
           
           if (response.ok) {
             const data = await response.json();
-            
             if (data.success && data.data && data.data.favicon) {
-              // Update favicon with the one from API
               updateFavicon(data.data.favicon);
             } else {
-              // Use default favicon with cache busting
-              const timestamp = new Date().getTime();
-              updateFavicon(`/favicon.png?t=${timestamp}`);
+              updateFavicon('/favicon.png');
             }
           } else {
-            console.error('❌ API request failed:', response.status);
-            // Use default favicon
-            const timestamp = new Date().getTime();
-            updateFavicon(`/favicon.png?t=${timestamp}`);
+            updateFavicon('/favicon.png');
           }
         } catch (error) {
           console.error('❌ Error fetching favicon:', error);
-          // Use default favicon
-          const timestamp = new Date().getTime();
-          updateFavicon(`/favicon.png?t=${timestamp}`);
+          updateFavicon('/favicon.png');
         }
       }
 
-      // Fetch favicon when page loads
       document.addEventListener('DOMContentLoaded', fetchFavicon);
       
-      // Also update favicon when visibility changes (for browser tab switching)
       document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
-          // Refresh favicon when tab becomes visible
           fetchFavicon();
         }
       });
