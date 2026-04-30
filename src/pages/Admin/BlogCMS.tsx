@@ -21,8 +21,7 @@ import {
   Cpu as CpuIcon, Layers as LayersIcon,
   Users as UsersIcon, Globe as GlobeIcon,
   Code as CodeIcon, Database as DatabaseIcon} from 'lucide-react';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import toast, { Toaster } from 'react-hot-toast';
 import { blogApi, type BlogPost, type BlogStats } from '../../lib/blogApi';
 
 
@@ -236,54 +235,55 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
 };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.title.trim() || !formData.excerpt.trim() || !formData.content.trim() || !formData.category) {
-      toast.error('Please fill in all required fields');
-      return;
+  e.preventDefault();
+  
+  if (!formData.title.trim() || !formData.excerpt.trim() || !formData.content.trim() || !formData.category) {
+    toast.error('Please fill in all required fields');
+    return;
+  }
+  
+  if (!formData.category) {
+    toast.error('Please select a category');
+    return;
+  }
+
+  const loadingToast = toast.loading(editingPost ? 'Updating blog post...' : 'Creating blog post...');
+
+  try {
+    const postData: any = {
+      title: formData.title,
+      excerpt: formData.excerpt,
+      content: formData.content,
+      category: formData.category,
+      read_time: formData.read_time,
+      is_published: formData.is_published,
+      meta_title: formData.meta_title || '',
+      meta_description: formData.meta_description || '',
+      tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+    };
+
+    if (formData.featured_image && formData.featured_image.trim()) {
+      postData.featured_image = formData.featured_image;
+    }
+
+    if (editingPost) {
+      await blogApi.update(editingPost.id, postData);
+      toast.success('Blog post updated successfully!', { id: loadingToast });
+    } else {
+      await blogApi.create(postData);
+      toast.success('Blog post created successfully!', { id: loadingToast });
     }
     
-    if (!formData.category) {
-      toast.error('Please select a category');
-      return;
-    }
-
-    try {
-      const postData: any = {
-        title: formData.title,
-        excerpt: formData.excerpt,
-        content: formData.content,
-        category: formData.category,
-        read_time: formData.read_time,
-        is_published: formData.is_published,
-        meta_title: formData.meta_title || '',
-        meta_description: formData.meta_description || '',
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-      };
-
-      if (formData.featured_image && formData.featured_image.trim()) {
-        postData.featured_image = formData.featured_image;
-      }
-
-      if (editingPost) {
-  await blogApi.update(editingPost.id, postData);
-  toast.success('Blog post updated successfully!');
-} else {
-  await blogApi.create(postData);
-  toast.success('Blog post created successfully!');
-}
-
-      
-      fetchPosts();
-      handleCloseModal();
-    } catch (err: any) {
-      console.error('❌ Error saving blog post:', {
-        error: err,
-        response: err.response?.data
-      });
-      toast.error(err.response?.data?.message || 'Failed to save blog post');
-    }
-  };
+    fetchPosts();
+    handleCloseModal();
+  } catch (err: any) {
+    console.error('❌ Error saving blog post:', {
+      error: err,
+      response: err.response?.data
+    });
+    toast.error(err.response?.data?.message || 'Failed to save blog post', { id: loadingToast });
+  }
+};
 
   const handleEdit = (post: BlogPost) => {
     setEditingPost(post);
@@ -304,94 +304,69 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
     setIsModalOpen(true);
   };
 
- const handleDelete = async (id: number) => {
+const handleDelete = async (id: number) => {
   const deleteToast = toast.loading('Deleting blog post...');
-
   try {
-await blogApi.delete(id);
-    toast.success('Blog post deleted successfully!' );
+    await blogApi.delete(id);
+    toast.success('Blog post deleted successfully!', { id: deleteToast });
     fetchPosts();
   } catch (err) {
-    toast.error('Failed to delete blog post');
+    toast.error('Failed to delete blog post', { id: deleteToast });
   }
 };
 
 
- const handleBulkDelete = async () => {
+const handleBulkDelete = async () => {
   if (selectedPosts.length === 0) {
     toast.error('Please select posts to delete');
     return;
   }
-
-  const deleteToast = toast.loading(
-    `Deleting ${selectedPosts.length} post(s)...`
-  );
-
+  const deleteToast = toast.loading(`Deleting ${selectedPosts.length} post(s)...`);
   try {
     await blogApi.bulkDelete(selectedPosts);
-
-
-    toast.success(
-      `Successfully deleted ${selectedPosts.length} post(s)`
-    );
-
+    toast.success(`Successfully deleted ${selectedPosts.length} post(s)`, { id: deleteToast });
     setSelectedPosts([]);
     fetchPosts();
   } catch (err: any) {
-    toast.error(
-      err.response?.data?.message || 'Failed to delete posts'
-    );
+    toast.error(err.response?.data?.message || 'Failed to delete posts', { id: deleteToast });
   }
 };
 
 
- const handleTogglePublish = async (id: number, currentStatus: boolean) => {
-  // const t = toast.loading(currentStatus ? 'Moving to draft...' : 'Publishing...');
+const handleTogglePublish = async (id: number, currentStatus: boolean) => {
+  const t = toast.loading(currentStatus ? 'Moving to draft...' : 'Publishing...');
   try {
     const postToUpdate = posts.find(p => p.id === id);
-    if (!postToUpdate) { toast.error('Post not found'); return; }
-
+    if (!postToUpdate) { toast.error('Post not found', { id: t }); return; }
     await blogApi.update(id, {
-      title: postToUpdate.title,
-      excerpt: postToUpdate.excerpt,
-      content: postToUpdate.content,
-      category: postToUpdate.category,
-      is_published: !currentStatus,
+      ...postToUpdate,
       tags: Array.isArray(postToUpdate.tags) ? postToUpdate.tags : [],
-      read_time: postToUpdate.read_time || '5 min read',
-      meta_title: postToUpdate.meta_title || null,
-      meta_description: postToUpdate.meta_description || null,
-      featured_image: postToUpdate.featured_image?.trim() || null,
+      is_published: !currentStatus,
       published_at: !currentStatus ? new Date().toISOString() : null,
     });
-
     setPosts(prev => prev.map(p =>
-      p.id === id
-        ? { ...p, is_published: !currentStatus, published_at: !currentStatus ? new Date().toISOString() : null }
-        : p
+      p.id === id ? { ...p, is_published: !currentStatus, published_at: !currentStatus ? new Date().toISOString() : null } : p
     ));
-    toast.success(`Post ${!currentStatus ? 'published' : 'moved to draft'}`);
+    toast.success(`Post ${!currentStatus ? 'published' : 'moved to draft'}`, { id: t });
     fetchStats();
   } catch (err: any) {
-    toast.error(err?.message || 'Failed to update post status');
+    toast.error(err?.message || 'Failed to update post status', { id: t });
   }
 };
 
-  const handleBulkTogglePublish = async (publish: boolean) => {
+ const handleBulkTogglePublish = async (publish: boolean) => {
   if (selectedPosts.length === 0) { toast.error('Please select posts to update'); return; }
   const t = toast.loading(`${publish ? 'Publishing' : 'Unpublishing'} ${selectedPosts.length} post(s)...`);
   try {
     await blogApi.bulkTogglePublish(selectedPosts, publish, posts);
     setPosts(prev => prev.map(p =>
-      selectedPosts.includes(p.id)
-        ? { ...p, is_published: publish, published_at: publish ? new Date().toISOString() : null }
-        : p
+      selectedPosts.includes(p.id) ? { ...p, is_published: publish, published_at: publish ? new Date().toISOString() : null } : p
     ));
-    toast.success(`Successfully ${publish ? 'published' : 'unpublished'} ${selectedPosts.length} post(s)`);
+    toast.success(`Successfully ${publish ? 'published' : 'unpublished'} ${selectedPosts.length} post(s)`, { id: t });
     setSelectedPosts([]);
     fetchStats();
   } catch (err: any) {
-    toast.error(err?.message || 'Failed to update posts');
+    toast.error(err?.message || 'Failed to update posts', { id: t });
   }
 };
 
@@ -544,8 +519,16 @@ switch (sortBy) {
 
   return (
     <div className="bg-white ">
-      <ToastContainer position="top-right" autoClose={3000} />
-      
+<Toaster 
+  position="top-right"
+  toastOptions={{
+    duration: 4000,
+    style: { background: '#363636', color: '#fff' },
+    success: { duration: 3000, style: { background: '#10B981' } },
+    error: { duration: 4000, style: { background: '#EF4444' } },
+    loading: { duration: Infinity },
+  }}
+/>      
       {/* Main Container */}
       <div className={`transition-all duration-300 ${
         isSidebarOpen ? 'ml-0 sm:ml-0' : ''
@@ -1449,7 +1432,7 @@ switch (sortBy) {
                               className="flex-1 px-2 py-0.5 text-[9px] sm:text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 bg-white"
                               placeholder="Enter image URL"
                             />
-                            <button
+                            {/* <button
                               type="button"
                               onClick={() => {
                                 const img = new Image();
@@ -1460,7 +1443,7 @@ switch (sortBy) {
                               className="px-2 py-0.5 text-[9px] bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
                             >
                               Test
-                            </button>
+                            </button> */}
                           </div>
                         </div>
                       ) : (

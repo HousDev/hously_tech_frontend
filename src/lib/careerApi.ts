@@ -218,6 +218,9 @@ export const careerApi = {
     ));
   },
 
+  deleteApplication: (id: number): Promise<void> =>
+  unwrap(api.delete<ApiResponse<void>>(`/career/applications/${id}`)),
+
   /** SUBMIT application (public - with file upload) */
   submitApplication: async (payload: ApplicationPayload): Promise<{ id: number }> => {
     const formData = new FormData();

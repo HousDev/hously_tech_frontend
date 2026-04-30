@@ -7,7 +7,7 @@ import {
   ThumbsUp, Users, Grid, List
   } from 'lucide-react';
 import { testimonialsApi, type Testimonial } from '../../lib/testimonialApi';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 
 
 interface TestimonialsCMSProps {
@@ -62,22 +62,40 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
 
   
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file (PNG, JPG, JPEG, GIF, WEBP)');
-      return;
-    }
+  if (!file.type.startsWith('image/')) {
+    toast.error('Please select a valid image file (PNG, JPG, JPEG, GIF, WEBP)');
+    return;
+  }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size should be less than 5MB');
-      return;
-    }
+  if (file.size > 5 * 1024 * 1024) {
+    toast.error('Image size should be less than 5MB');
+    return;
+  }
 
-    setSelectedFile(file);
-  };
+  setSelectedFile(file);
+  const previewUrl = URL.createObjectURL(file);
+  
+  // Auto-upload immediately
+  try {
+    setUploadingImage(true);
+    const fullUrl = await testimonialsApi.uploadImage(file);
+    setFormData(prev => ({ ...prev, image_url: fullUrl }));
+    toast.success('Image uploaded successfully!');
+    // Clean up blob URL
+    URL.revokeObjectURL(previewUrl);
+  } catch (err: any) {
+    toast.error(err?.message || 'Failed to upload image');
+    setSelectedFile(null);
+    setFormData(prev => ({ ...prev, image_url: '' }));
+  } finally {
+    setUploadingImage(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+};
 
   const handleImageUpload = async () => {
   if (!selectedFile) { alert('Please select an image file first'); return; }
@@ -109,45 +127,44 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+  if (!validateForm()) return;
 
-    if (selectedFile && !formData.image_url) {
-      alert('Please upload the selected image first');
-      return;
-    }
+  if (selectedFile && !formData.image_url && !uploadingImage) {
+    toast.error('Please wait for image upload to complete');
+    return;
+  }
 
-    try {
-      setUploading(true);
-      const submitData = {
-        ...formData,
-        rating: Number(formData.rating),
-        display_order: Number(formData.display_order) || testimonials.length + 1,
-        image_url: formData.image_url
-      };
+  const loadingToast = toast.loading(editingTestimonial ? 'Updating testimonial...' : 'Creating testimonial...');
+
+  try {
+    setUploading(true);
+    const submitData = {
+      ...formData,
+      rating: Number(formData.rating),
+      display_order: Number(formData.display_order) || testimonials.length + 1,
+      image_url: formData.image_url
+    };
 
     if (editingTestimonial) {
-  await testimonialsApi.update(editingTestimonial.id, submitData);
-  toast.success('Testimonial updated successfully!');
-} else {
-  await testimonialsApi.create(submitData);
-  toast.success('Testimonial created successfully!');
-}
-fetchTestimonials();
-handleCloseModal();
-
-    
-    } catch (error: any) {
-      console.error('Error saving testimonial:', error);
-      alert(error.response?.data?.message || 'Failed to save testimonial');
-    } finally {
-      setUploading(false);
+      await testimonialsApi.update(editingTestimonial.id, submitData);
+      toast.success('Testimonial updated successfully!', { id: loadingToast });
+    } else {
+      await testimonialsApi.create(submitData);
+      toast.success('Testimonial created successfully!', { id: loadingToast });
     }
-  };
+
+    fetchTestimonials();
+    handleCloseModal();
+  } catch (error: any) {
+    console.error('Error saving testimonial:', error);
+    toast.error(error.response?.data?.message || 'Failed to save testimonial', { id: loadingToast });
+  } finally {
+    setUploading(false);
+  }
+};
 
   const handleEdit = (testimonial: Testimonial) => {
     setEditingTestimonial(testimonial);
@@ -177,7 +194,6 @@ const handleDelete = async (id: number) => {
   }
 };
 
-
 const handleBulkDelete = async () => {
   if (!selectedTestimonials.length) { toast.error('Please select testimonials'); return; }
   const t = toast.loading(`Deleting ${selectedTestimonials.length}...`);
@@ -193,12 +209,13 @@ const handleBulkDelete = async () => {
 
 
  const handleToggleActive = async (id: number, currentStatus: boolean) => {
+  const t = toast.loading(currentStatus ? 'Deactivating...' : 'Activating...');
   try {
     await testimonialsApi.toggleActive(id);
-    setTestimonials(prev => prev.map(t => t.id === id ? { ...t, is_active: !currentStatus } : t));
-    toast.success(`Testimonial ${!currentStatus ? 'activated' : 'deactivated'}`);
+    setTestimonials(prev => prev.map(tm => tm.id === id ? { ...tm, is_active: !currentStatus } : tm));
+    toast.success(`Testimonial ${!currentStatus ? 'activated' : 'deactivated'}`, { id: t });
   } catch (err: any) {
-    toast.error('Failed to update status');
+    toast.error('Failed to update status', { id: t });
   }
 };
 
@@ -337,6 +354,17 @@ const handleBulkToggleActive = async (activate: boolean) => {
 
   return (
     <div className="bg-white ">
+
+      <Toaster 
+      position="top-right"
+      toastOptions={{
+        duration: 4000,
+        style: { background: '#363636', color: '#fff' },
+        success: { duration: 3000, style: { background: '#10B981' } },
+        error: { duration: 4000, style: { background: '#EF4444' } },
+        loading: { duration: Infinity },
+      }}
+    />
       {/* Main Container */}
       <div className={`transition-all duration-300 ${
         isSidebarOpen ? 'ml-0 sm:ml-0' : ''
@@ -1116,73 +1144,59 @@ src={testimonial.image_url}
                   Client Image
                 </label>
                 
-                <div className="border border-dashed border-gray-300 rounded p-2 sm:p-3 text-center bg-[#fafbff]">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
+             <div className="border border-dashed border-gray-300 rounded p-2 sm:p-3 text-center bg-[#fafbff]">
+  <input
+    type="file"
+    ref={fileInputRef}
+    onChange={handleFileChange}
+    accept="image/*"
+    className="hidden"
+  />
 
-                  {!selectedFile ? (
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="text-[9px] sm:text-xs text-blue-600 font-medium hover:underline"
-                      >
-                        Click to browse image
-                      </button>
-                      <p className="text-[7px] sm:text-[9px] text-gray-400 mt-0.5">
-                        PNG, JPG, GIF, WEBP up to 5MB
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-1.5">
-                      <span className="text-[9px] sm:text-xs text-gray-700 truncate max-w-[70%]">
-                        {selectedFile.name}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleImageUpload}
-                        disabled={uploadingImage}
-                        className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-blue-600 text-white rounded text-[8px] sm:text-[9px] hover:bg-blue-700 disabled:opacity-50 transition"
-                      >
-                        {uploadingImage ? 'Uploading...' : 'Upload'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Current image preview */}
-                {formData.image_url && !selectedFile && (
-                  <div className="mt-2">
-                    <p className="text-[8px] sm:text-[9px] font-medium text-[#0D47A1] mb-1">
-                      Current Image:
-                    </p>
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-gray-200 bg-gray-50">
-                        <img
-                          src={formData.image_url}
-                          alt="Current"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, image_url: '' })}
-                        className="text-[8px] sm:text-[9px] text-red-600 hover:text-red-800 transition"
-                      >
-                        Remove Image
-                      </button>
-                    </div>
-                  </div>
-                )}
+  {uploadingImage ? (
+    <div className="py-2">
+      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-1"></div>
+      <p className="text-[9px] sm:text-xs text-blue-600">Uploading image...</p>
+    </div>
+  ) : formData.image_url ? (
+    <div>
+      <div className="flex justify-center mb-2">
+        <img 
+          src={formData.image_url} 
+          alt="Preview" 
+          className="w-16 h-16 rounded-full object-cover border border-gray-200"
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = 'none';
+          }}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          setFormData(prev => ({ ...prev, image_url: '' }));
+          setSelectedFile(null);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }}
+        className="text-[8px] sm:text-[9px] text-red-600 hover:text-red-800 transition"
+      >
+        Remove Image
+      </button>
+    </div>
+  ) : (
+    <div>
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="text-[9px] sm:text-xs text-blue-600 font-medium hover:underline"
+      >
+        Click to browse image
+      </button>
+      <p className="text-[7px] sm:text-[9px] text-gray-400 mt-0.5">
+        PNG, JPG, GIF, WEBP up to 5MB
+      </p>
+    </div>
+  )}
+</div>
               </div>
 
               {/* Divider */}

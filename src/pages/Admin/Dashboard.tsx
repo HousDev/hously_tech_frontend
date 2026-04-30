@@ -306,8 +306,9 @@ useEffect(() => {
     return;
   }
 
-  const socket = io('http://localhost:5000', {
-    auth: { token, userId: user.id },
+const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+const socket = io(SOCKET_URL, {   
+   auth: { token, userId: user.id },
     transports: ['websocket'],
     reconnection: true,
     reconnectionAttempts: 5,
