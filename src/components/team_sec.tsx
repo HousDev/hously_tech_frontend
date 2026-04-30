@@ -206,7 +206,7 @@ const TeamSection: React.FC = () => {
                   <div className="w-[110px] h-[110px] rounded-full mx-auto mb-4 border-[3px] border-[#0177d1] overflow-hidden bg-[#1a1a1a] flex items-center justify-center">
                     {member.image ? (
                       <img
-                        src={member.image.startsWith('http') ? member.image : `http://localhost:5000${member.image}`}
+src={member.image.startsWith('http') ? member.image : `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${member.image}`}
                         alt={member.name}
                         className="w-full h-full object-cover object-top transition duration-400 hover:scale-105"
                         onError={(e) => {

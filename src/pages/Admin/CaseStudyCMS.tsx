@@ -6,7 +6,7 @@ import {
   BookOpen, Grid, List, Image as ImageIcon,
 } from 'lucide-react';
 import { caseStudyApi, type CaseStudy } from '../../lib/caseStudyApi';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 
 interface Props { isSidebarOpen?: boolean; }
 
@@ -77,13 +77,37 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
   };
 
   /* ── image ── */
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (!f.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
-    if (f.size > 5 * 1024 * 1024)    { toast.error('Image must be under 5MB'); return; }
-    setFile(f);
-  };
+ const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const f = e.target.files?.[0];
+  if (!f) return;
+
+  if (!f.type.startsWith('image/')) {
+    toast.error('Please select an image file (PNG, JPG, JPEG, GIF, WEBP)');
+    return;
+  }
+  if (f.size > 5 * 1024 * 1024) {
+    toast.error('Image size should be less than 5MB');
+    return;
+  }
+
+  setFile(f);
+  const previewUrl = URL.createObjectURL(f);
+
+  try {
+    setUploadImg(true);
+    const url = await caseStudyApi.uploadImage(f);
+    setForm(p => ({ ...p, image_url: url }));
+    toast.success('Image uploaded successfully!');
+    URL.revokeObjectURL(previewUrl);
+  } catch (err: any) {
+    toast.error(err?.message || 'Failed to upload image');
+    setForm(p => ({ ...p, image_url: '' }));
+    setFile(null);
+    if (fileRef.current) fileRef.current.value = '';
+  } finally {
+    setUploadImg(false);
+  }
+};
 
   const handleUpload = async () => {
     if (!selectedFile) { toast.error('Select an image first'); return; }
@@ -100,24 +124,28 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
 
   /* ── submit ── */
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-    if (selectedFile && !formData.image_url) { toast.error('Please upload the selected image first'); return; }
-    try {
-      setSaving(true);
-      const payload = { ...formData, display_order: Number(formData.display_order) || items.length };
-      if (editing) {
-        await caseStudyApi.update(editing.id, payload);
-        toast.success('Updated successfully!');
-      } else {
-        await caseStudyApi.create(payload);
-        toast.success('Created successfully!');
-      }
-      fetchAll();
-      closeModal();
-    } catch (e: any) { toast.error(e?.message || 'Save failed'); }
-    finally { setSaving(false); }
-  };
+  e.preventDefault();
+  if (!validate()) return;
+
+  const t = toast.loading(editing ? 'Updating case study...' : 'Creating case study...');
+  try {
+    setSaving(true);
+    const payload = { ...formData, display_order: Number(formData.display_order) || items.length };
+    if (editing) {
+      await caseStudyApi.update(editing.id, payload);
+      toast.success('Case study updated successfully!', { id: t });
+    } else {
+      await caseStudyApi.create(payload);
+      toast.success('Case study created successfully!', { id: t });
+    }
+    fetchAll();
+    closeModal();
+  } catch (err: any) {
+    toast.error(err?.message || 'Failed to save case study', { id: t });
+  } finally {
+    setSaving(false);
+  }
+};
 
   /* ── edit ── */
   const handleEdit = (item: CaseStudy) => {
@@ -134,32 +162,42 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
 
   /* ── delete ── */
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this case study?')) return;
-    const t = toast.loading('Deleting...');
-    try { await caseStudyApi.delete(id); toast.success('Deleted!', { id: t }); fetchAll(); }
-    catch { toast.error('Delete failed', { id: t }); }
-  };
+  const t = toast.loading('Deleting...');
+  try {
+    await caseStudyApi.delete(id);
+    toast.success('Deleted successfully!', { id: t });
+    fetchAll();
+  } catch {
+    toast.error('Delete failed', { id: t });
+  }
+};
 
-  const handleBulkDelete = async () => {
-    if (!selected.length) { toast.error('Select items first'); return; }
-    if (!confirm(`Delete ${selected.length} item(s)?`)) return;
-    const t = toast.loading(`Deleting ${selected.length}...`);
-    try {
-      await caseStudyApi.bulkDelete(selected);
-      toast.success(`Deleted ${selected.length}`, { id: t });
-      setSelected([]);
-      fetchAll();
-    } catch { toast.error('Bulk delete failed', { id: t }); }
-  };
-
+ const handleBulkDelete = async () => {
+  if (!selected.length) {
+    toast.error('Select items first');
+    return;
+  }
+  const t = toast.loading(`Deleting ${selected.length} case study(s)...`);
+  try {
+    await caseStudyApi.bulkDelete(selected);
+    toast.success(`Deleted ${selected.length} case study(s)`, { id: t });
+    setSelected([]);
+    fetchAll();
+  } catch {
+    toast.error('Bulk delete failed', { id: t });
+  }
+};
   /* ── toggle ── */
-  const handleToggle = async (id: number, current: boolean) => {
-    try {
-      await caseStudyApi.toggleActive(id);
-      setItems(p => p.map(i => i.id === id ? { ...i, is_active: !current } : i));
-      toast.success(`${!current ? 'Activated' : 'Deactivated'}`);
-    } catch { toast.error('Failed to update status'); }
-  };
+ const handleToggle = async (id: number, current: boolean) => {
+  const t = toast.loading(current ? 'Deactivating...' : 'Activating...');
+  try {
+    await caseStudyApi.toggleActive(id);
+    setItems(p => p.map(i => i.id === id ? { ...i, is_active: !current } : i));
+    toast.success(`Case study ${!current ? 'activated' : 'deactivated'}`, { id: t });
+  } catch {
+    toast.error('Failed to update status', { id: t });
+  }
+};
 
   /* ── reorder ── */
   const handleReorder = async (id: number, dir: 'up' | 'down') => {
@@ -205,6 +243,16 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
 
   return (
     <div className="bg-white ">
+      <Toaster 
+      position="top-right"
+      toastOptions={{
+        duration: 4000,
+        style: { background: '#363636', color: '#fff' },
+        success: { duration: 3000, style: { background: '#10B981' } },
+        error: { duration: 4000, style: { background: '#EF4444' } },
+        loading: { duration: Infinity },
+      }}
+    />
       <div className={`transition-all duration-300 ${isSidebarOpen ? 'ml-0' : ''}`}>
 
         {/* ── Header ── */}
@@ -672,53 +720,50 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
                 </label>
                 
                 <div className="border border-dashed border-gray-300 rounded-lg p-2 sm:p-3 text-center bg-[#fafbff]">
-                  <input
-                    type="file"
-                    ref={fileRef}
-                    onChange={handleFile}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  {!selectedFile && !formData.image_url ? (
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => fileRef.current?.click()}
-                        className="text-[9px] sm:text-xs text-blue-600 font-medium hover:underline"
-                      >
-                        Click to browse image
-                      </button>
-                      <p className="text-[7px] sm:text-[8px] text-gray-400 mt-0.5">
-                        PNG, JPG, WEBP up to 5MB
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-1.5">
-                      <span className="text-[9px] sm:text-xs text-gray-700 truncate max-w-[70%]">
-                        {selectedFile ? selectedFile.name : 'Image selected'}
-                      </span>
-                      <div className="flex gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => fileRef.current?.click()}
-                          className="px-1.5 py-0.5 sm:px-2 sm:py-0.5 border border-gray-300 text-gray-700 rounded-lg text-[8px] sm:text-[9px] hover:bg-gray-50 transition"
-                        >
-                          Change
-                        </button>
-                        {selectedFile && (
-                          <button
-                            type="button"
-                            onClick={handleUpload}
-                            disabled={uploadingImg}
-                            className="px-1.5 py-0.5 sm:px-2 sm:py-0.5 bg-blue-600 text-white rounded-lg text-[8px] sm:text-[9px] hover:bg-blue-700 disabled:opacity-50 transition"
-                          >
-                            {uploadingImg ? 'Uploading...' : 'Upload'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+  <input type="file" ref={fileRef} onChange={handleFile} accept="image/*" className="hidden" />
+
+  {uploadingImg ? (
+    <div className="py-2">
+      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-1"></div>
+      <p className="text-[9px] sm:text-xs text-blue-600">Uploading image...</p>
+    </div>
+  ) : formData.image_url ? (
+    <div>
+      <div className="flex justify-center mb-2">
+        <img 
+          src={formData.image_url} 
+          alt="Preview" 
+          className="w-20 h-16 object-cover rounded-lg border border-gray-200" 
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          setForm(p => ({ ...p, image_url: '' }));
+          setFile(null);
+          if (fileRef.current) fileRef.current.value = '';
+        }}
+        className="text-[8px] sm:text-[9px] text-red-600 hover:text-red-800 transition"
+      >
+        Remove Image
+      </button>
+    </div>
+  ) : (
+    <div>
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        className="text-[9px] sm:text-xs text-blue-600 font-medium hover:underline"
+      >
+        Click to browse image
+      </button>
+      <p className="text-[7px] sm:text-[8px] text-gray-400 mt-0.5">
+        PNG, JPG, WEBP up to 5MB
+      </p>
+    </div>
+  )}
+</div>
 
                 {formData.image_url && !selectedFile && (
                   <div className="mt-2 flex items-center gap-2 sm:gap-3">

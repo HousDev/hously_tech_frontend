@@ -130,6 +130,6 @@ export const servicesApi = {
       throw new Error(res.data.message || "Icon upload failed");
     }
 
-    return res.data.data!.url;
+return res.data.data!.fullUrl;
   },
 };

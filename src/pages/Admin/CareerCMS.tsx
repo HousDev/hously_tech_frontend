@@ -11,7 +11,8 @@ import {
   RefreshCw, 
   Users as UsersIcon, Target as TargetIcon,
   Zap as ZapIcon, Check, XCircle,
-  IndianRupee, CheckCircle} from 'lucide-react';
+  IndianRupee, CheckCircle,
+  Download} from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { careerApi, type Job, type Application, type JobStats, type ApplicationStats } from '../../lib/careerApi';
 
@@ -21,6 +22,74 @@ import { careerApi, type Job, type Application, type JobStats, type ApplicationS
 interface CareerCMSProps {
   isSidebarOpen?: boolean;
 }
+
+const MultiSelectDropdown = ({ 
+  options, 
+  value, 
+  onChange, 
+  placeholder = "Select...",
+}: {
+  options: string[];
+  value: string[];
+  onChange: (val: string[]) => void;
+  placeholder?: string;
+  colorClass?: string;
+}) => {
+  const [open, setOpen] = useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const toggle = (option: string) => {
+    const updated = value.includes(option)
+      ? value.filter(v => v !== option)
+      : [...value, option];
+    onChange(updated);
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg bg-[#fafbff] flex items-center justify-between min-h-[30px]"
+      >
+        <span className={value.length === 0 ? "text-gray-400" : "text-gray-700"}>
+          {value.length === 0 ? placeholder : value.join(', ')}
+        </span>
+        <ChevronRight className={`w-3 h-3 text-gray-400 transition-transform ${open ? 'rotate-90' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {options.map(option => (
+            <label
+              key={option}
+              className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={value.includes(option)}
+                onChange={() => toggle(option)}
+                className="w-3.5 h-3.5 rounded accent-blue-600"
+              />
+              <span className="text-[10px] sm:text-xs text-gray-700">{option}</span>
+            </label>
+          ))}
+          {value.length === 0 && (
+            <p className="text-[9px] text-gray-400 px-3 py-1.5 italic">Not selected</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   // Predefined data
@@ -54,9 +123,6 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   ];
 
   const predefinedJobTypes = [
-    'Remote',
-    'Onsite',
-    'Hybrid',
     'Full-time',
     'Part-time',
     'Contract',
@@ -125,13 +191,13 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     job_title: '',
     department: '',
     location: '',
-    job_type: 'Full-time',
+   job_type: [] as string[],
     description: '',
     requirements: '',
     responsibilities: '',
     benefits: '',
     salary_range: '',
-    experience_level: '',
+    experience_level: [] as string[],
     is_active: true,
     application_deadline: '',
     vacancy_count: 1
@@ -294,13 +360,18 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   try {
     const jobData = {
-      ...formData,
-      requirements: formData.requirements.split('\n').filter(r => r.trim()),
-      responsibilities: formData.responsibilities.split('\n').filter(r => r.trim()),
-      benefits: formData.benefits.split('\n').filter(b => b.trim()),
-      is_active: formData.is_active
-    };
-
+  ...formData,
+  job_type: Array.isArray(formData.job_type) 
+    ? formData.job_type.join(',') 
+    : formData.job_type,
+  experience_level: Array.isArray(formData.experience_level)
+    ? formData.experience_level.join(',')
+    : formData.experience_level,
+  requirements: formData.requirements.split('\n').filter(r => r.trim()),
+  responsibilities: formData.responsibilities.split('\n').filter(r => r.trim()),
+  benefits: formData.benefits.split('\n').filter(b => b.trim()),
+  is_active: formData.is_active
+};
     if (editingJob) {
       await careerApi.updateJob(editingJob.id, jobData);
       showToast('Job updated successfully!');
@@ -319,24 +390,43 @@ const handleSubmit = async (e: React.FormEvent) => {
 };
 
   const handleEdit = (job: Job) => {
-    setEditingJob(job);
-    setFormData({
-      job_title: job.job_title,
-      department: job.department || '',
-      location: job.location || '',
-      job_type: job.job_type,
-      description: job.description,
-      requirements: Array.isArray(job.requirements) ? job.requirements.join('\n') : '',
-      responsibilities: Array.isArray(job.responsibilities) ? job.responsibilities.join('\n') : '',
-      benefits: Array.isArray(job.benefits) ? job.benefits.join('\n') : '',
-      salary_range: job.salary_range || '',
-      experience_level: job.experience_level || '',
-      is_active: job.is_active,
-      application_deadline: job.application_deadline ? job.application_deadline.split('T')[0] : '',
-      vacancy_count: job.vacancy_count || 1
-    });
-    setIsModalOpen(true);
+  setEditingJob(job);
+  
+  const parseField = (val: any): string => {
+    if (Array.isArray(val)) return val.join('\n');
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) return parsed.join('\n');
+        return val;
+      } catch {
+        return val;
+      }
+    }
+    return '';
   };
+
+  setFormData({
+    job_title: job.job_title,
+    department: job.department || '',
+    location: job.location || '',
+job_type: job.job_type 
+    ? job.job_type.split(',').map((t: string) => t.trim()).filter(Boolean)
+    : [],
+        description: job.description,
+    requirements: parseField(job.requirements),
+    responsibilities: parseField(job.responsibilities),
+    benefits: parseField(job.benefits),
+    salary_range: job.salary_range || '',
+experience_level: job.experience_level 
+    ? job.experience_level.split(',').map((e: string) => e.trim()).filter(Boolean)
+    : [],
+        is_active: job.is_active,
+    application_deadline: job.application_deadline ? job.application_deadline.split('T')[0] : '',
+    vacancy_count: job.vacancy_count || 1
+  });
+  setIsModalOpen(true);
+};
 
 const handleDelete = async (id: number) => {
   const deleteToast = toast.loading('Deleting job...');
@@ -366,16 +456,16 @@ const handleBulkDelete = async () => {
   );
 
   try {
-    if (activeTab === 'jobs') {
-      await careerApi.bulkDeleteJobs(selected);
-      setSelectedJobs([]);
-    } else {
-      // For applications - if you have bulk delete endpoint
-      for (const {} of selected) {
-        // await careerApi.deleteApplication(id); // Add if available
-      }
-      setSelectedApplications([]);
-    }
+   if (activeTab === 'jobs') {
+  await careerApi.bulkDeleteJobs(selected);
+  setSelectedJobs([]);
+} else {
+  for (const id of selected) {
+    await careerApi.deleteApplication(id);
+  }
+  setApplications(prev => prev.filter(app => !selected.includes(app.id)));
+  setSelectedApplications([]);
+}
 
     toast.success(
       `${selected.length} ${activeTab === 'jobs' ? 'job(s)' : 'application(s)'} deleted successfully`,
@@ -422,10 +512,10 @@ const handleUpdateApplicationStatus = async (id: number, status: 'pending' | 're
   
   setProcessingIds(prev => new Set(prev).add(id));
   
-  const statusToast = toast.loading('Updating application status...');
+  // const statusToast = toast.loading('Updating application status...');
   try {
     await careerApi.updateApplicationStatus(id, status);
-    toast.success('Application status updated!', { id: statusToast });
+    // toast.success('Application status updated!', { id: statusToast });
     
     // ✅ REMOVE the setTimeout fetchAllData — optimistic update already shows the change
     // The useEffect will re-fetch naturally on next filter/tab change
@@ -435,13 +525,26 @@ const handleUpdateApplicationStatus = async (id: number, status: 'pending' | 're
     setApplications(prev => 
       prev.map(app => app.id === id ? { ...app, status: currentApp?.status || 'pending' } : app)
     );
-    toast.error('Failed to update application status', { id: statusToast });
+    toast.error('Failed to update application status');
   } finally {
     setProcessingIds(prev => {
       const next = new Set(prev);
       next.delete(id);
       return next;
     });
+  }
+};
+
+const handleDeleteApplication = async (id: number) => {
+  const deleteToast = toast.loading('Deleting application...');
+  try {
+    await careerApi.deleteApplication(id);
+    setApplications(prev => prev.filter(app => app.id !== id));
+    setSelectedApplications(prev => prev.filter(appId => appId !== id));
+    toast.success('Application deleted successfully', { id: deleteToast });
+    fetchAppStats();
+  } catch (err: any) {
+    toast.error('Failed to delete application', { id: deleteToast });
   }
 };
 
@@ -452,18 +555,28 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
     return;
   }
 
-  const updateToast = toast.loading(`Updating ${selectedApplications.length} application(s)...`);
+  // const updateToast = toast.loading(`Updating ${selectedApplications.length} application(s)...`);
   
+  // Optimistically update UI immediately
+  setApplications(prev =>
+    prev.map(app =>
+      selectedApplications.includes(app.id)
+        ? { ...app, status: status as Application['status'] }
+        : app
+    )
+  );
+
   try {
     for (const id of selectedApplications) {
       await careerApi.updateApplicationStatus(id, status);
     }
-    toast.success(`Updated ${selectedApplications.length} application(s) to ${status}!`, { id: updateToast });
+    // toast.success(`Updated ${selectedApplications.length} application(s) to ${status}!`, { id: updateToast });
     setSelectedApplications([]);
-    // ✅ REMOVE fetchAllData() from here too
-    // fetchAllData();  // DELETE THIS LINE
+    fetchAppStats();
   } catch (err: any) {
-    toast.error('Failed to update applications', { id: updateToast });
+    // Revert on error
+    fetchApplications();
+    toast.error('Failed to update applications');
   }
 };
 
@@ -494,13 +607,13 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
       job_title: '',
       department: '',
       location: '',
-      job_type: 'Full-time',
+job_type: [],
       description: '',
       requirements: '',
       responsibilities: '',
       benefits: '',
       salary_range: '',
-      experience_level: '',
+      experience_level: [],
       is_active: true,
       application_deadline: '',
       vacancy_count: 1
@@ -518,35 +631,37 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
     }
   };
 
-  const downloadResume = (path: string) => {
-  if (!path) {
-    toast.error('No resume file available');
-    return;
-  }
+ const viewResume = (path: string) => {
+  if (!path) { toast.error('No resume file available'); return; }
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const baseUrl = apiBaseUrl.replace(/\/api$/, '').replace(/\/$/, '');
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  const fullUrl = path.startsWith('http') ? path : `${baseUrl}/${cleanPath}`;
+  window.open(fullUrl, '_blank');
+};
+
+const downloadResume = async (path: string) => {
+  if (!path) { toast.error('No resume file available'); return; }
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const baseUrl = apiBaseUrl.replace(/\/api$/, '').replace(/\/$/, '');
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  const fullUrl = path.startsWith('http') ? path : `${baseUrl}/${cleanPath}`;
 
   try {
-    // Get the base URL from Vite environment
-    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    
-    // Remove /api suffix if present to get the root URL
-    const baseUrl = apiBaseUrl.replace(/\/api$/, '').replace(/\/$/, '');
-    
-    // Construct the full URL
-    let fullUrl: string;
-    
-    if (path.startsWith('http://') || path.startsWith('https://')) {
-      fullUrl = path;
-    } else {
-      // Remove leading slash if present
-      const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-      fullUrl = `${baseUrl}/${cleanPath}`;
-    }
-    
-    // Open in new tab
-    window.open(fullUrl, '_blank');
+    const response = await fetch(fullUrl);
+    if (!response.ok) throw new Error('Download failed');
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = path.split('/').pop() || 'resume';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
   } catch (error) {
-    console.error('Error opening resume:', error);
-    toast.error('Failed to open resume');
+    toast.error('Could not download file');
+    console.error(error);
   }
 };
 
@@ -1313,26 +1428,43 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
                             <option value="hired">Hired</option>
                           </select>
                         </td>
-                        <td className="px-3 sm:px-6 py-4">
-                          <div className="flex items-center space-x-1 sm:space-x-2">
-                            {app.resume_path && (
-                              <button
-                                onClick={() => downloadResume(app.resume_path!)}
-                                className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                                title="View Resume"
-                              >
-                                <FileText size={14} className="sm:size-[16px]" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => window.open(`mailto:${app.email}`)}
-                              className="p-1 text-green-600 hover:bg-green-50 rounded-lg transition"
-                              title="Email Applicant"
-                            >
-                              <Mail size={14} className="sm:size-[16px]" />
-                            </button>
-                          </div>
-                        </td>
+                       <td className="px-3 sm:px-6 py-4">
+  <div className="flex items-center space-x-1 sm:space-x-2">
+    {app.resume_path && (
+  <>
+    <button
+      onClick={() => viewResume(app.resume_path!)}
+      className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+      title="View Resume"
+    >
+      <Eye size={14} className="sm:size-[16px]" />
+    </button>
+    <button
+      onClick={() => downloadResume(app.resume_path!)}
+      className="p-1 text-purple-600 hover:bg-purple-50 rounded-lg transition"
+      title="Download Resume"
+    >
+      <Download size={14} className="sm:size-[16px]" />
+    </button>
+  </>
+)}
+    <button
+      onClick={() => window.open(`mailto:${app.email}`)}
+      className="p-1 text-green-600 hover:bg-green-50 rounded-lg transition"
+      title="Email Applicant"
+    >
+      <Mail size={14} className="sm:size-[16px]" />
+    </button>
+    {/* ADD THIS */}
+    <button
+      onClick={() => handleDeleteApplication(app.id)}
+      className="p-1 text-red-600 hover:bg-red-50 rounded-lg transition"
+      title="Delete Application"
+    >
+      <Trash2 size={14} className="sm:size-[16px]" />
+    </button>
+  </div>
+</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1621,21 +1753,20 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
 
               {/* Row 2: Job Type + Salary Range */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
-                <div>
-                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                    Job Type <span className="text-red-600">*</span>
-                  </label>
-                  <select
-                    value={formData.job_type}
-                    onChange={(e) => setFormData({...formData, job_type: e.target.value})}
-                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
-                    required
-                  >
-                    {predefinedJobTypes.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
+            <div>
+  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+    Job Type <span className="text-red-600">*</span>
+  </label>
+  <MultiSelectDropdown
+    options={predefinedJobTypes}
+    value={formData.job_type as string[]}
+    onChange={(val) => setFormData({...formData, job_type: val})}
+    placeholder="Select job type(s)..."
+  />
+  {(formData.job_type as string[]).length === 0 && (
+    <p className="text-[7px] text-red-500 mt-0.5">Select at least one job type</p>
+  )}
+</div>
 
                 <div>
                   <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
@@ -1653,21 +1784,18 @@ const handleBulkUpdateApplicationStatus = async (status: string) => {
 
               {/* Row 3: Experience Level + Vacancy Count */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
-                <div>
-                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                    Experience Level
-                  </label>
-                  <select
-                    value={formData.experience_level}
-                    onChange={(e) => setFormData({...formData, experience_level: e.target.value})}
-                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
-                  >
-                    <option value="">Select Level</option>
-                    {experienceLevels.map(level => (
-                      <option key={level} value={level}>{level}</option>
-                    ))}
-                  </select>
-                </div>
+           <div>
+  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
+    Experience Level
+  </label>
+  <MultiSelectDropdown
+    options={experienceLevels}
+    value={formData.experience_level as string[]}
+    onChange={(val) => setFormData({...formData, experience_level: val})}
+    placeholder="Select experience level(s)..."
+    colorClass="bg-purple-600 border-purple-600"
+  />
+</div>
 
                 <div>
                   <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">

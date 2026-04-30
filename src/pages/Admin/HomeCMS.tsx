@@ -93,26 +93,49 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
   return homeApi.uploadImage(file);
 };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file (PNG, JPG, JPEG, GIF, WEBP)');
-      return;
-    }
+  if (!file.type.startsWith('image/')) {
+    toast.error('Please select a valid image file (PNG, JPG, JPEG, GIF, WEBP)');
+    return;
+  }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size should be less than 5MB');
-      return;
-    }
+  if (file.size > 5 * 1024 * 1024) {
+    toast.error('Image size should be less than 5MB');
+    return;
+  }
 
-    setSelectedFile(file);
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
+  setSelectedFile(file);
+  const previewUrl = URL.createObjectURL(file);
+  setImagePreview(previewUrl);
+  setActiveTab('upload');
+  
+  // ✅ Automatically upload the file
+  try {
+    setUploadingImage(true);
+    const uploadedUrl = await uploadImageToServer(file);
+    setFormData({ ...formData, image_url: uploadedUrl });
+    toast.success('Image uploaded successfully!');
     
-    setActiveTab('upload');
-  };
+    // Clean up the blob URL after upload
+    if (previewUrl && previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setImagePreview(uploadedUrl); // Show actual uploaded image preview
+  } catch (error: any) {
+    console.error('Upload failed:', error);
+    toast.error(`Failed to upload image: ${error.message || 'Unknown error'}`);
+    setSelectedFile(null);
+    setImagePreview('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  } finally {
+    setUploadingImage(false);
+  }
+};
 
   const handleImageUpload = async () => {
     if (!selectedFile) {
@@ -335,12 +358,12 @@ toast.success('Slide moved successfully!', { id: reorderToast });
     }
     
     if (url.startsWith('/uploads/')) {
-      const baseUrl = 'http://localhost:5000';
+const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
       return `${baseUrl}${url}`;
     }
     
     if (url && !url.includes('://') && url.trim() !== '') {
-      const baseUrl = 'http://localhost:5000';
+      const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
       return `${baseUrl}/uploads/home/${url}`;
     }
     
@@ -1180,52 +1203,49 @@ toast.success('Slide moved successfully!', { id: reorderToast });
                       />
                     )}
 
-                    {activeTab === 'upload' && (
-                      <div className="border-2 border-dashed border-[#D0DCF0] rounded-lg p-3 text-center bg-[#fafbff] cursor-pointer hover:bg-[#f5f7ff] transition">
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={handleFileChange}
-                          accept="image/*"
-                          className="hidden"
-                        />
-                        {!selectedFile ? (
-                          <>
-                            <div className="w-8 h-8 rounded-full bg-[#E3F0FF] flex items-center justify-center mx-auto mb-1.5">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1565C0" strokeWidth="2">
-                                <polyline points="16 16 12 12 8 16" />
-                                <line x1="12" y1="12" x2="12" y2="21" />
-                                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
-                              </svg>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => fileInputRef.current?.click()}
-                              className="text-[11px] text-[#1565C0] font-medium bg-none border-none cursor-pointer hover:underline"
-                            >
-                              Click to browse
-                            </button>
-                            <p className="text-[10px] text-[#8fa6cc] mt-1">
-                              PNG, JPG, WebP (max 2MB)
-                            </p>
-                          </>
-                        ) : (
-                          <div className="flex flex-col gap-2">
-                            <span className="text-[11px] text-[#1a1a2e] truncate">
-                              {selectedFile.name}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={handleImageUpload}
-                              disabled={uploadingImage}
-                              className="px-3 py-1.5 bg-[#1565C0] text-white border-none rounded-md text-[11px] cursor-pointer disabled:opacity-60 hover:bg-[#0e3e8a] transition"
-                            >
-                              {uploadingImage ? 'Uploading...' : 'Upload'}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                   {activeTab === 'upload' && (
+  <div 
+    className="border-2 border-dashed border-[#D0DCF0] rounded-lg p-3 text-center bg-[#fafbff] cursor-pointer hover:bg-[#f5f7ff] transition"
+    onClick={() => fileInputRef.current?.click()}
+  >
+    <input
+      type="file"
+      ref={fileInputRef}
+      onChange={handleFileChange}
+      accept="image/*"
+      className="hidden"
+    />
+    {uploadingImage ? (
+      <div className="flex flex-col items-center gap-1.5">
+        <div className="w-6 h-6 border-2 border-[#1565C0] border-t-transparent rounded-full animate-spin"></div>
+        <span className="text-[11px] text-[#1565C0]">Uploading...</span>
+      </div>
+    ) : selectedFile ? (
+      <div className="flex flex-col gap-1">
+        <span className="text-[11px] text-[#1a1a2e] truncate">
+          {selectedFile.name}
+        </span>
+        <span className="text-[10px] text-green-600">✓ Uploaded</span>
+      </div>
+    ) : (
+      <>
+        <div className="w-8 h-8 rounded-full bg-[#E3F0FF] flex items-center justify-center mx-auto mb-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1565C0" strokeWidth="2">
+            <polyline points="16 16 12 12 8 16" />
+            <line x1="12" y1="12" x2="12" y2="21" />
+            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+          </svg>
+        </div>
+        <span className="text-[11px] text-[#1565C0] font-medium hover:underline">
+          Click to browse
+        </span>
+        <p className="text-[10px] text-[#8fa6cc] mt-1">
+          PNG, JPG, WebP (max 5MB)
+        </p>
+      </>
+    )}
+  </div>
+)}
                   </div>
 
                   {/* Preview - On mobile, below the input */}
@@ -1234,16 +1254,16 @@ toast.success('Slide moved successfully!', { id: reorderToast });
                       Preview
                     </p>
                     <div className="h-[70px] sm:h-[70px] w-full rounded-lg bg-[#E3F0FF] border border-[#D0DCF0] overflow-hidden flex items-center justify-center">
-                      {(formData.image_url || imagePreview) ? (
-                        <img
-                          src={getModalImagePreview()}
-                          alt="Preview"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-[10px] text-[#8fa6cc]">No image</span>
-                      )}
-                    </div>
+  {(formData.image_url || imagePreview) ? (
+    <img
+      src={getImageDisplayUrl(getModalImagePreview())}
+      alt="Preview"
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <span className="text-[10px] text-[#8fa6cc]]">No image</span>
+  )}
+</div>
                   </div>
                 </div>
               </div>

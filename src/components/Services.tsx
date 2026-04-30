@@ -195,7 +195,7 @@ const ServicesSection: React.FC = () => {
   }, []);
 
   const getIconComponent = (service: Service) => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
     
     if (service.icon_type === 'custom' && service.icon_url) {
       const fullUrl = service.icon_url.startsWith('http') 
