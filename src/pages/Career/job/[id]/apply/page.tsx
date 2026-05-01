@@ -39,14 +39,24 @@ export default function JobApplicationPage() {
     linkedin: "",
     portfolio: "",
     cover_letter: "",
+    experience_level: "", 
   });
 
   const [formErrors, setFormErrors] = useState({
     applicant_name: "",
     email: "",
     phone: "",
+    experience_level: "",
     resume: "",
   });
+  const experienceOptions = [
+  { value: "fresher", label: "Fresher (No experience)" },
+  { value: "1-2 years", label: "1-2 years" },
+  { value: "2-4 years", label: "2-4 years" },
+  { value: "4-6 years", label: "4-6 years" },
+  { value: "6-9 years", label: "6-9 years" },
+  { value: "9+ years", label: "9+ years" },
+];
 
   const [resume, setResume] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,8 +94,8 @@ export default function JobApplicationPage() {
   }, [id]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -176,6 +186,7 @@ export default function JobApplicationPage() {
       applicant_name: "",
       email: "",
       phone: "",
+      experience_level: "",
       resume: "",
     };
 
@@ -204,6 +215,11 @@ export default function JobApplicationPage() {
       isValid = false;
     }
 
+
+    if (!formData.experience_level) {
+  errors.experience_level = "Please select your experience level";
+  isValid = false;
+}
     if (!resume) {
       errors.resume = "Resume is required";
       isValid = false;
@@ -229,6 +245,8 @@ export default function JobApplicationPage() {
         applicant_name: formData.applicant_name,
         email: formData.email,
         phone: formData.phone,
+          experience_level: formData.experience_level,  // add this
+
         cover_letter: formData.cover_letter || undefined,
         resume: resume || undefined,
       };
@@ -489,6 +507,26 @@ export default function JobApplicationPage() {
                         </p>
                       )}
                     </div>
+
+                    {/* Experience Level */}
+<div>
+  <label className="block text-[10px] sm:text-xs font-medium text-gray-700 mb-1">
+    <Briefcase className="inline w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
+    Experience Level *
+  </label>
+  <select
+    name="experience_level"
+    value={formData.experience_level}
+    onChange={handleChange}
+    required
+    className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
+  >
+    <option value="">Select experience level</option>
+    {experienceOptions.map(opt => (
+      <option key={opt.value} value={opt.value}>{opt.label}</option>
+    ))}
+  </select>
+</div>
 
                     {/* LinkedIn */}
                     <div>

@@ -40,6 +40,7 @@ export interface ApplicationFormData {
   applicant_name: string;
   email: string;
   phone?: string;
+  experience_level?: string;
   cover_letter?: string;
   resume?: File;
 }
@@ -114,6 +115,9 @@ class CareerService {
       data.append('phone', formData.phone);
     }
     
+     if (formData.experience_level) {
+    data.append('experience_level', formData.experience_level);
+  }
     if (formData.cover_letter) {
       data.append('cover_letter', formData.cover_letter);
     }

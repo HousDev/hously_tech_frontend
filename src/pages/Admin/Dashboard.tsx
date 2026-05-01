@@ -537,16 +537,18 @@ const crumbs = [{ label: 'Dashboard', url: '/homes/admin' }];
 
               {/* RIGHT */}
               <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => {
-  const baseUrl = window.location.origin;
-  window.open(`${baseUrl}/homes`, '_blank');
-}}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition text-sm"
-                >
-                  <ArrowRight size={16} />
-                  <span className="hidden md:inline font-medium">Visit Website</span>
-                </button>
+               <button
+  onClick={() => {
+    const baseUrl = window.location.origin;
+    window.open(`${baseUrl}/homes`, "_blank");
+  }}
+  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-white 
+             bg-gradient-to-r from-[#0D47A1] to-[#1976D2] 
+             hover:opacity-90 transition text-sm shadow-md"
+>
+  <Home size={16} />
+  <span className="hidden md:inline font-medium">Visit Website</span>
+</button>
 
                 {/* Notifications */}
                 <div className="relative" ref={notificationsRef}>
@@ -570,7 +572,7 @@ const crumbs = [{ label: 'Dashboard', url: '/homes/admin' }];
 
                   {/* Notifications Dropdown */}
                   {showNotifications && (
-                    <div className="absolute right-0 top-full mt-1 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-[9999]">
+  <div className="fixed left-1/2 -translate-x-1/2 top-16 w-[92vw] sm:absolute sm:left-auto sm:translate-x-0 sm:right-0 sm:top-full sm:mt-1 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-[9999]">
                       <div className="p-3 border-b border-gray-200 flex items-center justify-between">
                         <h3 className="font-semibold text-gray-900">Notifications</h3>
                         <div className="flex items-center space-x-2">

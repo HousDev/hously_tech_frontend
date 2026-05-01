@@ -101,26 +101,38 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
   }
 };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error(
-        "Please select a valid image file (PNG, JPG, JPEG, GIF, WEBP)"
-      );
-      return;
-    }
+  if (!file.type.startsWith("image/")) {
+    toast.error("Please select a valid image file (PNG, JPG, JPEG, GIF, WEBP)");
+    return;
+  }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size should be less than 5MB");
-      return;
-    }
+  if (file.size > 5 * 1024 * 1024) {
+    toast.error("Image size should be less than 5MB");
+    return;
+  }
 
-    setSelectedFile(file);
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
-  };
+  setSelectedFile(file);
+  const previewUrl = URL.createObjectURL(file);
+  setImagePreview(previewUrl);
+
+  // Auto upload immediately
+  try {
+    setUploadingImage(true);
+    const uploadedUrl = await teamApi.uploadImage(file);
+    setFormData(prev => ({ ...prev, image_url: uploadedUrl.url }));
+    toast.success("Image uploaded successfully!");
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  } catch (error) {
+    toast.error("Failed to upload image");
+  } finally {
+    setUploadingImage(false);
+  }
+};
 
   const handleImageUpload = async () => {
     if (!selectedFile) {
@@ -376,17 +388,23 @@ const handleBulkToggleActive = async (activate: boolean) => {
 };
 
  const handleReorder = async (memberId: number, direction: "up" | "down") => {
-  const reorderToast = toast.loading("Moving team member...");
+  const reorderToast = toast.loading("Reordering team members...");
 
   try {
     const currentIndex = teamMembers.findIndex((m) => m.id === memberId);
     if (currentIndex === -1) {
-      toast.error("Team member not found");
+      toast.error("Team member not found", { id: reorderToast });
       return;
     }
 
-    if (direction === "up" && currentIndex === 0) return;
-    if (direction === "down" && currentIndex === teamMembers.length - 1) return;
+    if (direction === "up" && currentIndex === 0) {
+      toast.error("Already at the top", { id: reorderToast });
+      return;
+    }
+    if (direction === "down" && currentIndex === teamMembers.length - 1) {
+      toast.error("Already at the bottom", { id: reorderToast });
+      return;
+    }
 
     const swapIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
     const updatedMembers = [...teamMembers];
@@ -1386,41 +1404,33 @@ const getImageDisplayUrl = (url: string) => {
                       accept="image/*"
                       className="hidden"
                     />
-
-                    {!selectedFile && !formData.image_url ? (
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="text-[9px] sm:text-xs text-blue-600 font-medium hover:underline"
-                      >
-                        Click to browse image
-                      </button>
-                    ) : (
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                        <span className="text-[9px] sm:text-xs text-gray-700 truncate">
-                          {selectedFile ? selectedFile.name : "Image selected"}
-                        </span>
-                        <div className="flex gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="px-2 py-0.5 sm:px-2.5 sm:py-1 border border-gray-300 text-gray-700 rounded-lg text-[8px] sm:text-[9px] hover:bg-gray-50 transition"
-                          >
-                            Change
-                          </button>
-                          {selectedFile && (
-                            <button
-                              type="button"
-                              onClick={handleImageUpload}
-                              disabled={uploadingImage}
-                              className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-blue-600 text-white rounded-lg text-[8px] sm:text-[9px] hover:bg-blue-700 disabled:opacity-50 transition"
-                            >
-                              {uploadingImage ? "Uploading..." : "Upload"}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
+{!selectedFile && !formData.image_url ? (
+  <button
+    type="button"
+    onClick={() => fileInputRef.current?.click()}
+    className="text-[9px] sm:text-xs text-blue-600 font-medium hover:underline"
+  >
+    Click to browse image
+  </button>
+) : uploadingImage ? (
+  <div className="flex items-center gap-2">
+    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+    <span className="text-[9px] sm:text-xs text-gray-600">Uploading...</span>
+  </div>
+) : (
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+    <span className="text-[9px] sm:text-xs text-gray-700 truncate">
+      {formData.image_url ? "✓ Image uploaded" : "Image selected"}
+    </span>
+    <button
+      type="button"
+      onClick={() => fileInputRef.current?.click()}
+      className="px-2 py-0.5 sm:px-2.5 sm:py-1 border border-gray-300 text-gray-700 rounded-lg text-[8px] sm:text-[9px] hover:bg-gray-50 transition"
+    >
+      Change
+    </button>
+  </div>
+)}
                   </div>
                 </div>
 
@@ -1432,9 +1442,10 @@ const getImageDisplayUrl = (url: string) => {
                   <div className="h-20 sm:h-24 rounded-lg border border-gray-200 bg-gray-100 overflow-hidden">
                     {(formData.image_url || imagePreview) && (
                       <img
-                        src={imagePreview || formData.image_url}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
+src={imagePreview?.startsWith("blob:") 
+  ? imagePreview 
+  : getImageDisplayUrl(imagePreview || formData.image_url)}                        alt="Preview"
+className="w-full h-full object-contain"
                       />
                     )}
                   </div>
@@ -1474,8 +1485,9 @@ const getImageDisplayUrl = (url: string) => {
                     <input
                       type={link.platform === "whatsapp" ? "text" : "url"}
                       value={link.url}
-                      maxLength={10}
                       onChange={(e) => updateSocialLink(index, "url", e.target.value)}
+                      maxLength={link.platform === "whatsapp" ? 10 : undefined}
+
                       placeholder={
                         link.platform === "whatsapp"
                           ? "Enter phone number"
