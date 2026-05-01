@@ -31,6 +31,7 @@ export interface Application {
   applicant_name: string;
   email: string;
   phone: string | null;
+  experience_level?: string | null; 
   cover_letter: string | null;
   resume_path: string | null;
   status: 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired';
@@ -71,6 +72,9 @@ export interface JobFilters {
 export interface ApplicationFilters {
   job_id?: number;
   status?: string;
+  experience_level?: string; 
+  job_title?: string; 
+  search?: string;
   page?: number;
   limit?: number;
   sort?: string;
@@ -208,11 +212,13 @@ export const careerApi = {
     const params = new URLSearchParams();
     if (filters?.job_id) params.append('job_id', filters.job_id.toString());
     if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
+    if (filters?.job_title && filters.job_title !== 'all') params.append('job_title', filters.job_title);
+    if (filters?.experience_level && filters.experience_level !== 'all') params.append('experience_level', filters.experience_level);
     if (filters?.page) params.append('page', filters.page.toString());
     if (filters?.limit) params.append('limit', filters.limit.toString());
     if (filters?.sort) params.append('sort', filters.sort);
     if (filters?.order) params.append('order', filters.order);
-    
+    if (filters?.search) params.append('search', filters.search);
     return unwrap(api.get<ApiResponse<{ applications: Application[]; total: number; totalPages: number }>>(
       `/career/applications${params.toString() ? `?${params}` : ''}`
     ));
@@ -285,4 +291,19 @@ export const careerApi = {
   /** GET recent applications */
   getRecentApplications: (limit: number = 5): Promise<Application[]> =>
     unwrap(api.get<ApiResponse<Application[]>>(`/career/applications/recent?limit=${limit}`)),
+
+
+  scheduleInterview: (appId: number, data: any) => 
+  api.post(`/career/applications/${appId}/interview`, data),
+addFollowUp: (appId: number, message: string) => 
+  api.post(`/career/applications/${appId}/followup`, { message }),
+getTimeline: (appId: number) => 
+  api.get(`/career/applications/${appId}/timeline`),
+updateInterviewStatus: (followupId: number, status: string) => 
+  api.put(`/career/followups/${followupId}/status`, { status }),
+
+addInteraction: (appId: number, type: string, subject: string, notes: string) =>
+  api.post(`/career/applications/${appId}/interaction`, { type, subject, notes }),
 };
+
+

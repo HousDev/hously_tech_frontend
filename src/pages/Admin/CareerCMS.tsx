@@ -12,7 +12,11 @@ import {
   Users as UsersIcon, Target as TargetIcon,
   Zap as ZapIcon, Check, XCircle,
   IndianRupee, CheckCircle,
-  Download} from 'lucide-react';
+  Download,
+  Calendar,
+  MessageSquare,
+  Phone,
+  Video} from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { careerApi, type Job, type Application, type JobStats, type ApplicationStats } from '../../lib/careerApi';
 
@@ -138,6 +142,15 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     'Lead (8+ years)',
     'Manager'
   ];
+  const experienceFilterOptions = [
+  { value: "all", label: "All Experience" },
+  { value: "fresher", label: "Fresher (No experience)" },
+  { value: "1-2 years", label: "1-2 years" },
+  { value: "2-4 years", label: "2-4 years" },
+  { value: "4-6 years", label: "4-6 years" },
+  { value: "6-9 years", label: "6-9 years" },
+  { value: "9+ years", label: "9+ years" },
+];
 
   // States
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -177,7 +190,21 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   const [statusViewFilter, setStatusViewFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
-  
+  const [positionFilter, setPositionFilter] = useState('all');
+const [experienceFilter, setExperienceFilter] = useState('all');
+
+
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+const [timeline, setTimeline] = useState<any[]>([]);
+const [interviewForm, setInterviewForm] = useState({
+  scheduled_at: '',
+  mode: 'online',
+  link_or_address: '',
+  message: ''
+});
+const [newFollowup, setNewFollowup] = useState('');
+const [modalTab, setModalTab] = useState('overview');
   // Selection state
   const [selectedJobs, setSelectedJobs] = useState<number[]>([]);
   const [selectedApplications, setSelectedApplications] = useState<number[]>([]);
@@ -208,6 +235,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   const [showCustomLoc, setShowCustomLoc] = useState(false);
   const [customDept, setCustomDept] = useState('');
   const [customLoc, setCustomLoc] = useState('');
+
 
   // Toast notifications
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -253,9 +281,8 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
 
 useEffect(() => {
   fetchAllData();
-  // Also fetch app stats separately when component mounts
   fetchAppStats();
-}, [activeTab, currentPage, itemsPerPage, statusFilter, departmentFilter, locationFilter, jobTypeFilter, statusViewFilter, sortField, sortDirection, searchTerm]);
+}, [activeTab, currentPage, itemsPerPage, statusFilter, departmentFilter, locationFilter, jobTypeFilter, statusViewFilter, sortField, sortDirection, searchTerm, positionFilter, experienceFilter]); // ✅ ADD experienceFilter
   
 const fetchAllData = async () => {
   try {
@@ -311,16 +338,75 @@ const fetchApplications = async () => {
   try {
     const response = await careerApi.getApplications({
       status: statusFilter !== 'all' ? statusFilter : undefined,
+      search: searchTerm || undefined,
+      job_title: positionFilter !== 'all' ? positionFilter : undefined,
+      experience_level: experienceFilter !== 'all' ? experienceFilter : undefined, // ✅ ADD THIS
       page: currentPage,
       limit: itemsPerPage,
       sort: sortField || undefined,
       order: sortDirection
     });
-    
     setApplications(response.applications);
   } catch (error) {
     console.error('Failed to fetch applications:', error);
-    showToast('Failed to fetch applications', 'error');
+  }
+};
+
+
+const openInterviewModal = async (app: Application) => {
+  setSelectedApp(app);
+  setInterviewForm({
+    scheduled_at: '',
+    mode: 'online',
+    link_or_address: '',
+    message: ''
+  });
+  setNewFollowup('');
+  await fetchTimeline(app.id);
+  setShowInterviewModal(true);
+};
+
+const fetchTimeline = async (appId: number) => {
+  try {
+    const res = await careerApi.getTimeline(appId);
+    setTimeline(res.data.data);
+  } catch (err) {
+    toast.error('Failed to load timeline');
+  }
+};
+
+const handleScheduleInterview = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!selectedApp) return;
+  try {
+    await careerApi.scheduleInterview(selectedApp.id, interviewForm);
+    toast.success('Interview scheduled!');
+    await fetchTimeline(selectedApp.id);
+    setInterviewForm({ scheduled_at: '', mode: 'online', link_or_address: '', message: '' });
+  } catch (err) {
+    toast.error('Failed to schedule interview');
+  }
+};
+
+const handleAddFollowup = async () => {
+  if (!selectedApp || !newFollowup.trim()) return;
+  try {
+    await careerApi.addFollowUp(selectedApp.id, newFollowup);
+    toast.success('Follow‑up added');
+    setNewFollowup('');
+    await fetchTimeline(selectedApp.id);
+  } catch (err) {
+    toast.error('Failed to add follow‑up');
+  }
+};
+
+const handleUpdateStatus = async (followupId: number, newStatus: string) => {
+  try {
+    await careerApi.updateInterviewStatus(followupId, newStatus);
+    toast.success('Status updated');
+    await fetchTimeline(selectedApp!.id);
+  } catch (err) {
+    toast.error('Failed to update status');
   }
 };
 
@@ -512,14 +598,11 @@ const handleUpdateApplicationStatus = async (id: number, status: 'pending' | 're
   
   setProcessingIds(prev => new Set(prev).add(id));
   
-  // const statusToast = toast.loading('Updating application status...');
   try {
     await careerApi.updateApplicationStatus(id, status);
-    // toast.success('Application status updated!', { id: statusToast });
-    
-    // ✅ REMOVE the setTimeout fetchAllData — optimistic update already shows the change
-    // The useEffect will re-fetch naturally on next filter/tab change
-    
+    // ✅ ADD THIS LINE – re-fetch to ensure consistency
+    await fetchApplications();
+    await fetchAppStats();  // <-- ADD THIS LINE to update stats
   } catch (err: any) {
     // Revert on error
     setApplications(prev => 
@@ -733,6 +816,9 @@ const downloadResume = async (path: string) => {
     setLocationFilter('all');
     setJobTypeFilter('all');
     setStatusViewFilter('all');
+      setPositionFilter('all'); 
+      setExperienceFilter('all');  // ADD THIS
+
     setCurrentPage(1);
     setSelectedJobs([]);
     setSelectedApplications([]);
@@ -742,8 +828,17 @@ const downloadResume = async (path: string) => {
 
 
   // Filter and sort logic
-  const filteredItems = activeTab === 'jobs' ? jobs : applications;
-  
+const filteredItems = activeTab === 'jobs' 
+  ? jobs 
+  : applications.filter(app => {
+      const search = searchTerm.toLowerCase();
+      if (!search) return true;
+      return (
+        app.applicant_name?.toLowerCase().includes(search) ||
+        app.email?.toLowerCase().includes(search) ||
+        app.job_title?.toLowerCase().includes(search)
+      );
+    });  
   const totalItems = activeTab === 'jobs' ? jobStats.total : appStats.total;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
@@ -980,156 +1075,133 @@ const downloadResume = async (path: string) => {
         )}
 
         {/* Search Bar - Compact */}
-        <div className="relative mb-2">
-          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-2.5 h-2.5 sm:w-3 sm:h-3" />
-          <input
-            type="text"
-            placeholder={activeTab === 'jobs' ? "Search jobs..." : "Search applications..."}
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full pl-6 sm:pl-8 pr-8 py-1 sm:py-1.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
-          />
-          <button
-            onClick={handleResetFilters}
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600"
-          >
-            <RefreshCw size={10} className="sm:size-3" />
-          </button>
-        </div>
-
-        {/* Filter Controls - Jobs */}
-        {activeTab === 'jobs' && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <div className="flex items-center bg-gray-100 p-0.5 rounded-md">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
-              >
-                <Grid size={12} />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-1 rounded ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
-              >
-                <List size={12} />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-md">
-              <button
-                onClick={() => setStatusViewFilter('all')}
-                className={`px-1.5 py-0.5 rounded text-[10px] ${statusViewFilter === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setStatusViewFilter('active')}
-                className={`px-1.5 py-0.5 rounded text-[10px] ${statusViewFilter === 'active' ? 'bg-green-100 text-green-600' : 'text-gray-600'}`}
-              >
-                Active
-              </button>
-              <button
-                onClick={() => setStatusViewFilter('inactive')}
-                className={`px-1.5 py-0.5 rounded text-[10px] ${statusViewFilter === 'inactive' ? 'bg-gray-200 text-gray-600' : 'text-gray-600'}`}
-              >
-                Inactive
-              </button>
-            </div>
-
-            <select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="px-1.5 py-0.5 text-[10px] border border-gray-300 rounded bg-white"
-            >
-              <option value="all">All Depts</option>
-              {Array.from(new Set(jobs.map(job => job.department).filter((dept): dept is string => dept !== null))).map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
-              ))}
-            </select>
-
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="px-1.5 py-0.5 text-[10px] border border-gray-300 rounded bg-white"
-            >
-              <option value="all">All Locs</option>
-              {Array.from(new Set(jobs.map(job => job.location).filter((loc): loc is string => loc !== null))).map(loc => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
-
-            <select
-              value={jobTypeFilter}
-              onChange={(e) => setJobTypeFilter(e.target.value)}
-              className="px-1.5 py-0.5 text-[10px] border border-gray-300 rounded bg-white"
-            >
-              <option value="all">All Types</option>
-              {Array.from(new Set(jobs.map(job => job.job_type).filter((type): type is string => type !== null))).map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-
-            <select
-              value={itemsPerPage}
-              onChange={(e) => setItemsPerPage(Number(e.target.value))}
-              className="px-1.5 py-0.5 text-[10px] border border-gray-300 rounded bg-white"
-            >
-              <option value="6">6</option>
-              <option value="12">12</option>
-              <option value="24">24</option>
-              <option value="48">48</option>
-            </select>
-          </div>
-        )}
-
-        {/* Filter Controls - Applications */}
-        {activeTab === 'applications' && (
-  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+{/* Search + Filters - ONE ROW */}
+<div className="flex flex-nowrap overflow-x-auto items-center gap-1.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+  
+  {/* Search - always visible */}
+  <div className="relative min-w-[140px] flex-1">
+    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+    <input
+      type="text"
+      placeholder={activeTab === 'jobs' ? "Search jobs..." : "Search applications..."}
+      value={searchTerm}
+      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+      className="w-full pl-7 pr-6 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+    />
     <button
-      onClick={async () => {
-        await fetchAppStats();
-        await fetchApplications();
-        toast.success('Stats refreshed!');
-      }}
-      className="px-2 py-1 sm:px-3 sm:py-2 bg-blue-50 text-blue-600 rounded-lg text-xs flex items-center gap-1"
+      onClick={handleResetFilters}
+      className="absolute right-1.5 top-1/2 transform -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600"
     >
-      <RefreshCw size={12} />
-      Refresh Stats
+      <RefreshCw size={10} />
     </button>
-    
-    <select
-      value={statusFilter}
-      onChange={(e) => {
-        setStatusFilter(e.target.value);
-        setCurrentPage(1);
-      }}
-      className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm shadow-sm min-w-[120px] sm:min-w-[150px]"
-    >
-      <option value="all">All Status</option>
-      <option value="pending">Pending</option>
-      <option value="reviewed">Reviewed</option>
-      <option value="shortlisted">Shortlisted</option>
-      <option value="rejected">Rejected</option>
-      <option value="hired">Hired</option>
-    </select>
-    
-    <select
-      value={itemsPerPage}
-      onChange={(e) => {
-        setItemsPerPage(Number(e.target.value));
-        setCurrentPage(1);
-      }}
-      className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm shadow-sm"
-    >
-      <option value="10">10 per page</option>
-      <option value="25">25 per page</option>
-      <option value="50">50 per page</option>
-    </select>
   </div>
-)}
+
+  {/* Jobs-only filters */}
+  {activeTab === 'jobs' && (
+    <>
+      <div className="flex items-center bg-gray-100 p-0.5 rounded-md shrink-0">
+        <button onClick={() => setViewMode('grid')} className={`p-1 rounded ${viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>
+          <Grid size={13} />
+        </button>
+        <button onClick={() => setViewMode('list')} className={`p-1 rounded ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>
+          <List size={13} />
+        </button>
+      </div>
+
+      <div className="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-md shrink-0">
+        <button onClick={() => setStatusViewFilter('all')} className={`px-2 py-0.5 rounded text-xs font-medium ${statusViewFilter === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>All</button>
+        <button onClick={() => setStatusViewFilter('active')} className={`px-2 py-0.5 rounded text-xs font-medium ${statusViewFilter === 'active' ? 'bg-green-100 text-green-600' : 'text-gray-600'}`}>Active</button>
+        <button onClick={() => setStatusViewFilter('inactive')} className={`px-2 py-0.5 rounded text-xs font-medium ${statusViewFilter === 'inactive' ? 'bg-gray-200 text-gray-700' : 'text-gray-600'}`}>Inactive</button>
+      </div>
+
+      <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="px-2 py-1 text-xs border border-gray-300 rounded-md bg-white shrink-0">
+        <option value="all">All Depts</option>
+        {Array.from(new Set(jobs.map(job => job.department).filter((d): d is string => !!d))).map(d => (
+          <option key={d} value={d}>{d}</option>
+        ))}
+      </select>
+
+      <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="px-2 py-1 text-xs border border-gray-300 rounded-md bg-white shrink-0">
+        <option value="all">All Locs</option>
+        {Array.from(new Set(jobs.map(job => job.location).filter((l): l is string => !!l))).map(l => (
+          <option key={l} value={l}>{l}</option>
+        ))}
+      </select>
+
+      <select value={jobTypeFilter} onChange={(e) => setJobTypeFilter(e.target.value)} className="px-2 py-1 text-xs border border-gray-300 rounded-md bg-white shrink-0">
+        <option value="all">All Types</option>
+        {Array.from(new Set(jobs.map(job => job.job_type).filter((t): t is string => !!t))).map(t => (
+          <option key={t} value={t}>{t}</option>
+        ))}
+      </select>
+
+      <select value={itemsPerPage} onChange={(e) => setItemsPerPage(Number(e.target.value))} className="px-2 py-1 text-xs border border-gray-300 rounded-md bg-white shrink-0">
+        <option value="6">6</option>
+        <option value="12">12</option>
+        <option value="24">24</option>
+        <option value="48">48</option>
+      </select>
+    </>
+  )}
+
+  {/* Applications-only filters */}
+  {activeTab === 'applications' && (
+    <>
+      <select
+        value={positionFilter}
+        onChange={(e) => { setPositionFilter(e.target.value); setCurrentPage(1); }}
+        className="px-2 py-1 text-xs border border-gray-300 rounded-md bg-white shrink-0 min-w-[110px]"
+      >
+        <option value="all">All Positions</option>
+        {Array.from(new Set(applications.map(app => app.job_title).filter((t): t is string => !!t))).map(title => (
+          <option key={title} value={title}>{title}</option>
+        ))}
+      </select>
+      <select
+  value={experienceFilter}
+  onChange={(e) => { setExperienceFilter(e.target.value); setCurrentPage(1); }}
+  className="px-2 py-1 text-xs border border-gray-300 rounded-md bg-white shrink-0 min-w-[130px]"
+>
+  {experienceFilterOptions.map(opt => (
+    <option key={opt.value} value={opt.value}>{opt.label}</option>
+  ))}
+</select>
+
+      <select
+        value={statusFilter}
+        onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+        className="px-2 py-1 text-xs border border-gray-300 rounded-md bg-white shrink-0 min-w-[100px]"
+      >
+        <option value="all">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="reviewed">Reviewed</option>
+        <option value="shortlisted">Shortlisted</option>
+        <option value="rejected">Rejected</option>
+        <option value="hired">Hired</option>
+      </select>
+
+      <select
+        value={itemsPerPage}
+        onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+        className="px-2 py-1 text-xs border border-gray-300 rounded-md bg-white shrink-0"
+      >
+        <option value="10">10/page</option>
+        <option value="25">25/page</option>
+        <option value="50">50/page</option>
+      </select>
+
+      <button
+        onClick={async () => { await fetchAppStats(); await fetchApplications(); toast.success('Refreshed!'); }}
+        className="hidden sm:flex px-2.5 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded-md text-xs items-center gap-1.5 shrink-0 hover:bg-blue-100 transition"
+      >
+        <RefreshCw size={12} />
+        Refresh
+      </button>
+    </>
+  )}
+
+</div>
+
 
       </div>
     </div>
@@ -1360,7 +1432,7 @@ const downloadResume = async (path: string) => {
             )
           ) : (
             // Applications Table
-              <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[340px]">
+              <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[320px] sm:max-h-[380px]">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -1378,6 +1450,9 @@ const downloadResume = async (path: string) => {
                       <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                         Position
                       </th>
+       <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider table-cell">
+  Experience
+</th>
                       <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
@@ -1386,8 +1461,8 @@ const downloadResume = async (path: string) => {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {applications.map((app) => (
+<tbody className="bg-white divide-y divide-gray-200">
+  {filteredItems.map((app: any) => (
                       <tr key={app.id} className="hover:bg-gray-50">
                         <td className="px-3 sm:px-6 py-4">
                           <input
@@ -1401,8 +1476,12 @@ const downloadResume = async (path: string) => {
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 bg-blue-100 rounded-full flex items-center justify-center">
                               <span className="font-semibold text-blue-600 text-sm">
-                                {app.applicant_name.charAt(0).toUpperCase()}
-                              </span>
+{app.applicant_name
+  ?.split(" ")
+  .map((name: string) => name.charAt(0))
+  .slice(0, 2)
+  .join("")
+  .toUpperCase()}                             </span>
                             </div>
                             <div className="ml-3">
                               <div className="text-sm font-medium text-gray-900">{app.applicant_name}</div>
@@ -1415,6 +1494,9 @@ const downloadResume = async (path: string) => {
                           <div className="text-sm text-gray-900">{app.job_title || 'N/A'}</div>
                           <div className="text-xs text-gray-500">{formatDate(app.applied_at)}</div>
                         </td>
+                       <td className="px-3 sm:px-6 py-4 table-cell">
+  <div className="text-sm text-gray-900">{app.experience_level || '—'}</div>
+</td>
                         <td className="px-3 sm:px-6 py-4">
                          <select
   value={app.status}
@@ -1448,6 +1530,16 @@ const downloadResume = async (path: string) => {
     </button>
   </>
 )}
+
+{app.status === 'shortlisted' && (
+      <button
+        onClick={() => openInterviewModal(app)}
+        className="p-1 text-purple-600 hover:bg-purple-50 rounded-lg transition"
+        title="Schedule Interview"
+      >
+        <Calendar size={14} className="sm:size-[16px]" />
+      </button>
+    )}
     <button
       onClick={() => window.open(`mailto:${app.email}`)}
       className="p-1 text-green-600 hover:bg-green-50 rounded-lg transition"
@@ -1590,361 +1682,366 @@ const downloadResume = async (path: string) => {
         </div>
       </div>
 
-      {/* Job Modal - Responsive */}
-   {isModalOpen && (
+{/* ========== TABBED INTERVIEW & FOLLOW‑UP MODAL ========== */}
+{showInterviewModal && selectedApp && (
   <div className="fixed inset-0 z-50 overflow-y-auto">
-    {/* Backdrop - Black */}
-    <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm"
-      onClick={handleCloseModal}
-    />
-
-    {/* Center wrapper */}
-    <div className="flex min-h-full items-center justify-center p-2 sm:p-3">
-      <div className="relative w-full max-w-[95%] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-2xl bg-white rounded-lg sm:rounded-xl shadow-lg">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowInterviewModal(false)} />
+    <div className="flex min-h-full items-center justify-center p-2 sm:p-4">
+      <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl max-h-[95vh] overflow-y-auto">
         
-        {/* ─── Header ─── */}
-        <div className="bg-gradient-to-r from-[#0D47A1] to-[#1976D2] rounded-t-lg sm:rounded-t-xl">
-          <div className="flex items-center justify-between px-2.5 py-1.5 sm:px-4 sm:py-2">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="bg-[#FFC107] rounded-md w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center font-bold text-[9px] sm:text-xs text-[#0D47A1] shrink-0">
-                jb
-              </div>
-              <div>
-                <h2 className="text-white font-medium text-xs sm:text-sm">
-                  {editingJob ? 'Edit Job' : 'Create New Job Opening'}
-                </h2>
-                <p className="text-white/70 text-[8px] sm:text-[10px] hidden sm:block">
-                  {editingJob ? 'Update job details' : 'Add a new job opening to your career page'}
-                </p>
-              </div>
+        {/* Header (same gradient as job modal) */}
+        <div className="bg-gradient-to-r from-[#0D47A1] to-[#1976D2] rounded-t-xl sticky top-0 z-10">
+          <div className="flex justify-between items-center p-4">
+            <div>
+              <h3 className="text-white font-bold text-lg">Enquiry Details</h3>
+              <p className="text-blue-100 text-sm">
+                ID: #{selectedApp.id} • {selectedApp.applicant_name}
+              </p>
             </div>
-            <button
-              onClick={handleCloseModal}
-              className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-white/30 bg-white/10 text-white flex items-center justify-center cursor-pointer shrink-0 hover:bg-white/20 transition"
-            >
-              <X size={10} className="sm:w-3 sm:h-3" />
+            <button onClick={() => setShowInterviewModal(false)} className="text-white/80 hover:text-white">
+              <X size={22} />
             </button>
           </div>
         </div>
 
-        {/* ─── Scrollable Body ─── */}
-        <div className="max-h-[70vh] sm:max-h-[75vh] overflow-y-auto">
-          <div className="p-2.5 sm:p-4">
-            <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-3">
-
-              {/* Job Title - Full Width */}
-              <div>
-                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                  Job Title <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.job_title}
-                  onChange={(e) => setFormData({...formData, job_title: e.target.value})}
-                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
-                  required
-                  placeholder="e.g., Senior Frontend Developer"
-                />
-              </div>
-
-              {/* Row 1: Department + Location */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
-                <div>
-                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                    Department <span className="text-red-600">*</span>
-                  </label>
-                  {!showCustomDept ? (
-                    <select
-                      value={formData.department}
-                      onChange={(e) => {
-                        if (e.target.value === 'custom') {
-                          setShowCustomDept(true);
-                        } else {
-                          setFormData({...formData, department: e.target.value});
-                        }
-                      }}
-                      className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
-                      required
-                    >
-                      <option value="">Select Department</option>
-                      {predefinedDepartments.map(dept => (
-                        <option key={dept} value={dept}>{dept}</option>
-                      ))}
-                      <option value="custom">+ Add Custom</option>
-                    </select>
-                  ) : (
-                    <div className="flex gap-1">
-                      <input
-                        type="text"
-                        value={customDept}
-                        onChange={(e) => setCustomDept(e.target.value)}
-                        className="flex-1 px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff]"
-                        placeholder="Enter department"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddCustomDept}
-                        className="px-2 py-1 bg-blue-600 text-white rounded-lg text-[9px] sm:text-xs hover:bg-blue-700 transition"
-                      >
-                        Add
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowCustomDept(false)}
-                        className="px-2 py-1 border border-gray-300 text-gray-700 rounded-lg text-[9px] sm:text-xs hover:bg-gray-50 transition"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                    Location <span className="text-red-600">*</span>
-                  </label>
-                  {!showCustomLoc ? (
-                    <select
-                      value={formData.location}
-                      onChange={(e) => {
-                        if (e.target.value === 'custom') {
-                          setShowCustomLoc(true);
-                        } else {
-                          setFormData({...formData, location: e.target.value});
-                        }
-                      }}
-                      className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
-                      required
-                    >
-                      <option value="">Select Location</option>
-                      {predefinedLocations.map(loc => (
-                        <option key={loc} value={loc}>{loc}</option>
-                      ))}
-                      <option value="custom">+ Add Custom</option>
-                    </select>
-                  ) : (
-                    <div className="flex gap-1">
-                      <input
-                        type="text"
-                        value={customLoc}
-                        onChange={(e) => setCustomLoc(e.target.value)}
-                        className="flex-1 px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff]"
-                        placeholder="Enter location"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddCustomLoc}
-                        className="px-2 py-1 bg-blue-600 text-white rounded-lg text-[9px] sm:text-xs hover:bg-blue-700 transition"
-                      >
-                        Add
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowCustomLoc(false)}
-                        className="px-2 py-1 border border-gray-300 text-gray-700 rounded-lg text-[9px] sm:text-xs hover:bg-gray-50 transition"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Row 2: Job Type + Salary Range */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
-            <div>
-  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-    Job Type <span className="text-red-600">*</span>
-  </label>
-  <MultiSelectDropdown
-    options={predefinedJobTypes}
-    value={formData.job_type as string[]}
-    onChange={(val) => setFormData({...formData, job_type: val})}
-    placeholder="Select job type(s)..."
-  />
-  {(formData.job_type as string[]).length === 0 && (
-    <p className="text-[7px] text-red-500 mt-0.5">Select at least one job type</p>
-  )}
-</div>
-
-                <div>
-                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                    Salary Range
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.salary_range}
-                    onChange={(e) => setFormData({...formData, salary_range: e.target.value})}
-                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
-                    placeholder="e.g., ₹8L - ₹12L PA"
-                  />
-                </div>
-              </div>
-
-              {/* Row 3: Experience Level + Vacancy Count */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
-           <div>
-  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-    Experience Level
-  </label>
-  <MultiSelectDropdown
-    options={experienceLevels}
-    value={formData.experience_level as string[]}
-    onChange={(val) => setFormData({...formData, experience_level: val})}
-    placeholder="Select experience level(s)..."
-    colorClass="bg-purple-600 border-purple-600"
-  />
-</div>
-
-                <div>
-                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                    Vacancy Count <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.vacancy_count}
-                    onChange={(e) => setFormData({...formData, vacancy_count: parseInt(e.target.value) || 0})}
-                    min="0"
-                    max="100"
-                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] text-center"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Application Deadline */}
-              <div>
-                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                  Application Deadline
-                </label>
-                <input
-                  type="date"
-                  value={formData.application_deadline}
-                  onChange={(e) => setFormData({...formData, application_deadline: e.target.value})}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
-                />
-              </div>
-
-              {/* Divider */}
-              <hr className="border-t border-gray-100 my-1" />
-
-              {/* Job Description */}
-              <div>
-                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                  Job Description <span className="text-red-600">*</span>
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  rows={3}
-                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] resize-none"
-                  required
-                  placeholder="Brief description of the job..."
-                />
-              </div>
-
-              {/* Requirements */}
-              <div>
-                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                  Requirements <span className="text-red-600">*</span>
-                </label>
-                <textarea
-                  value={formData.requirements}
-                  onChange={(e) => setFormData({...formData, requirements: e.target.value})}
-                  rows={3}
-                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] resize-none"
-                  required
-                  placeholder="One requirement per line..."
-                />
-              </div>
-
-              {/* Responsibilities */}
-              <div>
-                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                  Responsibilities <span className="text-red-600">*</span>
-                </label>
-                <textarea
-                  value={formData.responsibilities}
-                  onChange={(e) => setFormData({...formData, responsibilities: e.target.value})}
-                  rows={3}
-                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] resize-none"
-                  required
-                  placeholder="One responsibility per line..."
-                />
-              </div>
-
-              {/* Benefits */}
-              <div>
-                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                  Benefits <span className="text-red-600">*</span>
-                </label>
-                <textarea
-                  value={formData.benefits}
-                  onChange={(e) => setFormData({...formData, benefits: e.target.value})}
-                  rows={3}
-                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] resize-none"
-                  required
-                  placeholder="One benefit per line..."
-                />
-              </div>
-
-              {/* Divider */}
-              <hr className="border-t border-gray-100 my-1" />
-
-              {/* Status */}
-              <div className="flex flex-col sm:flex-row justify-between gap-2 pt-1">
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
-                    className="w-3.5 h-3.5 text-blue-600 rounded accent-blue-600"
-                  />
-                  <div>
-                    <span className="text-[9px] sm:text-xs font-medium text-gray-700">Active Job Opening</span>
-                    <p className="text-[7px] sm:text-[8px] text-gray-500">
-                      {formData.is_active 
-                        ? 'Visible to candidates'
-                        : 'Hidden from candidates'}
-                    </p>
-                  </div>
-                </label>
-
-                {editingJob && (
-                  <div className="text-[7px] sm:text-[8px] text-gray-400 text-right">
-                    <p>Created: {formatDate(editingJob.created_at)}</p>
-                    <p>Updated: {formatDate(editingJob.updated_at)}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Divider */}
-              <hr className="border-t border-gray-100 my-1" />
-
-              {/* Form Actions */}
-              <div className="flex justify-end gap-1.5 sm:gap-2 pt-1">
+        {/* Tabs using modalTab state */}
+        <div className="border-b border-gray-200 px-4">
+          <div className="flex gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+            {['Overview', 'Interactions', 'Meetings', 'Follow Ups', 'Timeline'].map((tab) => {
+              const tabKey = tab.toLowerCase().replace(' ', '_');
+              return (
                 <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-2 py-1 sm:px-3 sm:py-1 border border-gray-300 rounded-lg text-[9px] sm:text-xs text-gray-700 hover:bg-gray-50 transition"
+                  key={tabKey}
+                  onClick={() => setModalTab(tabKey)}
+                  className={`px-3 py-2 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
+                    modalTab === tabKey
+                      ? 'border-[#0D47A1] text-[#0D47A1]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
                 >
-                  Cancel
+                  {tab}
                 </button>
-                <button
-                  type="submit"
-                  className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 text-white rounded-lg text-[9px] sm:text-xs hover:bg-blue-700 flex items-center gap-1 transition"
-                >
-                  <Save size={10} className="sm:w-3 sm:h-3" />
-                  <span>{editingJob ? 'Update' : 'Create'}</span>
-                </button>
-              </div>
-
-            </form>
+              );
+            })}
           </div>
         </div>
 
+        {/* Tab Content using modalTab */}
+        <div className="p-5 space-y-5">
+          {/* OVERVIEW */}
+          {modalTab === 'overview' && (
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-800 mb-3">Customer Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div><span className="font-medium">Full Name:</span> {selectedApp.applicant_name}</div>
+                    <div><span className="font-medium">Email:</span> {selectedApp.email}</div>
+                    <div><span className="font-medium">Phone:</span> {selectedApp.phone || '—'}</div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-800 mb-3">Enquiry Info</h4>
+                  <div className="space-y-2 text-sm">
+                    <div><span className="font-medium">Position:</span> {selectedApp.job_title}</div>
+                      <div><span className="font-medium">Experience:</span> {selectedApp.experience_level || '—'}</div>
+
+                    <div><span className="font-medium">Status:</span> 
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${getStatusColor(selectedApp.status)}`}>
+                        {selectedApp.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div><span className="font-medium">Applied:</span> {formatDate(selectedApp.applied_at)}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-800 mb-3">Cover Letter / Message</h4>
+                  <p className="text-sm text-gray-600">{selectedApp.cover_letter || 'No message provided'}</p>
+                </div>
+               <div className="flex gap-3">
+  {/* Email Button */}
+  <button
+    onClick={() => {
+      if (selectedApp?.email) {
+        window.location.href = `mailto:${selectedApp.email}?subject=Application%20for%20${encodeURIComponent(selectedApp.job_title || 'position')}&body=Dear%20${encodeURIComponent(selectedApp.applicant_name.split(' ')[0])},%0A%0A`;
+      } else {
+        toast.error('No email address available');
+      }
+    }}
+    className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
+  >
+    Email
+  </button>
+
+  {/* Call Button */}
+ <button
+  onClick={() => {
+    if (selectedApp?.phone) {
+      // Always try to initiate a phone call
+      window.location.href = `tel:${selectedApp.phone}`;
+    } else {
+      toast.error('No phone number available');
+    }
+  }}
+  className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700"
+>
+  Call
+</button>
+
+  {/* Close Button */}
+  <button
+    onClick={() => setShowInterviewModal(false)}
+    className="flex-1 bg-red-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-red-700"
+  >
+    Close
+  </button>
+</div>
+              </div>
+            </div>
+          )}
+
+          {/* INTERACTIONS */}
+        {modalTab === 'interactions' && (
+  <div className="space-y-4">
+    <div className="bg-blue-50 p-4 rounded-lg">
+      <h4 className="font-semibold text-blue-800 mb-2">Log a Call / Email</h4>
+      <div className="flex gap-3 mb-3">
+        <select
+          id="interactionType"
+          className="px-3 py-2 border rounded-lg text-sm flex-1"
+        >
+          <option value="call">Call</option>
+          <option value="email">Email</option>
+        </select>
+        <input
+          type="text"
+          id="interactionSubject"
+          placeholder="Subject / Summary"
+          className="flex-1 px-3 py-2 border rounded-lg text-sm"
+        />
+      </div>
+      <textarea
+        id="interactionNotes"
+        rows={2}
+        placeholder="Notes..."
+        className="w-full px-3 py-2 border rounded-lg text-sm mb-3"
+      ></textarea>
+      <button
+        onClick={async () => {
+          const typeSelect = document.getElementById('interactionType') as HTMLSelectElement;
+          const subjectInput = document.getElementById('interactionSubject') as HTMLInputElement;
+          const notesTextarea = document.getElementById('interactionNotes') as HTMLTextAreaElement;
+          
+          const type = typeSelect.value;
+          const subject = subjectInput.value.trim();
+          const notes = notesTextarea.value.trim();
+          
+          if (!subject) {
+            toast.error('Please enter a subject/summary');
+            return;
+          }
+          
+          try {
+            await careerApi.addInteraction(selectedApp!.id, type, subject, notes);
+            toast.success('Interaction logged');
+            // Clear form
+            subjectInput.value = '';
+            notesTextarea.value = '';
+            // Refresh timeline
+            await fetchTimeline(selectedApp!.id);
+          } catch (err) {
+            toast.error('Failed to log interaction');
+          }
+        }}
+        className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
+      >
+        Add Interaction
+      </button>
+    </div>
+    <div className="space-y-2 max-h-64 overflow-y-auto">
+      {timeline.filter(i => i.type === 'interaction').map(item => (
+        <div key={item.id} className="border-l-4 border-purple-400 pl-3 py-2 bg-gray-50 rounded">
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>{new Date(item.created_at).toLocaleString()}</span>
+          </div>
+          <p className="text-sm whitespace-pre-wrap">{item.message}</p>
+        </div>
+      ))}
+      {timeline.filter(i => i.type === 'interaction').length === 0 && (
+        <p className="text-gray-400 italic text-sm">No interactions yet.</p>
+      )}
+    </div>
+  </div>
+)}
+
+          {/* MEETINGS (interviews) */}
+          {modalTab === 'meetings' && (
+            <div className="space-y-5">
+              {/* Schedule new interview */}
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h4 className="font-semibold text-blue-800 flex items-center gap-2 mb-3">
+                  <Calendar size={18} /> Schedule Interview
+                </h4>
+                <form onSubmit={handleScheduleInterview} className="space-y-3">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <input
+                      type="datetime-local"
+                      required
+                      value={interviewForm.scheduled_at}
+                      onChange={e => setInterviewForm({...interviewForm, scheduled_at: e.target.value})}
+                      className="px-3 py-2 border rounded-lg text-sm"
+                    />
+                    <select
+                      value={interviewForm.mode}
+                      onChange={e => setInterviewForm({...interviewForm, mode: e.target.value})}
+                      className="px-3 py-2 border rounded-lg text-sm"
+                    >
+                      <option value="online">Online</option>
+                      <option value="onsite">Onsite</option>
+                      <option value="phone">Phone</option>
+                    </select>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder={interviewForm.mode === 'online' ? "Meeting link" : "Address / Phone"}
+                    value={interviewForm.link_or_address}
+                    onChange={e => setInterviewForm({...interviewForm, link_or_address: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                  />
+                  <textarea
+                    placeholder="Interview notes (optional)"
+                    rows={2}
+                    value={interviewForm.message}
+                    onChange={e => setInterviewForm({...interviewForm, message: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                  />
+                  <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+                    Schedule Interview
+                  </button>
+                </form>
+              </div>
+
+              {/* Existing interviews */}
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                <h4 className="font-medium text-gray-700">Upcoming & Past Interviews</h4>
+                {timeline.filter(i => i.type === 'interview').map(item => (
+                  <div key={item.id} className="border rounded-lg p-3 bg-white shadow-sm">
+                    <div className="flex justify-between items-start flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={14} className="text-blue-600" />
+                        <span className="font-medium">
+                          {new Date(item.scheduled_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <select
+                        value={item.status || 'scheduled'}
+                        onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
+                        className="text-xs border rounded px-2 py-0.5"
+                      >
+                        <option value="scheduled">Scheduled</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="rescheduled">Rescheduled</option>
+                      </select>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                      {item.mode === 'online' ? <Video size={12} /> : <MapPin size={12} />}
+                      {item.link_or_address || (item.mode === 'online' ? 'Online meeting' : 'In person')}
+                    </div>
+                    <p className="text-sm text-gray-700 mt-1">{item.message}</p>
+                  </div>
+                ))}
+                {timeline.filter(i => i.type === 'interview').length === 0 && (
+                  <p className="text-gray-400 italic text-sm">No interviews scheduled.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* FOLLOW UPS */}
+          {modalTab === 'follow_ups' && (
+            <div className="space-y-4">
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-green-800 mb-2">Add Follow‑up</h4>
+                <textarea
+                  rows={2}
+                  placeholder="Add a note, reminder, feedback..."
+                  value={newFollowup}
+                  onChange={e => setNewFollowup(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                />
+                <button
+                  onClick={handleAddFollowup}
+                  disabled={!newFollowup.trim()}
+                  className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-50"
+                >
+                  Add Follow‑up
+                </button>
+              </div>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {timeline.filter(i => i.type === 'followup').map(item => (
+                  <div key={item.id} className="border-l-4 border-green-400 pl-3 py-2 bg-gray-50 rounded">
+                    <div className="text-xs text-gray-500">{new Date(item.created_at).toLocaleString()}</div>
+                    <p className="text-sm">{item.message}</p>
+                  </div>
+                ))}
+                {timeline.filter(i => i.type === 'followup').length === 0 && (
+                  <p className="text-gray-400 italic text-sm">No follow‑ups yet.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TIMELINE (combined) */}
+          {modalTab === 'timeline' && (
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+              {timeline.length === 0 && (
+                <p className="text-gray-400 italic text-sm">No activity yet.</p>
+              )}
+              {timeline.map(item => (
+                <div key={item.id} className="border-l-4 pl-3 py-1" style={{ borderLeftColor: 
+                  item.type === 'interview' ? '#3b82f6' : item.type === 'followup' ? '#10b981' : '#a855f7'
+                }}>
+                  <div className="flex justify-between items-start flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      {item.type === 'interview' ? <Calendar size={14} className="text-blue-600" /> : 
+                       item.type === 'followup' ? <MessageSquare size={14} className="text-green-600" /> :
+                       <Phone size={14} className="text-purple-600" />}
+                      <span className="font-medium text-sm capitalize">{item.type}</span>
+                      {item.scheduled_at && (
+                        <span className="text-xs text-gray-500">{new Date(item.scheduled_at).toLocaleString()}</span>
+                      )}
+                      {!item.scheduled_at && (
+                        <span className="text-xs text-gray-500">{new Date(item.created_at).toLocaleString()}</span>
+                      )}
+                    </div>
+                    {item.type === 'interview' && (
+                      <select
+                        value={item.status || 'scheduled'}
+                        onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
+                        className="text-xs border rounded px-2 py-0.5"
+                      >
+                        <option value="scheduled">Scheduled</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="rescheduled">Rescheduled</option>
+                      </select>
+                    )}
+                  </div>
+                  {item.type === 'interview' && item.mode && (
+                    <div className="text-xs text-gray-600 mt-1 flex items-center gap-2">
+                      {item.mode === 'online' ? <Video size={12} /> : <MapPin size={12} />}
+                      {item.link_or_address || (item.mode === 'online' ? 'Online meeting' : 'In person')}
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{item.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   </div>
