@@ -150,14 +150,14 @@ const SettingsCMS = () => {
               <p className="text-xs sm:text-sm text-blue-400 font-medium">Configure your CMS settings</p>
             </div>
           </div>
-          <button
+          {/* <button
             onClick={handleSave}
             disabled={saving}
             className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-600 hover:from-blue-900 hover:to-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md shadow-blue-200 transition disabled:opacity-50"
           >
             <Save size={16} />
             {saving ? 'Saving...' : 'Save Changes'}
-          </button>
+          </button> */}
         </div>
 
         {/* ── Message banner ── */}
