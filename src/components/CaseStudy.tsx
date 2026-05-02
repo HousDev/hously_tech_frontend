@@ -276,7 +276,7 @@
 
 //                       {/* View Details Button */}
 //                       <Link
-//                         to={`/CaseStudy/${study.id}`}
+//                         to={`/CaseStudy`}
 //                         className="mt-4 md:mt-6 inline-flex items-center gap-1.5 text-white font-medium text-xs sm:text-sm hover:text-blue-300 transition-colors"
 //                         state={{ caseStudy: study }}
 //                       >
@@ -423,9 +423,6 @@
 // export default CaseStudiesSection;
 
 
-
-// CaseStudiesSection.tsx (unchanged except the Link path)
-// Only the Link 'to' prop is changed to '/case-studies/:id' for consistency
 import React, { useState, useRef, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
@@ -591,29 +588,38 @@ const CaseStudiesSection: React.FC = () => {
                         onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x400?text=Image+Not+Found'; }}
                       />
                     </div>
+
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 p-4 md:p-8 flex flex-col justify-end">
                       <div className="inline-block mb-3 md:mb-4">
                         <span className="bg-white/30 backdrop-blur-sm border border-white/20 rounded-full px-2 py-0.5 md:px-3 md:py-1 text-white text-[10px] sm:text-xs md:text-sm font-medium">
                           {study.category}
                         </span>
                       </div>
-                      <h3 className="text-white font-bold text-base sm:text-xl md:text-[28px] leading-tight mb-2 md:mb-3 max-w-full md:max-w-[441px]">
+
+                      <h3 className="text-white font-bold text-base sm:text-xl md:text-[28px] leading-tight mb-2 md:mb-3 max-w-full md:max-w-[441px] line-clamp-2">
                         {study.title}
                       </h3>
-                      <p className="text-white/90 text-xs sm:text-sm md:text-base mb-2 md:mb-3 max-w-full md:max-w-[441px]">
+
+                      {/* Description truncated to 2 lines */}
+                      <p className="text-white/90 text-xs sm:text-sm md:text-base mb-2 md:mb-3 max-w-full md:max-w-[441px] line-clamp-2">
                         {study.description}
                       </p>
+
+                      {/* Only metrics, no extra results */}
                       <div className="flex items-center gap-3 mt-2 md:mt-3">
                         <div className="flex items-center gap-1.5">
                           <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
-                          <span className="text-white text-[10px] sm:text-xs font-medium">{study.metrics}</span>
+                          <span className="text-white text-[10px] sm:text-xs font-medium line-clamp-1">
+                            {study.metrics}
+                          </span>
                         </div>
                       </div>
-                      {/* Updated link to go to case study page with id */}
+
+                      {/* Link to case study page (grid + modal) */}
                       <Link
-                        to={`/casestudy`}
-  className="mt-4 md:mt-6 inline-flex items-center gap-1.5 text-white font-medium text-xs sm:text-sm hover:text-blue-300 transition-colors"
->
+                        to="/casestudy"
+                        className="mt-4 md:mt-6 inline-flex items-center gap-1.5 text-white font-medium text-xs sm:text-sm hover:text-blue-300 transition-colors"
+                      >
                         View Case Study
                         <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
                           <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -637,10 +643,10 @@ const CaseStudiesSection: React.FC = () => {
                 </div>
                 {caseStudies.length > 1 && (
                   <div className="flex items-center gap-3 order-3">
-                    <button className="custom-prev w-8 h-8 md:w-10 md:h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-900 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-300" aria-label="Previous slide">
+                    <button className="custom-prev w-8 h-8 md:w-10 md:h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-900 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-300">
                       <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </button>
-                    <button className="custom-next w-8 h-8 md:w-10 md:h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-900 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-300" aria-label="Next slide">
+                    <button className="custom-next w-8 h-8 md:w-10 md:h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-900 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-300">
                       <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </button>
                   </div>
@@ -661,6 +667,9 @@ const CaseStudiesSection: React.FC = () => {
         .swiper-pagination-progressbar { position: relative !important; height: 1px !important; background: #D7D7D7 !important; margin: 0 !important; }
         .swiper-pagination-progressbar-fill { background: #0076d8 !important; height: 3px !important; top: -1px !important; }
         @media (max-width: 768px) { .project-slider .swiper-slide { opacity: 0.7; } .project-slider .swiper-slide-active { opacity: 1; } }
+        /* Ensure text truncation works */
+        .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
       `}</style>
     </>
   );

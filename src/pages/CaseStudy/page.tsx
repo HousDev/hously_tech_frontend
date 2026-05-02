@@ -400,70 +400,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Calendar, Users, TrendingUp, CheckCircle, X, ArrowLeft } from 'lucide-react';
+import { ArrowRight, TrendingUp, CheckCircle, X, ArrowLeft } from 'lucide-react';
 import { caseStudyApi, type CaseStudy } from '../../lib/caseStudyApi';
 
-// Helper to generate additional fields based on category and title
-const getExtendedDetails = (study: CaseStudy) => {
-  const category = study.category?.toLowerCase() || '';
-  
-  const client = "In-house Project";
-  
-  let duration = "6 months";
-  if (category.includes('cloud')) duration = "8 months";
-  else if (category.includes('ai')) duration = "7 months";
-  else if (category.includes('software')) duration = "9 months";
-  else if (category.includes('cyber')) duration = "6 months";
-  else if (category.includes('devops')) duration = "7 months";
-  
-  let technologies: string[] = [];
-  if (category.includes('cloud')) {
-    technologies = ["AWS", "Azure", "Docker", "Kubernetes", "Terraform"];
-  } else if (category.includes('ai')) {
-    technologies = ["Python", "TensorFlow", "PyTorch", "Power BI", "SQL"];
-  } else if (category.includes('software')) {
-    technologies = ["React", "Node.js", "Express.js", "MySQL", "MongoDB"];
-  } else if (category.includes('cyber')) {
-    technologies = ["SIEM", "Zero Trust", "Cloud Security", "Threat Monitoring", "Firewalls"];
-  } else if (category.includes('devops')) {
-    technologies = ["Jenkins", "Docker", "Kubernetes", "AWS", "Terraform"];
-  } else {
-    technologies = ["React", "Node.js", "Express.js", "MySQL", "Docker"];
-  }
-  
-  const challenge = `${study.title} required a robust, scalable solution to address complex business needs. The existing systems were fragmented, leading to inefficiencies and increased operational costs.`;
-  
-  const solution = `We designed and implemented a custom ${study.category} solution leveraging modern technologies. Our approach included agile development, continuous integration, and a focus on user-centric design, resulting in a seamless and future-proof platform.`;
-  
-  const results = [
-    study.metrics,
-    "Improved system reliability by 40%",
-    "Reduced time-to-market by 35%"
-  ];
-  
-  let testimonial = {
-    quote: "The team delivered exceptional results, exceeding our expectations.",
-    author: "Ankit Sharma",
-    position: "Head of Engineering"
-  };
-  if (category.includes('cloud')) {
-    testimonial = { quote: "The migration to cloud was seamless and cost-efficient.", author: "Neha Verma", position: "CTO" };
-  } else if (category.includes('ai')) {
-    testimonial = { quote: "AI insights revolutionized our decision-making process.", author: "Rajesh Khanna", position: "Director of Analytics" };
-  } else if (category.includes('software')) {
-    testimonial = { quote: "The custom software streamlined all our operations.", author: "Priya Singh", position: "Operations Manager" };
-  } else if (category.includes('cyber')) {
-    testimonial = { quote: "Our security posture has never been stronger.", author: "Vikram Rathore", position: "CISO" };
-  } else if (category.includes('devops')) {
-    testimonial = { quote: "Deployment cycles are now faster and more reliable.", author: "Manish Gupta", position: "DevOps Lead" };
-  }
-  
-  return { client, duration, technologies, challenge, solution, results, testimonial };
-};
-
-// Modal Component
+// Modal Component – only shows Key Results from metrics
 const CaseStudyDetailsModal: React.FC<{ study: CaseStudy; onClose: () => void }> = ({ study, onClose }) => {
-  const { client, duration, technologies, challenge, solution, results, testimonial } = getExtendedDetails(study);
+  // Split metrics string by commas or just use as single bullet point
+  const metricsList = study.metrics.split(',').map(m => m.trim()).filter(m => m);
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
@@ -484,56 +427,30 @@ const CaseStudyDetailsModal: React.FC<{ study: CaseStudy; onClose: () => void }>
         </div>
 
         <div className="overflow-y-auto max-h-[calc(85vh-12rem)] p-6">
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <div className="flex items-center gap-2 mb-1"><Users className="w-4 h-4 text-[#0375d5]" /><span className="text-sm font-medium text-gray-700">Client</span></div>
-              <p className="text-sm text-gray-600">{client}</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <div className="flex items-center gap-2 mb-1"><Calendar className="w-4 h-4 text-[#0375d5]" /><span className="text-sm font-medium text-gray-700">Duration</span></div>
-              <p className="text-sm text-gray-600">{duration}</p>
-            </div>
-          </div>
-
+          {/* Description – show the actual description from CMS */}
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Challenge</h3>
-            <p className="text-gray-700 text-sm leading-relaxed">{challenge}</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">About</h3>
+            <p className="text-gray-700 text-sm leading-relaxed">{study.description}</p>
           </div>
 
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Solution</h3>
-            <p className="text-gray-700 text-sm leading-relaxed">{solution}</p>
-          </div>
-
+          {/* Key Results as bullet points from metrics */}
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Key Results</h3>
             <div className="space-y-2">
-              {results.slice(0, 3).map((result, idx) => (
-                <div key={idx} className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /><span className="text-sm text-gray-700">{result}</span></div>
+              {metricsList.map((metric, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-700">{metric}</span>
+                </div>
               ))}
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Technologies</h3>
-            <div className="flex flex-wrap gap-2">
-              {technologies.slice(0, 5).map((tech, idx) => (
-                <span key={idx} className="bg-[#0375d5]/10 text-[#0375d5] px-3 py-1 rounded-md text-xs font-medium">{tech}</span>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="flex items-start gap-2 mb-3"><div className="text-[#ffd801] text-3xl leading-none">"</div><p className="text-sm text-gray-700 italic">{testimonial.quote}</p></div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#0375d5] rounded-full flex items-center justify-center text-white text-xs font-bold">{testimonial.author.charAt(0)}</div>
-              <div><p className="text-sm font-medium text-gray-900">{testimonial.author}</p><p className="text-xs text-gray-600">{testimonial.position}</p></div>
             </div>
           </div>
         </div>
 
         <div className="border-t p-4">
-          <button onClick={onClose} className="w-full bg-[#0375d5] text-white py-3 rounded-lg font-medium hover:bg-[#025a9e] transition-colors">Close</button>
+          <button onClick={onClose} className="w-full bg-[#0375d5] text-white py-3 rounded-lg font-medium hover:bg-[#025a9e] transition-colors">
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -567,13 +484,10 @@ const CaseStudyPage: React.FC = () => {
 
   const handleCardClick = (study: CaseStudy) => {
     setSelectedStudy(study);
-    // Optionally update URL without opening modal automatically? We skip that.
-    // Just open modal.
   };
 
   const handleCloseModal = () => {
     setSelectedStudy(null);
-    // Do not change URL.
   };
 
   if (loading) {
@@ -594,8 +508,6 @@ const CaseStudyPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 mt-20">
-     
-
       <section className="py-16">
         <div className="container mx-auto px-4 max-w-7xl">
           {caseStudies.length === 0 ? (

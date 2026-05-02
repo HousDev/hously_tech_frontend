@@ -542,7 +542,7 @@ const crumbs = [{ label: 'Dashboard', url: '/homes/admin' }];
     const baseUrl = window.location.origin;
     window.open(`${baseUrl}/homes`, "_blank");
   }}
-  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-white 
+  className="flex items-center space-x-2 px-2 py-1 rounded-lg text-white 
              bg-gradient-to-r from-[#0D47A1] to-[#1976D2] 
              hover:opacity-90 transition text-sm shadow-md"
 >
