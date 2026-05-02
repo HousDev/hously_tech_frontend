@@ -625,8 +625,8 @@ export default function Dashboard() {
   
               {/* Main Chart */}
               <div className="lg:col-span-2 bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
+<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+  <div className="flex items-center gap-2">
                     <button
                       onClick={() => setActiveChart('traffic')}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
@@ -661,12 +661,11 @@ export default function Dashboard() {
                       <span className="text-xs font-semibold">Performance</span>
                     </button>
                   </div>
-                  
                   <select
-                    value={timeRange}
-                    onChange={(e) => setTimeRange(e.target.value)}
-                    className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-gray-700"
-                  >
+    value={timeRange}
+    onChange={(e) => setTimeRange(e.target.value)}
+    className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-gray-700 w-full sm:w-auto"
+  >
                     <option value="7days">Last 7 Days</option>
                     <option value="30days">Last 30 Days</option>
                     <option value="90days">Last 90 Days</option>

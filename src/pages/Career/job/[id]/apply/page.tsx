@@ -50,12 +50,11 @@ export default function JobApplicationPage() {
     resume: "",
   });
   const experienceOptions = [
-  { value: "fresher", label: "Fresher (No experience)" },
+  { value: "fresher", label: "Fresher " },
   { value: "1-2 years", label: "1-2 years" },
-  { value: "2-4 years", label: "2-4 years" },
-  { value: "4-6 years", label: "4-6 years" },
-  { value: "6-9 years", label: "6-9 years" },
-  { value: "9+ years", label: "9+ years" },
+  { value: "2-4 years", label: "2-3 years" },
+  { value: "4-6 years", label: "4-5 years" },
+  { value: "6-9 years", label: "5+ years" },
 ];
 
   const [resume, setResume] = useState<File | null>(null);

@@ -511,7 +511,7 @@ import AboutPage from "./pages/About/page";
 import ServicesPage from "./pages/services/page";
 import ContactSection from "./pages/Contact/page";
 import TestimonialPage from "./pages/Testinomial/page";
-import CaseStudyApp from "./pages/CaseStudy/page";
+import CaseStudyPage from "./pages/CaseStudy/page";
 import HouslyCareerPage from "./pages/Career/page";
 import CareersPage from "./pages/Career/job/page";
 import JobDetailsPage from "./pages/Career/job/[id]/page";
@@ -663,8 +663,8 @@ function AppContent() {
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/contact" element={<ContactSection />} />
           <Route path="/testimonial" element={<TestimonialPage />} />
-          <Route path="/casestudy" element={<CaseStudyApp />} />
-
+<Route path="/casestudy" element={<CaseStudyPage />} />
+<Route path="/casestudy/:id" element={<CaseStudyPage />} />
           {/* ✅ Blog routes — outside admin, at top level */}
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:id" element={<BlogDetailPage />} />
