@@ -2046,6 +2046,179 @@ const filteredItems = activeTab === 'jobs'
     </div>
   </div>
 )}
+{/* ========== JOB CREATE/EDIT MODAL ========== */}
+{isModalOpen && (
+  <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={handleCloseModal} />
+    <div className="flex min-h-full items-center justify-center p-2 sm:p-3">
+      <div className="relative w-full max-w-[95%] sm:max-w-2xl md:max-w-3xl bg-white rounded-lg sm:rounded-xl shadow-lg">
+        
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#0D47A1] to-[#1976D2] rounded-t-lg sm:rounded-t-xl">
+          <div className="flex items-center justify-between px-2.5 py-1.5 sm:px-4 sm:py-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="bg-[#FFC107] rounded-md w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center font-bold text-[9px] sm:text-xs text-[#0D47A1] shrink-0">jb</div>
+              <div>
+                <h2 className="text-white font-medium text-xs sm:text-sm">{editingJob ? 'Edit Job' : 'Create New Job Opening'}</h2>
+                <p className="text-white/70 text-[8px] sm:text-[10px] hidden sm:block">{editingJob ? 'Update job details' : 'Add a new job opening to your career page'}</p>
+              </div>
+            </div>
+            <button onClick={handleCloseModal} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-white/30 bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition">
+              <X size={10} className="sm:w-3 sm:h-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="max-h-[70vh] sm:max-h-[75vh] overflow-y-auto">
+          <div className="p-2.5 sm:p-4">
+            <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-3">
+              {error && <div className="bg-red-50 text-red-600 p-2 rounded text-xs">{error}</div>}
+
+              {/* Job Title */}
+              <div>
+                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">Job Title <span className="text-red-600">*</span></label>
+                <input type="text" value={formData.job_title} onChange={(e) => setFormData({...formData, job_title: e.target.value})}
+                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff]"
+                  required placeholder="e.g., Senior Frontend Developer" />
+              </div>
+
+              {/* Department + Location */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">Department <span className="text-red-600">*</span></label>
+                  {!showCustomDept ? (
+                    <select value={formData.department} onChange={(e) => { if (e.target.value === 'custom') { setShowCustomDept(true); } else { setFormData({...formData, department: e.target.value}); } }}
+                      className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff]" required>
+                      <option value="">Select Department</option>
+                      {predefinedDepartments.map(d => <option key={d} value={d}>{d}</option>)}
+                      <option value="custom">+ Add Custom</option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-1">
+                      <input value={customDept} onChange={(e) => setCustomDept(e.target.value)} className="flex-1 px-2 py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg bg-[#fafbff]" placeholder="Enter department" />
+                      <button type="button" onClick={handleAddCustomDept} className="px-2 py-1 bg-blue-600 text-white rounded-lg text-[9px] sm:text-xs">Add</button>
+                      <button type="button" onClick={() => setShowCustomDept(false)} className="px-2 py-1 border border-gray-300 text-gray-700 rounded-lg text-[9px] sm:text-xs">Cancel</button>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">Location <span className="text-red-600">*</span></label>
+                  {!showCustomLoc ? (
+                    <select value={formData.location} onChange={(e) => { if (e.target.value === 'custom') { setShowCustomLoc(true); } else { setFormData({...formData, location: e.target.value}); } }}
+                      className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff]" required>
+                      <option value="">Select Location</option>
+                      {predefinedLocations.map(l => <option key={l} value={l}>{l}</option>)}
+                      <option value="custom">+ Add Custom</option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-1">
+                      <input value={customLoc} onChange={(e) => setCustomLoc(e.target.value)} className="flex-1 px-2 py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg bg-[#fafbff]" placeholder="Enter location" />
+                      <button type="button" onClick={handleAddCustomLoc} className="px-2 py-1 bg-blue-600 text-white rounded-lg text-[9px] sm:text-xs">Add</button>
+                      <button type="button" onClick={() => setShowCustomLoc(false)} className="px-2 py-1 border border-gray-300 text-gray-700 rounded-lg text-[9px] sm:text-xs">Cancel</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Job Type + Salary */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">Job Type <span className="text-red-600">*</span></label>
+                  <MultiSelectDropdown options={predefinedJobTypes} value={formData.job_type as string[]} onChange={(val) => setFormData({...formData, job_type: val})} placeholder="Select job type(s)..." />
+                </div>
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">Salary Range</label>
+                  <input type="text" value={formData.salary_range} onChange={(e) => setFormData({...formData, salary_range: e.target.value})}
+                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff]" placeholder="e.g., ₹8L - ₹12L PA" />
+                </div>
+              </div>
+
+              {/* Experience + Vacancy */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">Experience Level</label>
+                  <MultiSelectDropdown options={experienceLevels} value={formData.experience_level as string[]} onChange={(val) => setFormData({...formData, experience_level: val})} placeholder="Select experience level(s)..." />
+                </div>
+                <div>
+                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">Vacancy Count <span className="text-red-600">*</span></label>
+                  <input type="number" value={formData.vacancy_count} onChange={(e) => setFormData({...formData, vacancy_count: parseInt(e.target.value) || 1})}
+                    min="1" max="100" className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff] text-center" required />
+                </div>
+              </div>
+
+              {/* Deadline */}
+              <div>
+                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">Application Deadline</label>
+                <input type="date" value={formData.application_deadline} onChange={(e) => setFormData({...formData, application_deadline: e.target.value})}
+                  min={new Date().toISOString().split('T')[0]} className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff]" />
+              </div>
+
+              <hr className="border-t border-gray-100" />
+
+              {/* Description */}
+              <div>
+                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">Job Description <span className="text-red-600">*</span></label>
+                <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={3}
+                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff] resize-none" required placeholder="Brief description of the job..." />
+              </div>
+
+              {/* Requirements */}
+              <div>
+                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">Requirements <span className="text-red-600">*</span></label>
+                <textarea value={formData.requirements} onChange={(e) => setFormData({...formData, requirements: e.target.value})} rows={3}
+                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff] resize-none" required placeholder="One requirement per line..." />
+              </div>
+
+              {/* Responsibilities */}
+              <div>
+                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">Responsibilities <span className="text-red-600">*</span></label>
+                <textarea value={formData.responsibilities} onChange={(e) => setFormData({...formData, responsibilities: e.target.value})} rows={3}
+                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff] resize-none" required placeholder="One responsibility per line..." />
+              </div>
+
+              {/* Benefits */}
+              <div>
+                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">Benefits</label>
+                <textarea value={formData.benefits} onChange={(e) => setFormData({...formData, benefits: e.target.value})} rows={2}
+                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff] resize-none" placeholder="One benefit per line..." />
+              </div>
+
+              <hr className="border-t border-gray-100" />
+
+              {/* Active toggle + Actions */}
+              <div className="flex flex-col sm:flex-row justify-between gap-2 pt-1">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+                    className="w-3.5 h-3.5 text-blue-600 rounded accent-blue-600" />
+                  <div>
+                    <span className="text-[9px] sm:text-xs font-medium text-gray-700">Active Job Opening</span>
+                    <p className="text-[7px] sm:text-[8px] text-gray-500">{formData.is_active ? 'Visible to candidates' : 'Hidden from candidates'}</p>
+                  </div>
+                </label>
+                {editingJob && (
+                  <div className="text-[7px] sm:text-[8px] text-gray-400 text-right">
+                    <p>Created: {formatDate(editingJob.created_at)}</p>
+                    <p>Updated: {formatDate(editingJob.updated_at)}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-1.5 sm:gap-2 pt-1">
+                <button type="button" onClick={handleCloseModal} className="px-2 py-1 sm:px-3 sm:py-1 border border-gray-300 rounded-lg text-[9px] sm:text-xs text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                <button type="submit" className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 text-white rounded-lg text-[9px] sm:text-xs hover:bg-blue-700 flex items-center gap-1 transition">
+                  <Save size={10} className="sm:w-3 sm:h-3" />
+                  <span>{editingJob ? 'Update' : 'Create'}</span>
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };
