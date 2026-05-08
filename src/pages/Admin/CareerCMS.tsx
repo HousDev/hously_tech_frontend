@@ -497,7 +497,13 @@ const handleSubmit = async (e: React.FormEvent) => {
     department: job.department || '',
     location: job.location || '',
 job_type: job.job_type 
-    ? job.job_type.split(',').map((t: string) => t.trim()).filter(Boolean)
+    ? job.job_type.split(',').map((t: string) => t.trim()).filter(Boolean).map((t: string) => {
+        // Normalize old lowercase values to match predefined options
+        const match = predefinedJobTypes.find(
+          opt => opt.toLowerCase() === t.toLowerCase()
+        );
+        return match || t;
+      })
     : [],
         description: job.description,
     requirements: parseField(job.requirements),
@@ -505,7 +511,12 @@ job_type: job.job_type
     benefits: parseField(job.benefits),
     salary_range: job.salary_range || '',
 experience_level: job.experience_level 
-    ? job.experience_level.split(',').map((e: string) => e.trim()).filter(Boolean)
+    ? job.experience_level.split(',').map((e: string) => e.trim()).filter(Boolean).map((e: string) => {
+        const match = experienceLevels.find(
+          opt => opt.toLowerCase() === e.toLowerCase()
+        );
+        return match || e;
+      })
     : [],
         is_active: job.is_active,
     application_deadline: job.application_deadline ? job.application_deadline.split('T')[0] : '',
