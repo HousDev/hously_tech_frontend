@@ -1160,7 +1160,7 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
 
                     {activeTab === 'upload' ? (
                       <div className="flex items-center gap-3">
-                        <input type="file" ref={fileInputRef} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileChange(f); }} accept="image/*" className="hidden" />
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
                         <button type="button" onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
                           <ImageIcon className="w-3.5 h-3.5" />
                           Select File

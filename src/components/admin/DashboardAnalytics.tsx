@@ -84,7 +84,7 @@ const renderPieChartWithLegend = (data: { name: string, value: number, color: st
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Tooltip
-              content={({ active, payload }: { active?: boolean; payload?: { name: string; value: number; color?: string }[] }) => {
+              content={({ active, payload }: { active?: boolean; payload?: ReadonlyArray<{ name: string; value: number; color?: string }> }) => {
                 if (active && payload && payload.length) {
                   const entry = payload[0];
                   const percentage = total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0';
