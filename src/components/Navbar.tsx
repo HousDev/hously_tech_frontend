@@ -15,8 +15,6 @@ import {
 import { isAdmin, getCurrentUser, logout } from "../services/authService";
 import { settingsApi } from "../lib/settingsApi";
 
-// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
 interface NavbarUser {
   id: number;
   username: string;
@@ -50,7 +48,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-const isHomePage = location.pathname === "/homes";
+  const isHomePage = location.pathname === "/homes";
   const isUserAdmin = isAdmin();
   const currentUser = user || getCurrentUser();
 
@@ -72,8 +70,7 @@ const isHomePage = location.pathname === "/homes";
     fetchLogos();
   }, []);
 
- // REPLACE with this
-const fetchLogos = async () => {
+  const fetchLogos = async () => {
     try {
       setLoadingLogos(true);
       const data = await settingsApi.getLogos();
@@ -104,17 +101,17 @@ const fetchLogos = async () => {
 
   // Nav links data
   const navLinks = [
-{ path: "/homes", label: "Home" },
+    { path: "/homes", label: "Home" },
     { path: "/services", label: "Services" },
     { path: "/about", label: "About" },
-      { path: "/blog", label: "Blogs" },
+    { path: "/blog", label: "Blogs" },
     { path: "/contact", label: "Contact" },
     { path: "/career", label: "Career" },
   ];
 
   const handleAdminClick = () => {
     if (isUserAdmin) {
-navigate("/homes/admin");
+      navigate("/homes/admin");
     } else {
       onLoginClick();
     }
@@ -145,9 +142,12 @@ navigate("/homes/admin");
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 right-0 h-full w-full sm:w-96 bg-white z-[70] shadow-2xl transform transition-transform duration-300 overflow-y-auto ${
-          isSidebarOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed top-0 right-0 h-full w-full sm:w-96 bg-white z-[70]
+          shadow-2xl transform transition-transform duration-500 ease-in-out
+          overflow-y-auto
+          ${
+            isSidebarOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         <div className="p-6">
           {/* Close Button */}
@@ -270,7 +270,7 @@ navigate("/homes/admin");
                 {isUserAdmin ? (
                   <>
                     <Link
-  to="/homes/admin"
+                      to="/homes/admin"
                       onClick={() => setIsSidebarOpen(false)}
                       className="flex items-center space-x-3 px-4 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
                     >
@@ -371,17 +371,17 @@ navigate("/homes/admin");
       <nav
         className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
           isScrolled
-            ? "bg-white shadow-lg"
+            ? "bg-white shadow-sm"
             : isHomePage
-            ? "bg-transparent"
-            : "bg-white shadow-lg"
+            ? "bg-white shadow-sm"
+            : "bg-white shadow-sm"
         }`}
       >
         <div
           className={`w-full transition-all duration-300 ${
             isScrolled || !isHomePage
               ? "px-4 sm:px-6 lg:px-8 py-4"
-              : "bg-white/20 backdrop-blur-md border-b border-white/30 px-4 sm:px-6 lg:px-8 py-4"
+              : "bg-white/20 backdrop-blur-md border-b border-white/20 px-4 sm:px-6 lg:px-8 py-4"
           }`}
         >
           <div className="flex justify-between items-center">
@@ -429,8 +429,8 @@ navigate("/homes/admin");
                           ? "text-[#0076d8] font-semibold"
                           : "text-gray-700 hover:text-[#0076d8]"
                         : active
-                        ? "text-[#ffd801] font-semibold"
-                        : "text-white hover:text-[#ffd801]"
+                          ? "text-[#0076d8] font-semibold"
+                          : "text-gray-700 hover:text-[#0076d8]"
                     }`}
                   >
                     {link.label}
@@ -440,7 +440,7 @@ navigate("/homes/admin");
                       } ${
                         isScrolled || !isHomePage
                           ? "bg-[#0076d8]"
-                          : "bg-[#ffd801]"
+                          : "bg-[#0076d8]"
                       }`}
                     ></span>
                   </Link>
@@ -448,18 +448,14 @@ navigate("/homes/admin");
               })}
             </div>
 
-            {/* Right Side */}
+            {/* Right Side - Always visible buttons */}
             <div className="hidden lg:flex items-center space-x-4">
-              {/* Admin Login/Profile Button */}
+              {/* Admin Login/Profile Button - Always visible */}
               {isUserAdmin ? (
                 <div className="relative">
                   <button
                     onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                    className={`p-2.5 rounded-lg transition ${
-                      isScrolled || !isHomePage
-                        ? "hover:bg-gray-100 text-gray-700"
-                        : "text-white hover:bg-white/30 backdrop-blur-sm"
-                    }`}
+                    className="p-2.5 rounded-lg transition hover:bg-gray-100 text-gray-700"
                     title="Profile"
                   >
                     <CgProfile size={20} />
@@ -475,7 +471,7 @@ navigate("/homes/admin");
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-[50] border border-gray-100">
                         <button
                           onClick={() => {
-navigate("/homes/admin");
+                            navigate("/homes/admin");
                             setIsProfileDropdownOpen(false);
                           }}
                           className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition flex items-center space-x-2"
@@ -490,7 +486,7 @@ navigate("/homes/admin");
                           }}
                           className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition flex items-center space-x-2"
                         >
-                          <CgProfile size={16} />
+                          <LogOut size={16} />
                           <span>Logout</span>
                         </button>
                       </div>
@@ -500,17 +496,14 @@ navigate("/homes/admin");
               ) : (
                 <button
                   onClick={handleAdminClick}
-                  className={`p-2.5 rounded-lg transition ${
-                    isScrolled || !isHomePage
-                      ? "hover:bg-gray-100 text-gray-700"
-                      : "text-white hover:bg-white/30 backdrop-blur-sm"
-                  }`}
+                  className="p-2.5 rounded-lg transition hover:bg-gray-100 text-gray-700"
                   title="Admin Login"
                 >
                   <CgProfile size={20} />
                 </button>
               )}
 
+              {/* Get A Quote Button - Always visible */}
               <button
                 onClick={() => navigate("/contact")}
                 className="bg-[#0076d8] hover:bg-[#0066c0] text-white px-7 py-3 rounded-full transition font-semibold shadow-lg shadow-[#0076d8]/30 flex items-center space-x-2 hover:shadow-xl hover:shadow-[#0076d8]/50 transform hover:scale-105"
@@ -518,21 +511,16 @@ navigate("/homes/admin");
                 <span>Get A Quote</span>
               </button>
 
+              {/* Sidebar Menu Button (9 dots) - Always visible */}
               <button
                 onClick={() => setIsSidebarOpen(true)}
-                className={`p-2.5 rounded-lg transition hover:rotate-180 duration-300 ${
-                  isScrolled || !isHomePage
-                    ? "hover:bg-gray-100 text-gray-700"
-                    : "text-white hover:bg-white/30 backdrop-blur-sm"
-                }`}
+                className="p-2.5 rounded-lg transition hover:rotate-180 duration-300 hover:bg-gray-100 text-gray-700"
               >
                 <div className="grid grid-cols-3 gap-1">
                   {[...Array(9)].map((_, i) => (
                     <div
                       key={i}
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        isScrolled || !isHomePage ? "bg-[#0076d8]" : "bg-white"
-                      }`}
+                      className="w-1.5 h-1.5 rounded-full bg-[#0076d8]"
                     ></div>
                   ))}
                 </div>

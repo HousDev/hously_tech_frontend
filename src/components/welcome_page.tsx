@@ -27,11 +27,11 @@ interface WelcomePageProps {
 }
 
 // Move StatItem component outside to fix React Hook error
-const StatItem = ({ 
-  stat, 
-  index, 
-  visibleStats 
-}: { 
+const StatItem = ({
+  stat,
+  index,
+  visibleStats
+}: {
   stat: { value: string; label: string; icon: React.ElementType };
   index: number;
   visibleStats: boolean;
@@ -64,7 +64,7 @@ const StatItem = ({
     }
   }, [visibleStats, stat.value]);
 
-    return (
+  return (
     <div
       key={index}
       onMouseEnter={() => setIsHovered(true)}
@@ -107,9 +107,8 @@ const StatItem = ({
 
           {/* Pulsing Ring */}
           <div
-            className={`absolute inset-0 border-2 border-blue-400/50 rounded-md sm:rounded-lg md:rounded-xl ${
-              isHovered ? "animate-ping-slow" : ""
-            }`}
+            className={`absolute inset-0 border-2 border-blue-400/50 rounded-md sm:rounded-lg md:rounded-xl ${isHovered ? "animate-ping-slow" : ""
+              }`}
           ></div>
         </div>
       </div>
@@ -199,59 +198,59 @@ function WelcomePage({ onSectorClick }: WelcomePageProps) {
   const [activeModal, setActiveModal] = useState<null | "real-estate" | "finance">(null);
 
   const sectors = [
-  {
-  id: "real-estate",
-  title: "Real Estate",
-  description: "Premium residential and commercial properties. Building dreams, creating landmarks.",
-  icon: Building2,
-  color: "from-indigo-600 to-purple-600",
-  gradient: "linear-gradient(135deg, #4f46e5 0%, #9333ea 100%)",
-  hoverGradient: "linear-gradient(135deg, #4338ca 0%, #7e22ce 100%)",
-  accentColor: "#8b5cf6",
-image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=900&h=650"
-,  features: [
-    "Property Development",
-    "Commercial Buildings",
-    "Residential Apartments",
-    "Real Estate Investment",
-  ],
-}
-,
-   {
-  id: "finance",
-  title: "Finance",
-  description: "Comprehensive financial solutions and investment services. Empowering financial freedom.",
-  icon: TrendingUp,
-  color: "from-emerald-600 to-teal-600",
-  gradient: "linear-gradient(135deg, #059669 0%, #0d9488 100%)",
-  hoverGradient: "linear-gradient(135deg, #047857 0%, #0f766e 100%)",
-  accentColor: "#14b8a6",
-  image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&h=650",
-  features: [
-    "Financial Planning",
-    "Investment Advisory",
-    "Wealth Management",
-    "Risk Analysis",
-  ],
-},
     {
-  id: "it-tech",
-  title: "IT & Technology",
-  description: "Cutting-edge technology solutions and digital transformation. Innovating tomorrow.",
-  icon: Cpu,
-  color: "from-blue-600 to-cyan-500",
-  gradient: "linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)",
-  hoverGradient: "linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)",
-  accentColor: "#0ea5e9",
-image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=900&h=650"
-,  features: [
-    "Software Development",
-    "IT Consulting",
-    "Digital Transformation",
-    "Cloud & Automation",
-  ],
-}
-,
+      id: "real-estate",
+      title: "Real Estate",
+      description: "Premium residential and commercial properties. Building dreams, creating landmarks.",
+      icon: Building2,
+      color: "from-indigo-600 to-purple-600",
+      gradient: "linear-gradient(135deg, #4f46e5 0%, #9333ea 100%)",
+      hoverGradient: "linear-gradient(135deg, #4338ca 0%, #7e22ce 100%)",
+      accentColor: "#8b5cf6",
+      image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=900&h=650"
+      , features: [
+        "Property Development",
+        "Commercial Buildings",
+        "Residential Apartments",
+        "Real Estate Investment",
+      ],
+    }
+    ,
+    {
+      id: "finance",
+      title: "Finance",
+      description: "Comprehensive financial solutions and investment services. Empowering financial freedom.",
+      icon: TrendingUp,
+      color: "from-emerald-600 to-teal-600",
+      gradient: "linear-gradient(135deg, #059669 0%, #0d9488 100%)",
+      hoverGradient: "linear-gradient(135deg, #047857 0%, #0f766e 100%)",
+      accentColor: "#14b8a6",
+      image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&h=650",
+      features: [
+        "Financial Planning",
+        "Investment Advisory",
+        "Wealth Management",
+        "Risk Analysis",
+      ],
+    },
+    {
+      id: "it-tech",
+      title: "IT & Technology",
+      description: "Cutting-edge technology solutions and digital transformation. Innovating tomorrow.",
+      icon: Cpu,
+      color: "from-blue-600 to-cyan-500",
+      gradient: "linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)",
+      hoverGradient: "linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)",
+      accentColor: "#0ea5e9",
+      image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=900&h=650"
+      , features: [
+        "Software Development",
+        "IT Consulting",
+        "Digital Transformation",
+        "Cloud & Automation",
+      ],
+    }
+    ,
   ];
 
   const stats = [
@@ -268,7 +267,7 @@ image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format
     { icon: Globe, title: "Global Presence", desc: "Serving clients across multiple regions" },
   ];
 
-   useEffect(() => {
+  useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisibleCards(new Array(sectors.length).fill(false));
     timelineRefs.current = timelineRefs.current.slice(0, timeline.length);
@@ -368,262 +367,260 @@ image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format
 
         {/* Main Content */}
         <div className="relative z-10">
-<div className="container mx-auto px-3 sm:px-0 md:px-0 py-0">
+          <div className="container mx-auto px-3 sm:px-0 md:px-0 py-0">
             {/* Hero Section */}
-<section className="min-h-screen px-4 pt-0 pb-0">
-  <div className="max-w-6xl mx-auto w-full">
-    <div className="text-center">
+            <section className="min-h-screen px-4 pt-0 pb-0">
+              <div className="max-w-6xl mx-auto w-full">
+                <div className="text-center">
 
-      {/* Old Brand */}
-      <div
-        className={`transition-all duration-1000 ${
-          showNewBrand
-            ? "opacity-0 -translate-y-12 scale-95 pointer-events-none mt-0"
-            : "opacity-100 translate-y-0 scale-100 mt-36 sm:mt-2 md:mt-20"
-        }`}
-      >
-        <div className="inline-block space-y-6 sm:space-y-8">
-          {/* Est Badge with decorative lines */}
-          <div className="flex items-center justify-center gap-2 sm:gap-3">
-            <div className="h-px w-6 sm:w-8 bg-gradient-to-r from-transparent to-slate-300" />
-            <div className="text-xs sm:text-s font-medium text-slate-400 uppercase tracking-[0.2em] sm:tracking-[0.3em]">
-              Est. 2013
-            </div>
-            <div className="h-px w-6 sm:w-8 bg-gradient-to-l from-transparent to-slate-300" />
-          </div>
+                  {/* Old Brand */}
+                  <div
+                    className={`transition-all duration-1000 ${showNewBrand
+                      ? "opacity-0 -translate-y-12 scale-95 pointer-events-none mt-0"
+                      : "opacity-100 translate-y-0 scale-100 mt-36 sm:mt-2 md:mt-20"
+                      }`}
+                  >
+                    <div className="inline-block space-y-6 sm:space-y-8">
+                      {/* Est Badge with decorative lines */}
+                      <div className="flex items-center justify-center gap-2 sm:gap-3">
+                        <div className="h-px w-6 sm:w-8 bg-gradient-to-r from-transparent to-slate-300" />
+                        <div className="text-xs sm:text-s font-medium text-slate-400 uppercase tracking-[0.2em] sm:tracking-[0.3em]">
+                          Est. 2013
+                        </div>
+                        <div className="h-px w-6 sm:w-8 bg-gradient-to-l from-transparent to-slate-300" />
+                      </div>
 
-          {/* Main Brand */}
-          <div className="space-y-4 sm:space-y-4">
-            <h1 className="text-5xl md:text-7xl lg:text-9xl font-medium text-slate-800 tracking-tight leading-none">
-              AAKAR
-            </h1>
-            
-            <div className="h-px w-24 sm:w-32 bg-gradient-to-r from-transparent via-slate-300 to-transparent mx-auto" />
-            
-            <p className="text-xl md:text-2xl lg:text-5xl font-extralight text-slate-500 tracking-wide">
-              Infra Services
-            </p>
-          </div>
+                      {/* Main Brand */}
+                      <div className="space-y-4 sm:space-y-4">
+                        <h1 className="text-5xl md:text-7xl lg:text-9xl font-medium text-slate-800 tracking-tight leading-none">
+                          AAKAR
+                        </h1>
 
-         
-          {/* Additional Info - Legacy Statement */}
-         {/* Additional Info - Legacy Statement */}
-          <div className="pt-4 sm:pt-6 space-y-3 sm:space-y-4 px-4">
-            <p className="text-sm md:text-base text-slate-600 font-light tracking-wide max-w-md mx-auto leading-relaxed">
-              Experts in Real Estate Mandates, Construction, and More Since 2013
-            </p>
-            
-            {/* Trust Indicators */}
-            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-slate-500 font-medium">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
-                <span className="tracking-wide">10+ Years</span>
-              </div>
-              <div className="w-px h-3 bg-slate-300" />
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" style={{ animationDelay: '0.2s' }} />
-                <span className="tracking-wide">390+ Projects</span>
-              </div>
-              <div className="w-px h-3 bg-slate-300" />
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" style={{ animationDelay: '0.4s' }} />
-                <span className="tracking-wide">Pune & PCMC</span>
-              </div>
-            </div>
+                        <div className="h-px w-24 sm:w-32 bg-gradient-to-r from-transparent via-slate-300 to-transparent mx-auto" />
 
-            {/* Core Services - Minimal List */}
-            <div className="pt-6 space-y-2 text-xs text-slate-500 font-light tracking-wide">
-              <div className="flex items-center justify-center gap-2">
-                <span>Real Estate Mandates</span>
-                <span className="text-slate-300">•</span>
-                <span>Construction & Building</span>
-              </div>
-              <div className="flex items-center justify-center gap-2">
-                <span>Digital Marketing</span>
-                <span className="text-slate-300">•</span>
-                <span>Finance & Home Loans</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                        <p className="text-xl md:text-2xl lg:text-5xl font-extralight text-slate-500 tracking-wide">
+                          Infra Services
+                        </p>
+                      </div>
 
-      {/* Transition Icon */}
-      {!showNewBrand && (
-        <div className="flex justify-center my-8 sm:my-12 transition-all duration-700">
-          <div className="relative">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 border border-slate-300 rounded-full flex items-center justify-center">
-              <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 animate-spin-slow" />
-            </div>
-            <div className="absolute inset-0 border border-indigo-400 rounded-full animate-ping opacity-20" />
-          </div>
-        </div>
-      )}
 
-      {/* New Brand */}
-      <div
-        className={`transition-all duration-1000 delay-700 ${
-          showNewBrand
-            ? "opacity-100 translate-y-0 scale-100 -mt-83 sm:-mt-70 md:-mt-115"
-            : "opacity-0 translate-y-8 scale-95"
-        }`}
-      >
-        {/* Glow */}
-        <div className="relative inline-block">
-          <div className="absolute -inset-6 sm:-inset-10 bg-gradient-to-r from-indigo-500/5 via-purple-500/10 to-pink-500/5 blur-2xl sm:blur-3xl" />
+                      {/* Additional Info - Legacy Statement */}
+                      {/* Additional Info - Legacy Statement */}
+                      <div className="pt-4 sm:pt-6 space-y-3 sm:space-y-4 px-4">
+                        <p className="text-sm md:text-base text-slate-600 font-light tracking-wide max-w-md mx-auto leading-relaxed">
+                          Experts in Real Estate Mandates, Construction, and More Since 2013
+                        </p>
 
-          <div className="relative px-4">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 mb-3 sm:mb-4 bg-white border border-indigo-200 rounded-full shadow-sm">
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full animate-pulse" />
-              <span className="text-xs sm:text-s font-medium text-indigo-600 uppercase tracking-wider sm:tracking-widest">
-                Reimagined 2025
-              </span>
-            </div>
+                        {/* Trust Indicators */}
+                        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-slate-500 font-medium">
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+                            <span className="tracking-wide">10+ Years</span>
+                          </div>
+                          <div className="w-px h-3 bg-slate-300" />
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" style={{ animationDelay: '0.2s' }} />
+                            <span className="tracking-wide">390+ Projects</span>
+                          </div>
+                          <div className="w-px h-3 bg-slate-300" />
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" style={{ animationDelay: '0.4s' }} />
+                            <span className="tracking-wide">Pune & PCMC</span>
+                          </div>
+                        </div>
 
-            {/* HOUSLY */}
-            <div className="space-y-3 sm:space-y-4">
-              <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tight leading-none uppercase">
-                <span className="bg-[#0076d8] bg-clip-text text-transparent">
-                  hously
-                </span>
-                {/* <span className="bg-gradient-to-br from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-                  ly
-                </span> */}
-              </h1>
-            </div>
-
-            {/* Subtitle */}
-            <div className="flex items-center justify-center gap-3 sm:gap-4 mt-3 sm:mt-4">
-              <div className="h-px w-8 sm:w-12 bg-gradient-to-r from-transparent via-slate-400 to-transparent" />
-              <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-light text-slate-700 tracking-[0.15em] sm:tracking-[0.2em]">
-                FINNTECH REALTY
-              </p>
-              <div className="h-px w-8 sm:w-12 bg-gradient-to-r from-transparent via-slate-400 to-transparent" />
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4 py-4 sm:py-6 px-4">
-          <p className="text-sm sm:text-base md:text-lg text-slate-600 font-light leading-relaxed">
-            From building infrastructure to building futures. Our 12-year legacy continues
-            with an expanded vision—unifying real estate, finance, and technology
-            under one innovative brand.
-          </p>
-        </div>
-
-        {/* Pillars */}
-        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 mt-4 sm:mt-5 px-4">
-          {[
-            { label: "Real Estate", icon: Building2, color: "indigo" },
-            { label: "Finance", icon: TrendingUp, color: "emerald" },
-            { label: "Technology", icon: Cpu, color: "blue" },
-          ].map((pillar, i) => {
-            const Icon = pillar.icon;
-            const colorMap :any= {
-              indigo: { 
-                bg: "bg-indigo-100", 
-                text: "text-indigo-600",
-                highlight: "bg-indigo-500/10",
-                border: "border-indigo-300"
-              },
-              emerald: { 
-                bg: "bg-emerald-100", 
-                text: "text-emerald-600",
-                highlight: "bg-emerald-500/10",
-                border: "border-emerald-300"
-              },
-              blue: { 
-                bg: "bg-blue-100", 
-                text: "text-blue-600",
-                highlight: "bg-blue-500/10",
-                border: "border-blue-300"
-              },
-            };
-            const colors = colorMap[pillar.color];
-            
-            return (
-              <div
-                key={i}
-                className="group relative opacity-0 animate-fade-in-up"
-                style={{ animationDelay: `${900 + i * 120}ms` }}
-              >
-                {/* Glow effect on hover */}
-                <div className={`absolute inset-0 ${colors.highlight} rounded-2xl blur-xl opacity-0 
-                                group-hover:opacity-100 transition-opacity duration-500`} />
-                
-                <div className={`relative px-4 sm:px-6 py-3 sm:py-4 bg-white border border-slate-200 rounded-2xl 
-                                hover:shadow-lg hover:${colors.border} transition-all duration-300
-                                hover:shadow-${pillar.color}-100`}>
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className={`relative p-1.5 sm:p-2 ${colors.bg} rounded-lg group-hover:rotate-[360deg] 
-                                    transition-transform duration-700 ease-in-out overflow-hidden`}>
-                      {/* Shine effect */}
-                      <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full 
-                                    bg-gradient-to-r from-transparent via-white/30 to-transparent 
-                                    transition-transform duration-700" />
-                      
-                      <Icon className={`relative w-4 h-4 sm:w-5 sm:h-5 ${colors.text} group-hover:scale-110 
-                                      transition-transform duration-300`} />
+                        {/* Core Services - Minimal List */}
+                        <div className="pt-6 space-y-2 text-xs text-slate-500 font-light tracking-wide">
+                          <div className="flex items-center justify-center gap-2">
+                            <span>Real Estate Mandates</span>
+                            <span className="text-slate-300">•</span>
+                            <span>Construction & Building</span>
+                          </div>
+                          <div className="flex items-center justify-center gap-2">
+                            <span>Digital Marketing</span>
+                            <span className="text-slate-300">•</span>
+                            <span>Finance & Home Loans</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-slate-700 group-hover:text-slate-900
-                                   transition-colors duration-300">
-                      {pillar.label}
-                    </span>
                   </div>
-                </div>
-                
-                {/* Animated border highlight */}
-                <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 
-                                transition-opacity duration-300 pointer-events-none`}>
-                  <div className={`absolute inset-0 rounded-2xl border-2 ${colors.border} 
-                                  animate-pulse`} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
 
-        {/* Tagline */}
-        <div className="max-w-3xl mx-auto mt-3 sm:mt-4 space-y-2 pb-3 sm:pb-4 px-4">
-          <p className="text-base sm:text-lg md:text-xl text-slate-600 font-light">
-            Building integrated solutions across real estate, finance, and technology.
-          </p>
-
-          <div className="space-y-3 sm:space-y-4">
-            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-              {[
-                { text: "One Vision" },
-                { text: "Three Verticals" },
-                { text: "Limitless Possibilities" }
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 sm:gap-4">
-                  <div className="group relative cursor-default">
-                    <span className="text-xs sm:text-sm font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">
-                      {item.text}
-                    </span>
-                    <div className="absolute -bottom-0.5 left-0 w-0 h-px bg-gradient-to-r from-indigo-500 to-purple-500 group-hover:w-full transition-all duration-500" />
-                  </div>
-                  {i < 2 && (
-                    <div className="relative w-1.5 h-1.5">
-                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full animate-pulse" />
-                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full animate-ping opacity-75" />
+                  {/* Transition Icon */}
+                  {!showNewBrand && (
+                    <div className="flex justify-center my-8 sm:my-12 transition-all duration-700">
+                      <div className="relative">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 border border-slate-300 rounded-full flex items-center justify-center">
+                          <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 animate-spin-slow" />
+                        </div>
+                        <div className="absolute inset-0 border border-indigo-400 rounded-full animate-ping opacity-20" />
+                      </div>
                     </div>
                   )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
-        {/* CTA */}
-        <div className="mb-8 sm:mb-10">
-          <div className="relative inline-block group">
-            {/* Glow effect behind button */}
-            <div className="absolute -inset-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full opacity-20 blur-xl group-hover:opacity-40 transition-opacity duration-500" />
-            
-            {/* Main Button */}
-            <button className="relative inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-10 py-3 sm:py-5 
+                  {/* New Brand */}
+                  <div
+                    className={`transition-all duration-1000 delay-700 ${showNewBrand
+                      ? "opacity-100 translate-y-0 scale-100 -mt-83 sm:-mt-70 md:-mt-115"
+                      : "opacity-0 translate-y-8 scale-95"
+                      }`}
+                  >
+                    {/* Glow */}
+                    <div className="relative inline-block">
+                      <div className="absolute -inset-6 sm:-inset-10 bg-gradient-to-r from-indigo-500/5 via-purple-500/10 to-pink-500/5 blur-2xl sm:blur-3xl" />
+
+                      <div className="relative px-4">
+                        {/* Badge */}
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 mb-3 sm:mb-4 bg-white border border-indigo-200 rounded-full shadow-sm">
+                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full animate-pulse" />
+                          <span className="text-xs sm:text-s font-medium text-indigo-600 uppercase tracking-wider sm:tracking-widest">
+                            Reimagined 2025
+                          </span>
+                        </div>
+
+                        {/* HOUSLY */}
+                        <div className="space-y-3 sm:space-y-4">
+                          <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tight leading-none uppercase">
+                            <span className="bg-[#0076d8] bg-clip-text text-transparent">
+                              hously
+                            </span>
+                            {/* <span className="bg-gradient-to-br from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+                  ly
+                </span> */}
+                          </h1>
+                        </div>
+
+                        {/* Subtitle */}
+                        <div className="flex items-center justify-center gap-3 sm:gap-4 mt-3 sm:mt-4">
+                          <div className="h-px w-8 sm:w-12 bg-gradient-to-r from-transparent via-slate-400 to-transparent" />
+                          <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-light text-slate-700 tracking-[0.15em] sm:tracking-[0.2em]">
+                            FINNTECH REALTY
+                          </p>
+                          <div className="h-px w-8 sm:w-12 bg-gradient-to-r from-transparent via-slate-400 to-transparent" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4 py-4 sm:py-6 px-4">
+                      <p className="text-sm sm:text-base md:text-lg text-slate-600 font-light leading-relaxed">
+                        From building infrastructure to building futures. Our 12-year legacy continues
+                        with an expanded vision—unifying real estate, finance, and technology
+                        under one innovative brand.
+                      </p>
+                    </div>
+
+                    {/* Pillars */}
+                    <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 mt-4 sm:mt-5 px-4">
+                      {[
+                        { label: "Real Estate", icon: Building2, color: "indigo" },
+                        { label: "Finance", icon: TrendingUp, color: "emerald" },
+                        { label: "Technology", icon: Cpu, color: "blue" },
+                      ].map((pillar, i) => {
+                        const Icon = pillar.icon;
+                        const colorMap: any = {
+                          indigo: {
+                            bg: "bg-indigo-100",
+                            text: "text-indigo-600",
+                            highlight: "bg-indigo-500/10",
+                            border: "border-indigo-300"
+                          },
+                          emerald: {
+                            bg: "bg-emerald-100",
+                            text: "text-emerald-600",
+                            highlight: "bg-emerald-500/10",
+                            border: "border-emerald-300"
+                          },
+                          blue: {
+                            bg: "bg-blue-100",
+                            text: "text-blue-600",
+                            highlight: "bg-blue-500/10",
+                            border: "border-blue-300"
+                          },
+                        };
+                        const colors = colorMap[pillar.color];
+
+                        return (
+                          <div
+                            key={i}
+                            className="group relative opacity-0 animate-fade-in-up"
+                            style={{ animationDelay: `${900 + i * 120}ms` }}
+                          >
+                            {/* Glow effect on hover */}
+                            <div className={`absolute inset-0 ${colors.highlight} rounded-2xl blur-xl opacity-0 
+                                group-hover:opacity-100 transition-opacity duration-500`} />
+
+                            <div className={`relative px-4 sm:px-6 py-3 sm:py-4 bg-white border border-slate-200 rounded-2xl 
+                                hover:shadow-lg hover:${colors.border} transition-all duration-300
+                                hover:shadow-${pillar.color}-100`}>
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <div className={`relative p-1.5 sm:p-2 ${colors.bg} rounded-lg group-hover:rotate-[360deg] 
+                                    transition-transform duration-700 ease-in-out overflow-hidden`}>
+                                  {/* Shine effect */}
+                                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full 
+                                    bg-gradient-to-r from-transparent via-white/30 to-transparent 
+                                    transition-transform duration-700" />
+
+                                  <Icon className={`relative w-4 h-4 sm:w-5 sm:h-5 ${colors.text} group-hover:scale-110 
+                                      transition-transform duration-300`} />
+                                </div>
+                                <span className="text-xs sm:text-sm font-medium text-slate-700 group-hover:text-slate-900
+                                  transition-colors duration-300">
+                                  {pillar.label}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Animated border highlight */}
+                            <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 
+                                transition-opacity duration-300 pointer-events-none`}>
+                              <div className={`absolute inset-0 rounded-2xl border-2 ${colors.border} 
+                                  animate-pulse`} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Tagline */}
+                    <div className="max-w-3xl mx-auto mt-3 sm:mt-4 space-y-2 pb-3 sm:pb-4 px-4">
+                      <p className="text-base sm:text-lg md:text-xl text-slate-600 font-light">
+                        Building integrated solutions across real estate, finance, and technology.
+                      </p>
+
+                      <div className="space-y-3 sm:space-y-4">
+                        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+                          {[
+                            { text: "One Vision" },
+                            { text: "Three Verticals" },
+                            { text: "Limitless Possibilities" }
+                          ].map((item, i) => (
+                            <div key={i} className="flex items-center gap-3 sm:gap-4">
+                              <div className="group relative cursor-default">
+                                <span className="text-xs sm:text-sm font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">
+                                  {item.text}
+                                </span>
+                                <div className="absolute -bottom-0.5 left-0 w-0 h-px bg-gradient-to-r from-indigo-500 to-purple-500 group-hover:w-full transition-all duration-500" />
+                              </div>
+                              {i < 2 && (
+                                <div className="relative w-1.5 h-1.5">
+                                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full animate-pulse" />
+                                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full animate-ping opacity-75" />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* CTA */}
+                    <div className="mb-8 sm:mb-10">
+                      <div className="relative inline-block group">
+                        {/* Glow effect behind button */}
+                        <div className="absolute -inset-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full opacity-20 blur-xl group-hover:opacity-40 transition-opacity duration-500" />
+
+                        {/* Main Button */}
+                        <button className="relative inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-10 py-3 sm:py-5 
                              bg-[#0076d8]
                              bg-size-200 bg-pos-0 hover:bg-pos-100
                              text-white rounded-full 
@@ -631,40 +628,40 @@ image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format
                              transition-all duration-500 ease-out
                              border border-white/20
                              overflow-hidden group">
-              {/* Shine effect */}
-              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full 
+                          {/* Shine effect */}
+                          <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full 
                             bg-gradient-to-r from-transparent via-white/20 to-transparent 
                             transition-transform duration-700 ease-out" />
-              
-              <span className="relative text-sm sm:text-base font-semibold tracking-wide">
-                <span className="bg-white bg-clip-text text-transparent 
-                               drop-shadow-[0_1px_2px_rgba(255,255,255,0.3)]">
-                  Explore Our Divisions
-                </span>
-              </span>
-              
-              <ArrowDown className="relative w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:translate-y-1 transition-transform duration-300" />
-              
-              {/* Animated border */}
-              <div className="absolute inset-0 rounded-full border-2 border-white/0 
-                            group-hover:border-white/30 transition-all duration-300" />
-            </button>
-          </div>
-          
-          {/* Scroll hint with icon */}
-          <div className="mt-6 sm:mt-8 flex flex-col items-center gap-2 sm:gap-3 opacity-60 hover:opacity-100 transition-opacity cursor-pointer">
-            {/* Mouse Icon */}
-            <span className="text-xs sm:text-sm text-slate-500 font-medium">Scroll down</span>
 
-            <div className="relative w-5 h-8 sm:w-6 sm:h-10 border-2 border-slate-400 rounded-full flex items-start justify-center pt-1.5 sm:pt-2">
-              <div className="w-0.5 sm:w-1 h-1.5 sm:h-2 bg-slate-400 rounded-full animate-scroll-down" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+                          <span className="relative text-sm sm:text-base font-semibold tracking-wide">
+                            <span className="bg-white bg-clip-text text-transparent 
+                               drop-shadow-[0_1px_2px_rgba(255,255,255,0.3)]">
+                              Explore Our Divisions
+                            </span>
+                          </span>
+
+                          <ArrowDown className="relative w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:translate-y-1 transition-transform duration-300" />
+
+                          {/* Animated border */}
+                          <div className="absolute inset-0 rounded-full border-2 border-white/0 
+                            group-hover:border-white/30 transition-all duration-300" />
+                        </button>
+                      </div>
+
+                      {/* Scroll hint with icon */}
+                      <div className="mt-6 sm:mt-8 flex flex-col items-center gap-2 sm:gap-3 opacity-60 hover:opacity-100 transition-opacity cursor-pointer">
+                        {/* Mouse Icon */}
+                        <span className="text-xs sm:text-sm text-slate-500 font-medium">Scroll down</span>
+
+                        <div className="relative w-5 h-8 sm:w-6 sm:h-10 border-2 border-slate-400 rounded-full flex items-start justify-center pt-1.5 sm:pt-2">
+                          <div className="w-0.5 sm:w-1 h-1.5 sm:h-2 bg-slate-400 rounded-full animate-scroll-down" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
 
             {/* Sector Cards */}
             <div className="max-w-7xl mx-auto px-2 sm:px-3 md:px-4 mt-0 pt-0">
@@ -817,127 +814,145 @@ image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format
             </div>
 
             {/* Timeline Section */}
-          {/* Timeline Section */}
-<div className="mt-12 sm:mt-16 mb-8">
-  {/* Heading */}
-  <div className="text-center mb-6">
-    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 text-slate-800">
-      Our Transformation Journey
-    </h2>
-    <p className="text-xs sm:text-sm text-slate-600">From vision to Realty</p>
-  </div>
+            {/* Timeline Section */}
+            <div className="mt-12 sm:mt-16 mb-8">
+              {/* Heading */}
+              <div className="text-center mb-6">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 text-slate-800">
+                  Our Transformation Journey
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-600">From vision to Realty</p>
+              </div>
 
-  <div className="max-w-5xl mx-auto px-2 sm:px-4">
-    {/* MOBILE VIEW */}
-    <div className="sm:hidden">
-      <div className="relative py-4">
-        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-cyan-500"></div>
-        {timeline.map((item, index) => (
-          <div key={index} className="relative mb-8 last:mb-0 pl-10">
-            {/* Dot */}
-            <div className="absolute left-2.5 top-1 transform -translate-x-1/2 z-10">
-              <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow"></div>
-            </div>
-            {/* Card */}
-            <div className="bg-white/90 rounded-xl p-3 border border-slate-200 shadow">
-              <div className="inline-block px-2 py-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full text-xs font-semibold mb-1.5">
-                {item.year}
-              </div>
-              <h3 className="text-sm font-bold text-slate-800 mb-1">{item.title}</h3>
-              <p className="text-xs text-slate-600 leading-relaxed mb-2">{item.desc}</p>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded-lg mb-2 w-fit">
-                <Award className="w-3 h-3 text-emerald-600 flex-shrink-0" />
-                <span className="text-xs font-medium text-emerald-700">{item.milestone}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1 pt-2 border-t border-slate-100">
-                {item.services.map((service, i) => (
-                  <div key={i} className="flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex-shrink-0"></div>
-                    <span className="text-[10px] text-slate-600">{service}</span>
+              <div className="max-w-5xl mx-auto px-2 sm:px-4">
+                {/* MOBILE VIEW */}
+                <div className="sm:hidden">
+                  <div className="relative py-4">
+                    <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-cyan-500"></div>
+                    {timeline.map((item, index) => (
+                      <div key={index} className="relative mb-8 last:mb-0 pl-10">
+                        {/* Dot */}
+                        <div className="absolute left-2.5 top-1 transform -translate-x-1/2 z-10">
+                          <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow"></div>
+                        </div>
+                        {/* Card */}
+                        <div className="bg-white/90 rounded-xl p-3 border border-slate-200 shadow">
+                          <div className="inline-block px-2 py-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full text-xs font-semibold mb-1.5">
+                            {item.year}
+                          </div>
+                          <h3 className="text-sm font-bold text-slate-800 mb-1">{item.title}</h3>
+                          <p className="text-xs text-slate-600 leading-relaxed mb-2">{item.desc}</p>
+                          <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded-lg mb-2 w-fit">
+                            <Award className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+                            <span className="text-xs font-medium text-emerald-700">{item.milestone}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1 pt-2 border-t border-slate-100">
+                            {item.services.map((service, i) => (
+                              <div key={i} className="flex items-center gap-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex-shrink-0"></div>
+                                <span className="text-[10px] text-slate-600">{service}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+                </div>
 
-    {/* DESKTOP VIEW - Compact Alternating */}
-  {/* DESKTOP VIEW */}
-<div className="hidden sm:block relative overflow-hidden w-full">
-  {/* Timeline Moving Dot */}
-  <TimelineDot cardRefs={timelineRefs} />
+                {/* DESKTOP VIEW - Compact Alternating */}
+                {/* DESKTOP VIEW */}
+                <div className="hidden sm:block relative overflow-hidden w-full">
+                  {/* Timeline Moving Dot */}
+                  <TimelineDot cardRefs={timelineRefs} />
 
-  {timeline.map((item, index) => {
-    const isRight = index % 2 === 0;
-    return (
-      <div
-        key={index}
-        ref={(el:any) => (timelineRefs.current[index] = el)}
-        className="relative flex items-start mb-0 last:mb-0"
-      >
-        {/* LEFT CARD */}
-        <div className={`w-1/2 pr-10 ${isRight ? "block" : "invisible"}`}>
-          {isRight && (
-            <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-5 border border-slate-200 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="inline-block px-3 py-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full text-xs font-semibold mb-2">
-                {item.year}
-              </div>
-              <h3 className="text-base font-bold text-slate-800 mb-2">{item.title}</h3>
-              <p className="text-xs text-slate-600 leading-relaxed mb-3">{item.desc}</p>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded-lg mb-3 w-fit">
-                <Award className="w-3 h-3 text-emerald-600 flex-shrink-0" />
-                <span className="text-xs font-medium text-emerald-700">{item.milestone}</span>
-              </div>
-              <div className="pt-2 border-t border-slate-100">
-                <p className="text-xs font-semibold text-slate-700 mb-1.5">Key Services:</p>
-                <div className="grid grid-cols-2 gap-1">
-                  {item.services.map((service, i) => (
-                    <div key={i} className="flex items-center gap-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
-                      <span className="text-xs text-slate-600">{service}</span>
-                    </div>
-                  ))}
+                  {timeline.map((item, index) => {
+                    const isRight = index % 2 === 0;
+                    return (
+                      <div
+                        key={index}
+                        ref={(el: any) => (timelineRefs.current[index] = el)}
+                        className="relative flex items-start mb-14 last:mb-0"
+                      >
+                        {/* LEFT CARD */}
+                        <div className={`w-1/2 pr-20 ${isRight ? "block" : "invisible"}`}>
+                          {isRight && (
+                            <div className="relative group bg-white/90 backdrop-blur-sm rounded-2xl p-3.5 border border-slate-200 shadow-md hover:shadow-2xl hover:shadow-blue-500/15 hover:border-blue-500/30 hover:-translate-y-2.5 transition-all duration-300 overflow-hidden ml-auto max-w-[340px]">
+                              {/* Top Gradient Border on Hover */}
+                              <div className="absolute top-0 left-0 right-0 h-[4px] bg-gradient-to-r from-blue-600 to-cyan-400 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+
+                              {/* Corner Accents */}
+                              <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-transparent group-hover:border-blue-500 transition-all duration-300"></div>
+                              <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-transparent group-hover:border-cyan-400 transition-all duration-300"></div>
+                              <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-transparent group-hover:border-blue-500 transition-all duration-300"></div>
+                              <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-transparent group-hover:border-cyan-400 transition-all duration-300"></div>
+
+                              <div className="inline-block px-2.5 py-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full text-xs font-semibold mb-1.5">
+                                {item.year}
+                              </div>
+                              <h3 className="text-sm sm:text-base font-bold text-slate-800 mb-1.5">{item.title}</h3>
+                              <p className="text-xs text-slate-600 leading-relaxed mb-2">{item.desc}</p>
+                              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 rounded-lg mb-2 w-fit">
+                                <Award className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+                                <span className="text-[11px] font-medium text-emerald-700">{item.milestone}</span>
+                              </div>
+                              <div className="pt-1.5 border-t border-slate-100">
+                                <p className="text-xs font-semibold text-slate-700 mb-1">Key Services:</p>
+                                <div className="grid grid-cols-2 gap-1">
+                                  {item.services.map((service, i) => (
+                                    <div key={i} className="flex items-center gap-1">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+                                      <span className="text-[11px] text-slate-600">{service}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* RIGHT CARD */}
+                        <div className={`w-1/2 pl-20 ${!isRight ? "block" : "invisible"}`}>
+                          {!isRight && (
+                            <div className="relative group bg-white/90 backdrop-blur-sm rounded-2xl p-3.5 border border-slate-200 shadow-md hover:shadow-2xl hover:shadow-blue-500/15 hover:border-blue-500/30 hover:-translate-y-2.5 transition-all duration-300 overflow-hidden mr-auto max-w-[340px]">
+                              {/* Top Gradient Border on Hover */}
+                              <div className="absolute top-0 left-0 right-0 h-[4px] bg-gradient-to-r from-blue-600 to-cyan-400 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+
+                              {/* Corner Accents */}
+                              <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-transparent group-hover:border-blue-500 transition-all duration-300"></div>
+                              <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-transparent group-hover:border-cyan-400 transition-all duration-300"></div>
+                              <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-transparent group-hover:border-blue-500 transition-all duration-300"></div>
+                              <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-transparent group-hover:border-cyan-400 transition-all duration-300"></div>
+
+                              <div className="inline-block px-2.5 py-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full text-xs font-semibold mb-1.5">
+                                {item.year}
+                              </div>
+                              <h3 className="text-sm sm:text-base font-bold text-slate-800 mb-1.5">{item.title}</h3>
+                              <p className="text-xs text-slate-600 leading-relaxed mb-2">{item.desc}</p>
+                              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 rounded-lg mb-2 w-fit">
+                                <Award className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+                                <span className="text-[11px] font-medium text-emerald-700">{item.milestone}</span>
+                              </div>
+                              <div className="pt-1.5 border-t border-slate-100">
+                                <p className="text-xs font-semibold text-slate-700 mb-1">Key Services:</p>
+                                <div className="grid grid-cols-2 gap-1">
+                                  {item.services.map((service, i) => (
+                                    <div key={i} className="flex items-center gap-1">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+                                      <span className="text-[11px] text-slate-600">{service}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* RIGHT CARD */}
-        <div className={`w-1/2 pl-10 ${!isRight ? "block" : "invisible"}`}>
-          {!isRight && (
-            <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-5 border border-slate-200 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="inline-block px-3 py-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full text-xs font-semibold mb-2">
-                {item.year}
-              </div>
-              <h3 className="text-base font-bold text-slate-800 mb-2">{item.title}</h3>
-              <p className="text-xs text-slate-600 leading-relaxed mb-3">{item.desc}</p>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded-lg mb-3 w-fit">
-                <Award className="w-3 h-3 text-emerald-600 flex-shrink-0" />
-                <span className="text-xs font-medium text-emerald-700">{item.milestone}</span>
-              </div>
-              <div className="pt-2 border-t border-slate-100">
-                <p className="text-xs font-semibold text-slate-700 mb-1.5">Key Services:</p>
-                <div className="grid grid-cols-2 gap-1">
-                  {item.services.map((service, i) => (
-                    <div key={i} className="flex items-center gap-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
-                      <span className="text-xs text-slate-600">{service}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  })}
-</div>
-  </div>
-</div>
 
             {/* CTA Section */}
             <div className="mt-12 sm:mt-20 md:mt-32 mb-0 w-full">
@@ -1172,3 +1187,5 @@ const ComingSoonModal = ({
 };
 
 export default WelcomePage;
+
+

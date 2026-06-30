@@ -25,6 +25,7 @@ import {
 import { FaWhatsapp } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
 import { teamApi, type TeamMember, type SocialLink } from '../../lib/teamApi';
+import { useOutletContext } from 'react-router-dom';
 
 
 
@@ -54,6 +55,50 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+
+  /* ── delete confirm states ── */
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deleteTargetIds, setDeleteTargetIds] = useState<number[] | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  const handleDeleteClick = (id: number) => {
+    setDeleteTargetId(id);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleBulkDeleteClick = () => {
+    if (selectedMembers.length === 0) {
+      toast.error('Please select team members to delete');
+      return;
+    }
+    setDeleteTargetIds(selectedMembers);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const proceedDelete = async (id: number) => {
+    const deleteToast = toast.loading('Deleting team member...');
+    try {
+      await teamApi.delete(id);
+      toast.success('Team member deleted successfully', { id: deleteToast });
+      fetchTeamMembers();
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      toast.error(error.message || 'Failed to delete team member', { id: deleteToast });
+    }
+  };
+
+  const proceedBulkDelete = async (ids: number[]) => {
+    const deleteToast = toast.loading(`Deleting ${ids.length} team member(s)...`);
+    try {
+      await teamApi.bulkDelete(ids);
+      toast.success(`Successfully deleted ${ids.length} team member(s)`, { id: deleteToast });
+      setSelectedMembers([]);
+      fetchTeamMembers();
+    } catch (error: any) {
+      console.error('Bulk delete error:', error);
+      toast.error(error.message || 'Failed to delete team members', { id: deleteToast });
+    }
+  };
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([
     { platform: "linkedin", url: "" },
   ]);
@@ -66,73 +111,85 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
     is_active: true,
   });
 
+  const { setHeaderTitle, setHeaderSubtitle } = useOutletContext<{
+    setHeaderTitle: (title: string) => void;
+    setHeaderSubtitle: (subtitle: string) => void;
+  }>() || {};
+
+  useEffect(() => {
+    if (setHeaderTitle && setHeaderSubtitle) {
+      setHeaderTitle('Team Members CMS');
+      setHeaderSubtitle(`Manage executive profile roles and contact linkages (${teamMembers.length} records)`);
+    }
+  }, [teamMembers.length, setHeaderTitle, setHeaderSubtitle]);
+
   useEffect(() => {
     fetchTeamMembers();
   }, []);
 
-  
 
 
- const fetchTeamMembers = async () => {
-  try {
-    setLoading(true);
-    const members = await teamApi.getAll(true); // true for admin (show all)
-    const sortedMembers = members.sort((a, b) => a.display_order - b.display_order);
-    setTeamMembers(sortedMembers);
-  } catch (error: any) {
-    console.error('Failed to fetch team members:', error);
-    toast.error(error.message || 'Failed to load team members');
-  } finally {
-    setLoading(false);
-  }
-};
+
+  const fetchTeamMembers = async () => {
+    try {
+      setLoading(true);
+      const members = await teamApi.getAll(true); // true for admin (show all)
+      const sortedMembers = members.sort((a, b) => a.display_order - b.display_order);
+      setTeamMembers(sortedMembers);
+    } catch (error: any) {
+      console.error('Failed to fetch team members:', error);
+      toast.error(error.message || 'Failed to load team members');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const uploadImageToServer = async (file: File): Promise<string> => {
-  try {
-    setUploadingImage(true);
-    const result = await teamApi.uploadImage(file);
-    return result.url; // Returns relative path like /uploads/team/filename.jpg
-  } catch (error: any) {
-    console.error('Upload error:', error);
-    toast.error(error.message || 'Failed to upload image');
-    throw error;
-  } finally {
-    setUploadingImage(false);
-  }
-};
+    try {
+      setUploadingImage(true);
+      const result = await teamApi.uploadImage(file);
+      return result.url; // Returns relative path like /uploads/team/filename.jpg
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast.error(error.message || 'Failed to upload image');
+      throw error;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
- const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  if (!file.type.startsWith("image/")) {
-    toast.error("Please select a valid image file (PNG, JPG, JPEG, GIF, WEBP)");
-    return;
-  }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file (PNG, JPG, JPEG, GIF, WEBP)");
+      return;
+    }
 
-  if (file.size > 5 * 1024 * 1024) {
-    toast.error("Image size should be less than 5MB");
-    return;
-  }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
 
-  setSelectedFile(file);
-  const previewUrl = URL.createObjectURL(file);
-  setImagePreview(previewUrl);
+    setSelectedFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
 
-  // Auto upload immediately
-  try {
-    setUploadingImage(true);
-    const uploadedUrl = await teamApi.uploadImage(file);
-    setFormData(prev => ({ ...prev, image_url: uploadedUrl.url }));
-    toast.success("Image uploaded successfully!");
-    setSelectedFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  } catch (error) {
-    toast.error("Failed to upload image");
-  } finally {
-    setUploadingImage(false);
-  }
-};
+    // Auto upload immediately
+    try {
+      setUploadingImage(true);
+      const uploadedUrl = await teamApi.uploadImage(file);
+      setFormData(prev => ({ ...prev, image_url: uploadedUrl.url }));
+      toast.success("Image uploaded successfully!");
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (error) {
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handleImageUpload = async () => {
     if (!selectedFile) {
@@ -211,234 +268,201 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!formData.name.trim()) {
-    toast.error("Name is required");
-    return;
-  }
-
-  if (!formData.role.trim()) {
-    toast.error("Role is required");
-    return;
-  }
-
-  if (!formData.image_url.trim()) {
-    toast.error("Image is required");
-    return;
-  }
-
-  // Validate WhatsApp URLs
-  const whatsappLink = socialLinks.find(
-    (link) => link.platform === "whatsapp"
-  );
-  if (
-    whatsappLink &&
-    whatsappLink.url &&
-    !whatsappLink.url.match(/^[\d+\s\-()]+$/) &&
-    !whatsappLink.url.startsWith("http")
-  ) {
-    toast.error(
-      "Please enter a valid WhatsApp number (digits only with optional +, spaces, dashes, parentheses)"
-    );
-    return;
-  }
-
-  try {
-    const payload = {
-      name: formData.name,
-      role: formData.role,
-      description: formData.description,
-      image_url: formData.image_url,
-      is_active: formData.is_active,
-      social_links: socialLinks,
-      display_order: editingMember ? editingMember.display_order : teamMembers.length,
-    };
-
-
-    if (editingMember) {
-      await teamApi.update(editingMember.id, payload);
-      toast.success("Team member updated successfully");
-    } else {
-      await teamApi.create(payload);
-      toast.success("Team member created successfully");
+    if (!formData.name.trim()) {
+      toast.error("Name is required");
+      return;
     }
 
-    fetchTeamMembers();
-    handleCloseModal();
-  } catch (error: any) {
-    console.error("Error saving team member:", error);
-    toast.error(error.message || "Failed to save team member");
-  }
-};
+    if (!formData.role.trim()) {
+      toast.error("Role is required");
+      return;
+    }
+
+    if (!formData.image_url.trim()) {
+      toast.error("Image is required");
+      return;
+    }
+
+    // Validate WhatsApp URLs
+    const whatsappLink = socialLinks.find(
+      (link) => link.platform === "whatsapp"
+    );
+    if (
+      whatsappLink &&
+      whatsappLink.url &&
+      !whatsappLink.url.match(/^[\d+\s\-()]+$/) &&
+      !whatsappLink.url.startsWith("http")
+    ) {
+      toast.error(
+        "Please enter a valid WhatsApp number (digits only with optional +, spaces, dashes, parentheses)"
+      );
+      return;
+    }
+
+    try {
+      const payload = {
+        name: formData.name,
+        role: formData.role,
+        description: formData.description,
+        image_url: formData.image_url,
+        is_active: formData.is_active,
+        social_links: socialLinks,
+        display_order: editingMember ? editingMember.display_order : teamMembers.length,
+      };
+
+
+      if (editingMember) {
+        await teamApi.update(editingMember.id, payload);
+        toast.success("Team member updated successfully");
+      } else {
+        await teamApi.create(payload);
+        toast.success("Team member created successfully");
+      }
+
+      fetchTeamMembers();
+      handleCloseModal();
+    } catch (error: any) {
+      console.error("Error saving team member:", error);
+      toast.error(error.message || "Failed to save team member");
+    }
+  };
 
   const handleEdit = (member: TeamMember) => {
-  setEditingMember(member);
-  setFormData({
-    name: member.name,
-    role: member.role,
-    description: member.description || "",
-    image_url: member.image_url || "",
-    is_active: member.is_active,
-  });
+    setEditingMember(member);
+    setFormData({
+      name: member.name,
+      role: member.role,
+      description: member.description || "",
+      image_url: member.image_url || "",
+      is_active: member.is_active,
+    });
 
-  // Parse social links - use social_links_parsed if available, otherwise parse
-  let parsedLinks: SocialLink[] = [];
-  if (member.social_links_parsed && member.social_links_parsed.length > 0) {
-    parsedLinks = member.social_links_parsed;
-  } else if (member.social_links) {
-    parsedLinks = parseSocialLinks(member.social_links);
-  }
-  
-  setSocialLinks(parsedLinks.length > 0 ? parsedLinks : [{ platform: "linkedin", url: "" }]);
+    // Parse social links - use social_links_parsed if available, otherwise parse
+    let parsedLinks: SocialLink[] = [];
+    if (member.social_links_parsed && member.social_links_parsed.length > 0) {
+      parsedLinks = member.social_links_parsed;
+    } else if (member.social_links) {
+      parsedLinks = parseSocialLinks(member.social_links);
+    }
 
-  if (member.image_url) {
-    setImagePreview(member.image_url);
-  }
+    setSocialLinks(parsedLinks.length > 0 ? parsedLinks : [{ platform: "linkedin", url: "" }]);
 
-  setIsModalOpen(true);
-};
+    if (member.image_url) {
+      setImagePreview(member.image_url);
+    }
 
-const handleDelete = async (id: number) => {
-  const deleteToast = toast.loading('Deleting team member...');
+    setIsModalOpen(true);
+  };
 
-  try {
-    await teamApi.delete(id);
-    toast.success('Team member deleted successfully', { id: deleteToast });
-    fetchTeamMembers();
-  } catch (error: any) {
-    console.error('Delete error:', error);
-    toast.error(error.message || 'Failed to delete team member', { id: deleteToast });
-  }
-};
+  /* Deletion triggers confirm modal */
 
-const handleBulkDelete = async () => {
-  if (selectedMembers.length === 0) {
-    toast.error('Please select team members to delete');
-    return;
-  }
-
-  const deleteToast = toast.loading(`Deleting ${selectedMembers.length} team member(s)...`);
-
-  try {
-    await teamApi.bulkDelete(selectedMembers);
-    toast.success(
-      `Successfully deleted ${selectedMembers.length} team member(s)`,
-      { id: deleteToast }
-    );
-    setSelectedMembers([]);
-    fetchTeamMembers();
-  } catch (error: any) {
-    console.error('Bulk delete error:', error);
-    toast.error(error.message || 'Failed to delete team members', { id: deleteToast });
-  }
-};
-
- const handleToggleActive = async (memberId: number, currentStatus: boolean) => {
-  const toggleToast = toast.loading(
-    currentStatus ? "Deactivating team member..." : "Activating team member..."
-  );
-
-  try {
-    await teamApi.toggleStatus(memberId);
-    
-    setTeamMembers((prevMembers) =>
-      prevMembers.map((member) =>
-        member.id === memberId ? { ...member, is_active: !currentStatus } : member
-      )
+  const handleToggleActive = async (memberId: number, currentStatus: boolean) => {
+    const toggleToast = toast.loading(
+      currentStatus ? "Deactivating team member..." : "Activating team member..."
     );
 
-    toast.success(
-      `Team member ${!currentStatus ? "activated" : "deactivated"} successfully`,
-      { id: toggleToast }
-    );
-  } catch (error: any) {
-    console.error("Toggle error:", error);
-    toast.error(error.message || "Failed to toggle status", { id: toggleToast });
-  }
-};
+    try {
+      await teamApi.toggleStatus(memberId);
 
-const handleBulkToggleActive = async (activate: boolean) => {
-  if (selectedMembers.length === 0) {
-    toast.error("Please select team members to update");
-    return;
-  }
+      setTeamMembers((prevMembers) =>
+        prevMembers.map((member) =>
+          member.id === memberId ? { ...member, is_active: !currentStatus } : member
+        )
+      );
 
-  const toggleToast = toast.loading(
-    `${activate ? "Activating" : "Deactivating"} ${selectedMembers.length} team member(s)...`
-  );
+      toast.success(
+        `Team member ${!currentStatus ? "activated" : "deactivated"} successfully`,
+        { id: toggleToast }
+      );
+    } catch (error: any) {
+      console.error("Toggle error:", error);
+      toast.error(error.message || "Failed to toggle status", { id: toggleToast });
+    }
+  };
 
-  try {
-    await teamApi.bulkToggleActive(selectedMembers);
-
-    setTeamMembers((prevMembers) =>
-      prevMembers.map((member) =>
-        selectedMembers.includes(member.id) ? { ...member, is_active: activate } : member
-      )
-    );
-
-    toast.success(
-      `Successfully ${activate ? "activated" : "deactivated"} ${selectedMembers.length} team member(s)`,
-      { id: toggleToast }
-    );
-  } catch (error: any) {
-    console.error("Bulk toggle error:", error);
-    toast.error(error.message || "Failed to update team members", { id: toggleToast });
-  }
-};
-
- const handleReorder = async (memberId: number, direction: "up" | "down") => {
-  const reorderToast = toast.loading("Reordering team members...");
-
-  try {
-    const currentIndex = teamMembers.findIndex((m) => m.id === memberId);
-    if (currentIndex === -1) {
-      toast.error("Team member not found", { id: reorderToast });
+  const handleBulkToggleActive = async (activate: boolean) => {
+    if (selectedMembers.length === 0) {
+      toast.error("Please select team members to update");
       return;
     }
 
-    if (direction === "up" && currentIndex === 0) {
-      toast.error("Already at the top", { id: reorderToast });
-      return;
+    const toggleToast = toast.loading(
+      `${activate ? "Activating" : "Deactivating"} ${selectedMembers.length} team member(s)...`
+    );
+
+    try {
+      await teamApi.bulkToggleActive(selectedMembers);
+
+      setTeamMembers((prevMembers) =>
+        prevMembers.map((member) =>
+          selectedMembers.includes(member.id) ? { ...member, is_active: activate } : member
+        )
+      );
+
+      toast.success(
+        `Successfully ${activate ? "activated" : "deactivated"} ${selectedMembers.length} team member(s)`,
+        { id: toggleToast }
+      );
+    } catch (error: any) {
+      console.error("Bulk toggle error:", error);
+      toast.error(error.message || "Failed to update team members", { id: toggleToast });
     }
-    if (direction === "down" && currentIndex === teamMembers.length - 1) {
-      toast.error("Already at the bottom", { id: reorderToast });
-      return;
+  };
+
+  const handleReorder = async (memberId: number, direction: "up" | "down") => {
+    const reorderToast = toast.loading("Reordering team members...");
+
+    try {
+      const currentIndex = teamMembers.findIndex((m) => m.id === memberId);
+      if (currentIndex === -1) {
+        toast.error("Team member not found", { id: reorderToast });
+        return;
+      }
+
+      if (direction === "up" && currentIndex === 0) {
+        toast.error("Already at the top", { id: reorderToast });
+        return;
+      }
+      if (direction === "down" && currentIndex === teamMembers.length - 1) {
+        toast.error("Already at the bottom", { id: reorderToast });
+        return;
+      }
+
+      const swapIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+      const updatedMembers = [...teamMembers];
+      [updatedMembers[currentIndex], updatedMembers[swapIndex]] = [
+        updatedMembers[swapIndex],
+        updatedMembers[currentIndex],
+      ];
+
+      // Update display_order
+      const orderData = updatedMembers.map((member, index) => ({
+        id: member.id,
+        display_order: index,
+      }));
+
+      await teamApi.reorder(orderData);
+
+      setTeamMembers(updatedMembers);
+      toast.success("Team member moved successfully!", { id: reorderToast });
+    } catch (error: any) {
+      console.error("Reorder error:", error);
+      toast.error(error.message || "Failed to move team member", { id: reorderToast });
+      fetchTeamMembers(); // Refresh to fix any inconsistencies
     }
-
-    const swapIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    const updatedMembers = [...teamMembers];
-    [updatedMembers[currentIndex], updatedMembers[swapIndex]] = [
-      updatedMembers[swapIndex],
-      updatedMembers[currentIndex],
-    ];
-
-    // Update display_order
-    const orderData = updatedMembers.map((member, index) => ({
-      id: member.id,
-      display_order: index,
-    }));
-
-    await teamApi.reorder(orderData);
-
-    setTeamMembers(updatedMembers);
-    toast.success("Team member moved successfully!", { id: reorderToast });
-  } catch (error: any) {
-    console.error("Reorder error:", error);
-    toast.error(error.message || "Failed to move team member", { id: reorderToast });
-    fetchTeamMembers(); // Refresh to fix any inconsistencies
-  }
-};
-// CORRECT
-const getImageDisplayUrl = (url: string) => {
-  if (!url) return "";
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  if (url.startsWith("/uploads/")) {
-    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-    return `${baseUrl}${url}`;
-  }
-  return url;
-};
+  };
+  // CORRECT
+  const getImageDisplayUrl = (url: string) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    if (url.startsWith("/uploads/")) {
+      const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+      return `${baseUrl}${url}`;
+    }
+    return url;
+  };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -579,7 +603,7 @@ const getImageDisplayUrl = (url: string) => {
   }
 
   return (
-    <div className="bg-white ">
+    <div>
       <Toaster
         position="top-right"
         toastOptions={{
@@ -608,160 +632,84 @@ const getImageDisplayUrl = (url: string) => {
 
       {/* Main Container */}
       <div
-        className={`transition-all duration-300 ${
-          isSidebarOpen ? "ml-0 sm:ml-0" : ""
-        }`}
+        className={`transition-all duration-300 ${isSidebarOpen ? "ml-0 sm:ml-0" : ""
+          }`}
       >
-        {/* Header - Fixed with sidebar consideration */}
-       <div
-  className={`${
-    isSidebarOpen
-      ? "relative sm:sticky sm:top-4 lg:top-16"
-      : "sticky top-0 sm:top-4 lg:top-16"
-  } z-30 bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4`}
->
-  {/* Blue Title Section */}
-  <div className="bg-blue-200 text-black rounded-t-lg sm:rounded-t-xl">
-    <div className="px-2 py-1.5 sm:px-3 sm:py-2">
-      <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-2">
-        <div className="flex items-center space-x-2">
-          <div className="bg-white/20 p-1 rounded-md">
-            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </div>
-          <h1 className="text-sm sm:text-base font-bold tracking-tight">
-            Team Management
-          </h1>
-        </div>
-        <button
-              onClick={() => setIsModalOpen(true)}
-              className="sm:hidden flex bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-2 rounded-md items-center gap-1.5 text-xs"
-            >
-              <Plus size={14} />
-              <span>Add Member</span>
-            </button>
-      </div>
-    </div>
-  </div>
 
-  {/* White Content Section - Show only when sidebar is closed on mobile */}
-  {(!isSidebarOpen || window.innerWidth >= 640) && (
-    <div className="bg-white rounded-b-lg sm:rounded-b-xl">
-      <div className="px-2 py-2 sm:px-3 sm:py-2.5">
-        {/* Header with Actions */}
-        <div className="flex flex-row justify-between items-center gap-1.5 mb-2 sm:mb-2.5">
-          <div className="flex items-baseline gap-2">
-            <h2 className="text-xs sm:text-sm font-semibold text-gray-800">
-              Team Members ({teamMembers.length})
-            </h2>
-            <span className="text-[11px] text-gray-500 hidden sm:inline">Manage your team</span>
+
+        {/* Stats Cards Row */}
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="bg-blue-100/40 border border-blue-100/30 rounded-xl px-3.5 py-2 shadow-sm hover:shadow-md backdrop-blur-md transition-all duration-300 flex items-center justify-between h-15">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Total Members</p>
+            <p className="text-sm font-extrabold text-blue-600">{totalMembers}</p>
           </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="hidden sm:flex bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-md items-center gap-1.5 text-xs"
-            >
-              <Plus size={14} />
-              <span>Add Member</span>
-            </button>
-            <div className="sm:hidden flex items-center gap-1.5">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`p-1 rounded ${
-                  viewMode === "grid"
-                    ? "bg-blue-100 text-blue-600"
-                    : "text-gray-600"
-                }`}
-              >
-                <Grid size={16} />
-              </button>
-              <button
-                onClick={() => setViewMode("table")}
-                className={`p-1 rounded ${
-                  viewMode === "table"
-                    ? "bg-blue-100 text-blue-600"
-                    : "text-gray-600"
-                }`}
-              >
-                <List size={16} />
-              </button>
-            </div>
+          <div className="bg-emerald-100/40 border border-emerald-100/30 rounded-xl px-3.5 py-2 shadow-sm hover:shadow-md backdrop-blur-md transition-all duration-300 flex items-center justify-between h-15">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Active</p>
+            <p className="text-sm font-extrabold text-emerald-600">{activeMembers}</p>
+          </div>
+          <div className="bg-gray-100/40 border border-gray-100/30 rounded-xl px-3.5 py-2 shadow-sm hover:shadow-md backdrop-blur-md transition-all duration-300 flex items-center justify-between h-15">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Inactive</p>
+            <p className="text-sm font-extrabold text-slate-600">{inactiveMembers}</p>
           </div>
         </div>
 
-        {/* Stats Cards - Responsive */}
-        <div className="grid grid-cols-3 gap-1.5 mb-2 sm:mb-3">
-          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 sm:p-2">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] sm:text-xs text-gray-500">Total</p>
-              <p className="text-sm sm:text-base font-bold text-gray-900">{totalMembers}</p>
-            </div>
-          </div>
-          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 sm:p-2">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] sm:text-xs text-gray-500">Active</p>
-              <p className="text-sm sm:text-base font-bold text-green-600">{activeMembers}</p>
-            </div>
-          </div>
-          <div className="bg-white rounded border border-gray-200 px-1.5 py-1 sm:p-2">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] sm:text-xs text-gray-500">Inactive</p>
-              <p className="text-sm sm:text-base font-bold text-gray-600">{inactiveMembers}</p>
-            </div>
-          </div>
+        {/* Action Button Row - on top */}
+        <div className="flex justify-end mb-2 mt-4">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-[#0D47A1] hover:bg-[#1976D2] text-white px-3 py-1 rounded-lg flex items-center gap-1 transition-all shadow-sm text-[11px] font-bold cursor-pointer h-7 justify-center"
+          >
+            <Plus size={12} />
+            <span>Add Member</span>
+          </button>
         </div>
 
-        {/* Search and Filter Bar */}
-        <div className="bg-white rounded">
-          <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search team members..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full pl-6 sm:pl-8 pr-2 sm:pr-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+        {/* Filters Bar */}
+        <div className="bg-white/40 backdrop-blur-md border border-white/20 rounded-xl p-3 mb-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search team members..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="pl-8 pr-3 py-1.5 w-full bg-white/60 focus:bg-white border border-slate-200/60 rounded-lg text-[11px] font-semibold text-slate-800 placeholder-slate-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+              />
             </div>
-            
-            <div className="flex items-center gap-1.5 sm:gap-2">
+
+            <div className="flex items-center gap-2">
               <select
                 value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(e.target.value as any);
                   setCurrentPage(1);
                 }}
-                className="px-1.5 py-1 sm:px-2 sm:py-1.5 text-xs sm:text-sm border border-gray-300 rounded bg-white"
+                className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none"
               >
-                <option value="all">All</option>
+                <option value="all">All Status</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
-              
+
               <select
                 value={itemsPerPage}
                 onChange={(e) => {
                   setItemsPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="px-1.5 py-1 sm:px-2 sm:py-1.5 text-xs sm:text-sm border border-gray-300 rounded bg-white"
+                className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none"
               >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="25">25</option>
+                <option value="5">Show 5</option>
+                <option value="10">Show 10</option>
+                <option value="25">Show 25</option>
               </select>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  )}
-</div>
         {/* Bulk Actions Bar - Hide when sidebar is open on mobile */}
         {selectedMembers.length > 0 &&
           (!isSidebarOpen || window.innerWidth >= 640) && (
@@ -790,8 +738,8 @@ const getImageDisplayUrl = (url: string) => {
                   </div>
                 </div>
                 <button
-                  onClick={handleBulkDelete}
-                  className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm bg-red-600 text-white rounded hover:bg-red-700 transition mt-1 sm:mt-0"
+                  onClick={handleBulkDeleteClick}
+                  className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm bg-red-600 text-white rounded hover:bg-red-700 transition mt-1 sm:mt-0 cursor-pointer font-bold"
                 >
                   Delete ({selectedMembers.length})
                 </button>
@@ -842,11 +790,10 @@ const getImageDisplayUrl = (url: string) => {
                       onClick={() =>
                         handleToggleActive(member.id, member.is_active)
                       }
-                      className={`px-2 py-0.5 rounded-full text-xs ${
-                        member.is_active
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
+                      className={`px-2 py-0.5 rounded-full text-xs ${member.is_active
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
+                        }`}
                     >
                       {member.is_active ? "Active" : "Inactive"}
                     </button>
@@ -905,8 +852,8 @@ const getImageDisplayUrl = (url: string) => {
                         <Edit size={16} />
                       </button>
                       <button
-                        onClick={() => handleDelete(member.id)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                        onClick={() => handleDeleteClick(member.id)}
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -920,78 +867,78 @@ const getImageDisplayUrl = (url: string) => {
         {/* Table View - Hide when sidebar is open on mobile */}
         {viewMode === "table" &&
           (!isSidebarOpen || window.innerWidth >= 640) && (
-            <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 shadow-sm sm:shadow-lg overflow-hidden">
+            <div className="flex flex-col justify-between min-h-[480px] bg-white/40 backdrop-blur-md rounded-xl border border-white/20 shadow-sm overflow-hidden">
               {currentMembers.length === 0 ? (
                 <div className="p-6 sm:p-12 text-center">
                   <Users className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                  <p className="text-gray-600 text-sm sm:text-lg">
+                  <p className="text-slate-600 text-sm sm:text-lg">
                     No team members found
                   </p>
                   {searchTerm || statusFilter !== "all" ? (
-                    <p className="text-gray-500 text-xs sm:text-sm mt-1 sm:mt-2">
+                    <p className="text-slate-500 text-xs sm:text-sm mt-1 sm:mt-2">
                       Try adjusting your search or filter criteria
                     </p>
                   ) : (
                     <button
                       onClick={() => setIsModalOpen(true)}
-                      className="mt-3 sm:mt-4 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg flex items-center space-x-1.5 sm:space-x-2 mx-auto text-xs sm:text-sm"
+                      className="mt-3 bg-[#0D47A1] hover:bg-[#1976D2] text-white px-3 py-1.5 rounded-lg flex items-center space-x-1.5 mx-auto text-xs font-semibold cursor-pointer"
                     >
-                      <Plus size={14} className="sm:size-[20px]" />
+                      <Plus size={14} />
                       <span>Add New Team Member</span>
                     </button>
                   )}
                 </div>
               ) : (
                 <>
-                  <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] max-h-[calc(100vh-320px)] sm:max-h-[calc(100vh-340px)]">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky z-20">
+                  <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    <table className="min-w-full border-collapse border border-slate-300">
+                      <thead className="bg-slate-200/50 backdrop-blur-md sticky top-0 z-20">
                         <tr>
-                          <th className="px-3 sm:px-6 py-2 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-10 sm:w-12">
+                          <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-8 border-r border-b border-slate-300">
                             <div className="flex items-center">
                               <input
                                 type="checkbox"
                                 checked={
                                   selectedMembers.length ===
-                                    currentMembers.length &&
+                                  currentMembers.length &&
                                   currentMembers.length > 0
                                 }
                                 onChange={handleSelectAll}
-                                className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 rounded focus:ring-blue-500"
+                                className="h-3 w-3 text-[#0D47A1] rounded focus:ring-[#0D47A1] cursor-pointer"
                               />
                             </div>
                           </th>
-                          <th className="px-3 sm:px-6 py-2 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-20 border-r border-b border-slate-300">
                             Order
                           </th>
-                          <th className="px-3 sm:px-6 py-2 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-20 border-r border-b border-slate-300">
                             Image
                           </th>
-                          <th className="px-3 sm:px-6 py-2 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-40 border-r border-b border-slate-300">
                             Name
                           </th>
-                          <th className="px-3 sm:px-6 py-2 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-36 border-r border-b border-slate-300">
                             Role
                           </th>
-                          <th className="px-3 sm:px-6 py-2 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-40 border-r border-b border-slate-300">
                             Social Links
                           </th>
-                          <th className="px-3 sm:px-6 py-2 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-20 border-r border-b border-slate-300">
                             Status
                           </th>
-                          <th className="px-3 sm:px-6 py-2 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          <th className="px-2 py-1 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider w-20 border-b border-slate-300">
                             Actions
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <tbody className="bg-transparent">
                         {currentMembers.map((member) => {
                           return (
                             <tr
                               key={member.id}
-                              className="hover:bg-blue-50/50 transition-colors"
+                              className="hover:bg-blue-50/50 bg-white/20 transition-all duration-200"
                             >
-                              <td className="px-3 sm:px-6 py-2 sm:py-4">
+                              <td className="px-2 py-1 border-r border-b border-slate-200">
                                 <div className="flex items-center">
                                   <input
                                     type="checkbox"
@@ -1001,50 +948,48 @@ const getImageDisplayUrl = (url: string) => {
                                     onChange={() =>
                                       handleSelectMember(member.id)
                                     }
-                                    className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 rounded focus:ring-blue-500"
+                                    className="h-3 w-3 text-[#0D47A1] rounded focus:ring-[#0D47A1] cursor-pointer"
                                   />
                                 </div>
                               </td>
-                              <td className="px-3 sm:px-6 py-2 sm:py-4">
-                                <div className="flex flex-col items-center space-y-1 sm:space-y-2">
-                                  <div className="flex items-center space-x-1 sm:space-x-2">
-                                    <button
-                                      onClick={() =>
-                                        handleReorder(member.id, "up")
-                                      }
-                                      disabled={member.display_order === 0}
-                                      className="p-0.5 sm:p-1.5 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition"
-                                      title="Move up"
-                                    >
-                                      <MoveUp
-                                        size={12}
-                                        className="sm:size-[14px] text-gray-600"
-                                      />
-                                    </button>
-                                    <span className="font-bold text-gray-900 text-xs sm:text-sm min-w-[20px] sm:min-w-[24px] text-center">
-                                      {member.display_order + 1}
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        handleReorder(member.id, "down")
-                                      }
-                                      disabled={
-                                        member.display_order ===
-                                        teamMembers.length - 1
-                                      }
-                                      className="p-0.5 sm:p-1.5 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition"
-                                      title="Move down"
-                                    >
-                                      <MoveDown
-                                        size={12}
-                                        className="sm:size-[14px] text-gray-600"
-                                      />
-                                    </button>
-                                  </div>
+                              <td className="px-2 py-1 border-r border-b border-slate-200">
+                                <div className="flex items-center space-x-1 justify-center">
+                                  <button
+                                    onClick={() =>
+                                      handleReorder(member.id, "up")
+                                    }
+                                    disabled={member.display_order === 0}
+                                    className="p-0.5 hover:bg-slate-100 rounded disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                                    title="Move up"
+                                  >
+                                    <MoveUp
+                                      size={11}
+                                      className="text-slate-600"
+                                    />
+                                  </button>
+                                  <span className="font-bold text-slate-800 text-[11px] min-w-[16px] text-center">
+                                    {member.display_order + 1}
+                                  </span>
+                                  <button
+                                    onClick={() =>
+                                      handleReorder(member.id, "down")
+                                    }
+                                    disabled={
+                                      member.display_order ===
+                                      teamMembers.length - 1
+                                    }
+                                    className="p-0.5 hover:bg-slate-100 rounded disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                                    title="Move down"
+                                  >
+                                    <MoveDown
+                                      size={11}
+                                      className="text-slate-600"
+                                    />
+                                  </button>
                                 </div>
                               </td>
-                              <td className="px-3 sm:px-6 py-2 sm:py-4">
-                                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                              <td className="px-2 py-1 border-r border-b border-slate-200">
+                                <div className="w-12 h-10 rounded overflow-hidden bg-slate-100 border border-slate-200">
                                   {member.image_url ? (
                                     <img
                                       src={getImageDisplayUrl(member.image_url)}
@@ -1060,37 +1005,32 @@ const getImageDisplayUrl = (url: string) => {
                                       loading="lazy"
                                     />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                                      <ImageIcon className="w-4 h-4 sm:w-6 sm:h-6 text-gray-400" />
+                                    <div className="w-full h-full flex items-center justify-center bg-slate-50">
+                                      <ImageIcon className="w-3 h-3 text-slate-400" />
                                     </div>
                                   )}
                                 </div>
                               </td>
-                              <td className="px-3 sm:px-6 py-2 sm:py-4">
-                                <div className="max-w-[100px] sm:max-w-xs">
-                                  <p className="font-semibold text-gray-900 text-xs sm:text-sm truncate">
-                                    {member.name}
-                                  </p>
-                                </div>
+                              <td className="px-2 py-1 border-r border-b border-slate-200">
+                                <p className="font-bold text-slate-800 text-[11px] truncate leading-tight">
+                                  {member.name}
+                                </p>
                               </td>
-                              <td className="px-3 sm:px-6 py-2 sm:py-4">
-                                <div className="max-w-[100px] sm:max-w-xs">
-                                  <p className="text-gray-600 text-xs sm:text-sm truncate">
-                                    {member.role}
-                                  </p>
-                                </div>
+                              <td className="px-2 py-1 border-r border-b border-slate-200">
+                                <p className="text-slate-500 text-[11px] truncate leading-tight">
+                                  {member.role}
+                                </p>
                               </td>
-                              <td className="px-3 sm:px-6 py-2 sm:py-4">
+                              <td className="px-2 py-1 border-r border-b border-slate-200">
                                 <div className="flex items-center space-x-1">
                                   {(() => {
                                     const links = parseSocialLinks(
                                       member.social_links
                                     );
-                                    
 
                                     if (!links || links.length === 0) {
                                       return (
-                                        <span className="text-xs text-gray-400">
+                                        <span className="text-[10px] text-slate-400 font-bold">
                                           No links
                                         </span>
                                       );
@@ -1108,12 +1048,11 @@ const getImageDisplayUrl = (url: string) => {
                                           }
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-blue-600 transition-colors"
+                                          className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-blue-600 transition-all border border-slate-200"
                                           title={`${getPlatformLabel(
                                             social.platform
                                           )}: ${social.url}`}
                                           onClick={(e) => {
-                                           
                                             if (
                                               !social.url ||
                                               social.url === "#"
@@ -1131,7 +1070,7 @@ const getImageDisplayUrl = (url: string) => {
                                   })()}
                                 </div>
                               </td>
-                              <td className="px-3 sm:px-6 py-2 sm:py-4">
+                              <td className="px-2 py-1 border-r border-b border-slate-200">
                                 <button
                                   onClick={() =>
                                     handleToggleActive(
@@ -1139,51 +1078,42 @@ const getImageDisplayUrl = (url: string) => {
                                       member.is_active
                                     )
                                   }
-                                  className={`inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all ${
-                                    member.is_active
-                                      ? "bg-green-100 text-green-800 border border-green-200"
-                                      : "bg-gray-100 text-gray-800 border border-gray-200"
-                                  }`}
+                                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-bold transition-all cursor-pointer ${member.is_active
+                                    ? "bg-green-50 text-green-700 border-green-200"
+                                    : "bg-slate-50 text-slate-500 border-slate-200"
+                                    }`}
                                 >
                                   {member.is_active ? (
                                     <>
-                                      <Eye className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1.5" />
-                                      <span className="hidden sm:inline">
-                                        Active
-                                      </span>
-                                      <span className="sm:hidden">On</span>
+                                      <Eye className="w-2.5 h-2.5" />
+                                      <span>Active</span>
                                     </>
                                   ) : (
                                     <>
-                                      <EyeOff className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1.5" />
-                                      <span className="hidden sm:inline">
-                                        Inactive
-                                      </span>
-                                      <span className="sm:hidden">Off</span>
+                                      <EyeOff className="w-2.5 h-2.5" />
+                                      <span>Inactive</span>
                                     </>
                                   )}
                                 </button>
                               </td>
-                              <td className="px-3 sm:px-6 py-2 sm:py-4">
-                                <div className="flex items-center space-x-1 sm:space-x-2">
+                              <td className="px-2 py-1 border-b border-slate-200 text-right">
+                                <div className="flex items-center justify-end gap-1">
                                   <button
                                     onClick={() => handleEdit(member)}
-                                    className="p-1 sm:p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100"
+                                    className="p-0.5 text-indigo-600 hover:bg-indigo-50 border border-indigo-100 rounded cursor-pointer transition-all"
                                     title="Edit"
                                   >
                                     <Edit
-                                      size={12}
-                                      className="sm:size-[18px]"
+                                      size={11}
                                     />
                                   </button>
                                   <button
-                                    onClick={() => handleDelete(member.id)}
-                                    className="p-1 sm:p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
+                                    onClick={() => handleDeleteClick(member.id)}
+                                    className="p-0.5 text-red-600 hover:bg-red-50 border border-red-100 rounded cursor-pointer transition-all"
                                     title="Delete"
                                   >
                                     <Trash2
-                                      size={12}
-                                      className="sm:size-[18px]"
+                                      size={11}
                                     />
                                   </button>
                                 </div>
@@ -1196,370 +1126,376 @@ const getImageDisplayUrl = (url: string) => {
                   </div>
 
                   {/* Pagination Controls */}
-                 {filteredMembers.length > 0 && (
-  <div className="bg-gray-50 border-t border-gray-200 px-2 py-1.5 sm:px-4 sm:py-2">
-    <div className="flex items-center justify-between gap-1 sm:gap-2">
-      {/* Left side - Showing info compact */}
-      <div className="text-[9px] sm:text-xs text-gray-600 whitespace-nowrap">
-        <span className="hidden sm:inline">Showing </span>
-        <span className="font-semibold text-gray-800">{indexOfFirstItem + 1}</span>
-        <span className="hidden sm:inline"> - </span>
-        <span className="sm:hidden">-</span>
-        <span className="font-semibold text-gray-800">
-          {Math.min(indexOfLastItem, filteredMembers.length)}
-        </span>
-        <span className="hidden sm:inline"> of </span>
-        <span className="sm:hidden">/</span>
-        <span className="font-semibold text-gray-800">{filteredMembers.length}</span>
-        
-        {/* Filter indicators - compact */}
-        {(searchTerm || statusFilter !== "all") && (
-          <span className="ml-1 text-blue-600 text-[8px] sm:text-[10px] hidden sm:inline">
-            {searchTerm && `🔍 "${searchTerm.slice(0, 8)}${searchTerm.length > 8 ? '…' : ''}"`}
-            {statusFilter !== "all" && ` • ${statusFilter === 'active' ? 'Act' : 'Inact'}`}
-          </span>
-        )}
-      </div>
-      
-      {/* Pagination controls - compact row */}
-      <div className="flex items-center gap-0.5 sm:gap-1">
-        {/* Previous button */}
-        <button
-          onClick={prevPage}
-          disabled={currentPage === 1}
-          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-        >
-          <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-        </button>
-        
-        {/* Page numbers - Desktop */}
-        <div className="hidden sm:flex items-center gap-0.5 sm:gap-1">
-          {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-            let pageNumber;
-            if (totalPages <= 3) {
-              pageNumber = i + 1;
-            } else if (currentPage <= 2) {
-              pageNumber = i + 1;
-            } else if (currentPage >= totalPages - 1) {
-              pageNumber = totalPages - 2 + i;
-            } else {
-              pageNumber = currentPage - 1 + i;
-            }
-            
-            return (
-              <button
-                key={pageNumber}
-                onClick={() => goToPage(pageNumber)}
-                className={`min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs rounded-md transition ${
-                  currentPage === pageNumber
-                    ? 'bg-blue-600 text-white font-medium shadow-sm'
-                    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                {pageNumber}
-              </button>
-            );
-          })}
-          
-          {totalPages > 3 && currentPage < totalPages - 1 && (
-            <>
-              <span className="text-gray-400 text-[10px] sm:text-xs px-0.5">...</span>
-              <button
-                onClick={() => goToPage(totalPages)}
-                className="min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition"
-              >
-                {totalPages}
-              </button>
-            </>
-          )}
-        </div>
-        
-        {/* Mobile: Current page indicator */}
-        <span className="sm:hidden text-[10px] font-medium text-gray-700 px-1">
-          {currentPage}/{totalPages}
-        </span>
-        
-        {/* Next button */}
-        <button
-          onClick={nextPage}
-          disabled={currentPage === totalPages}
-          className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-        >
-          <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+                  {filteredMembers.length > 0 && (
+                    <div className="bg-gray-50 border-t border-gray-200 px-2 py-1.5 sm:px-4 sm:py-2">
+                      <div className="flex items-center justify-between gap-1 sm:gap-2">
+                        {/* Left side - Showing info compact */}
+                        <div className="text-[9px] sm:text-xs text-gray-600 whitespace-nowrap">
+                          <span className="hidden sm:inline">Showing </span>
+                          <span className="font-semibold text-gray-800">{indexOfFirstItem + 1}</span>
+                          <span className="hidden sm:inline"> - </span>
+                          <span className="sm:hidden">-</span>
+                          <span className="font-semibold text-gray-800">
+                            {Math.min(indexOfLastItem, filteredMembers.length)}
+                          </span>
+                          <span className="hidden sm:inline"> of </span>
+                          <span className="sm:hidden">/</span>
+                          <span className="font-semibold text-gray-800">{filteredMembers.length}</span>
+
+                          {/* Filter indicators - compact */}
+                          {(searchTerm || statusFilter !== "all") && (
+                            <span className="ml-1 text-blue-600 text-[8px] sm:text-[10px] hidden sm:inline">
+                              {searchTerm && `🔍 "${searchTerm.slice(0, 8)}${searchTerm.length > 8 ? '…' : ''}"`}
+                              {statusFilter !== "all" && ` • ${statusFilter === 'active' ? 'Act' : 'Inact'}`}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Pagination controls - compact row */}
+                        <div className="flex items-center gap-0.5 sm:gap-1">
+                          {/* Previous button */}
+                          <button
+                            onClick={prevPage}
+                            disabled={currentPage === 1}
+                            className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                          >
+                            <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          </button>
+
+                          {/* Page numbers - Desktop */}
+                          <div className="hidden sm:flex items-center gap-0.5 sm:gap-1">
+                            {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+                              let pageNumber;
+                              if (totalPages <= 3) {
+                                pageNumber = i + 1;
+                              } else if (currentPage <= 2) {
+                                pageNumber = i + 1;
+                              } else if (currentPage >= totalPages - 1) {
+                                pageNumber = totalPages - 2 + i;
+                              } else {
+                                pageNumber = currentPage - 1 + i;
+                              }
+
+                              return (
+                                <button
+                                  key={pageNumber}
+                                  onClick={() => goToPage(pageNumber)}
+                                  className={`min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs rounded-md transition ${currentPage === pageNumber
+                                    ? 'bg-blue-600 text-white font-medium shadow-sm'
+                                    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                    }`}
+                                >
+                                  {pageNumber}
+                                </button>
+                              );
+                            })}
+
+                            {totalPages > 3 && currentPage < totalPages - 1 && (
+                              <>
+                                <span className="text-gray-400 text-[10px] sm:text-xs px-0.5">...</span>
+                                <button
+                                  onClick={() => goToPage(totalPages)}
+                                  className="min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition"
+                                >
+                                  {totalPages}
+                                </button>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Mobile: Current page indicator */}
+                          <span className="sm:hidden text-[10px] font-medium text-gray-700 px-1">
+                            {currentPage}/{totalPages}
+                          </span>
+
+                          {/* Next button */}
+                          <button
+                            onClick={nextPage}
+                            disabled={currentPage === totalPages}
+                            className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                          >
+                            <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
-          )}
-      </div>
-
-      {/* Modal - Responsive */}
-    {isModalOpen && (
-  <div className="fixed inset-0 z-50 overflow-y-auto">
-    {/* Backdrop - Black */}
-    <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm"
-      onClick={handleCloseModal}
-    />
-
-    {/* Center wrapper */}
-    <div className="flex min-h-full items-center justify-center p-2 sm:p-3">
-      <div className="relative w-full max-w-[95%] sm:max-w-2xl md:max-w-3xl lg:max-w-2xl bg-white rounded-lg sm:rounded-xl shadow-lg">
-        
-        {/* ─── Header ─── */}
-        <div className="bg-gradient-to-r from-[#0D47A1] to-[#1976D2] rounded-t-lg sm:rounded-t-xl">
-          <div className="flex items-center justify-between px-2.5 py-1.5 sm:px-4 sm:py-2">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="bg-[#FFC107] rounded-md w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center font-bold text-[9px] sm:text-xs text-[#0D47A1] shrink-0">
-                tm
-              </div>
-              <div>
-                <h2 className="text-white font-medium text-xs sm:text-sm">
-                  {editingMember ? "Edit Team Member" : "Add New Team Member"}
-                </h2>
-                <p className="text-white/70 text-[8px] sm:text-[10px] hidden sm:block">
-                  {editingMember ? "Update team member details" : "Add a new member to your team"}
-                </p>
-              </div>
-            </div>
-            <button
+          )}      {/* Modal - Responsive */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-modal-backdrop">
+            <style>{`
+              @keyframes modalFadeIn {
+                from { opacity: 0; backdrop-filter: blur(0px); background-color: rgba(15, 23, 42, 0); }
+                to { opacity: 1; backdrop-filter: blur(8px); background-color: rgba(15, 23, 42, 0.4); }
+              }
+              @keyframes modalZoomIn {
+                from { transform: scale(0.92); opacity: 0; }
+                to { transform: scale(1); opacity: 1; }
+              }
+              .animate-modal-backdrop {
+                animation: modalFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+              }
+              .animate-modal-content {
+                animation: modalZoomIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+              }
+            `}</style>
+            <div
+              className="fixed inset-0"
               onClick={handleCloseModal}
-              className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-white/30 bg-white/10 text-white flex items-center justify-center cursor-pointer shrink-0 hover:bg-white/20 transition"
-            >
-              <X size={10} className="sm:w-3 sm:h-3" />
-            </button>
-          </div>
-        </div>
-
-        {/* ─── Scrollable Body ─── */}
-        <div className="max-h-[70vh] sm:max-h-[75vh] overflow-y-auto">
-          <div className="p-2.5 sm:p-4">
-            <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-3">
-
-              {/* ROW 1: Name + Role */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
+            />
+            <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 overflow-hidden animate-modal-content">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
                 <div>
-                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                    Name <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="John Doe"
-                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                    Role <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    placeholder="Senior Developer"
-                    className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff]"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* ROW 2: Description */}
-              <div>
-                <label className="block mb-0.5 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Brief description about the team member's role and expertise..."
-                  className="w-full px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-[#fafbff] resize-none"
-                />
-              </div>
-
-              {/* Divider */}
-              <hr className="border-t border-gray-100 my-1" />
-
-              {/* ROW 3: Image + Preview */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-                {/* Image Input */}
-                <div className="sm:col-span-2">
-                  <label className="block mb-1 text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                    Profile Image <span className="text-red-600">*</span>
-                  </label>
-
-                  <div className="border border-dashed border-gray-300 rounded-lg p-2 sm:p-3 text-center bg-[#fafbff]">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      accept="image/*"
-                      className="hidden"
-                    />
-{!selectedFile && !formData.image_url ? (
-  <button
-    type="button"
-    onClick={() => fileInputRef.current?.click()}
-    className="text-[9px] sm:text-xs text-blue-600 font-medium hover:underline"
-  >
-    Click to browse image
-  </button>
-) : uploadingImage ? (
-  <div className="flex items-center gap-2">
-    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-    <span className="text-[9px] sm:text-xs text-gray-600">Uploading...</span>
-  </div>
-) : (
-  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-    <span className="text-[9px] sm:text-xs text-gray-700 truncate">
-      {formData.image_url ? "✓ Image uploaded" : "Image selected"}
-    </span>
-    <button
-      type="button"
-      onClick={() => fileInputRef.current?.click()}
-      className="px-2 py-0.5 sm:px-2.5 sm:py-1 border border-gray-300 text-gray-700 rounded-lg text-[8px] sm:text-[9px] hover:bg-gray-50 transition"
-    >
-      Change
-    </button>
-  </div>
-)}
-                  </div>
-                </div>
-
-                {/* Preview */}
-                <div>
-                  <p className="text-[9px] sm:text-xs font-medium text-[#0D47A1] mb-1">
-                    Preview
+                  <h2 className="text-sm font-extrabold text-slate-800">
+                    {editingMember ? "Edit Team Member" : "Create Team Member"}
+                  </h2>
+                  <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                    {editingMember ? "Modify team member details and contact links" : "Add a new profile to your team"}
                   </p>
-                  <div className="h-20 sm:h-24 rounded-lg border border-gray-200 bg-gray-100 overflow-hidden">
-                    {(formData.image_url || imagePreview) && (
-                      <img
-src={imagePreview?.startsWith("blob:") 
-  ? imagePreview 
-  : getImageDisplayUrl(imagePreview || formData.image_url)}                        alt="Preview"
-className="w-full h-full object-contain"
+                </div>
+                <button onClick={handleCloseModal} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all cursor-pointer">
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Compact Body - Non scrollable */}
+              <div className="p-5">
+                <form onSubmit={handleSubmit} className="space-y-3.5">
+
+                  {/* Row 1: Name + Role */}
+                  <div className="grid grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="block mb-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="John Doe"
+                        className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 bg-slate-50 focus:bg-white transition outline-none font-semibold text-slate-800 placeholder-slate-400"
+                        required
                       />
+                    </div>
+
+                    <div>
+                      <label className="block mb-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        Role <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        placeholder="Senior Developer"
+                        className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 bg-slate-50 focus:bg-white transition outline-none font-semibold text-slate-800 placeholder-slate-400"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 2: Description / Bio */}
+                  <div>
+                    <label className="block mb-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Short Bio
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Brief professional summary..."
+                      className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 bg-slate-50 focus:bg-white transition outline-none font-semibold text-slate-800 placeholder-slate-400 resize-none"
+                    />
+                  </div>
+
+                  {/* Row 3: Profile Image Uplod & Preview */}
+                  <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <label className="block mb-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        Profile Photo <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChange}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-2.5 py-1.5 text-[10px] font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg transition cursor-pointer"
+                        >
+                          Choose File
+                        </button>
+                        <span className="text-[9px] text-slate-400 font-semibold truncate max-w-[120px]">
+                          {selectedFile ? selectedFile.name : (editingMember ? 'Avatar Uploaded' : 'No photo selected')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {imagePreview && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <img
+                          src={getImageDisplayUrl(imagePreview)}
+                          alt="Preview"
+                          className="w-10 h-10 object-cover rounded-full border border-slate-200 shadow-sm"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null;
+                            target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" font-family="Arial" font-size="10" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, image_url: '' }));
+                            setImagePreview('');
+                          }}
+                          className="text-[9px] text-red-600 hover:text-red-800 font-bold uppercase tracking-wider transition cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     )}
                   </div>
-                </div>
-              </div>
 
-              {/* Divider */}
-              <hr className="border-t border-gray-100 my-1" />
+                  {/* Row 4: Social Links Repeater */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        Social Links (Max 3)
+                      </label>
+                      {socialLinks.length < 3 && (
+                        <button
+                          type="button"
+                          onClick={addSocialLink}
+                          className="text-[9px] text-blue-600 hover:text-blue-800 font-bold uppercase tracking-wider cursor-pointer"
+                        >
+                          + Add
+                        </button>
+                      )}
+                    </div>
 
-              {/* ROW 4: Social Links */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-[9px] sm:text-xs font-medium text-[#0D47A1]">
-                    Social Links (Max 3)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={addSocialLink}
-                    disabled={socialLinks.length >= 3}
-                    className="text-[8px] sm:text-[9px] text-blue-600 hover:text-blue-800 disabled:text-gray-400 transition"
-                  >
-                    + Add Link
-                  </button>
-                </div>
-
-                {socialLinks.map((link, index) => (
-                  <div key={index} className="flex items-center gap-1.5 mb-1.5">
-                    <select
-                      value={link.platform}
-                      onChange={(e) => updateSocialLink(index, "platform", e.target.value)}
-                      className="px-2 py-1 sm:px-2.5 sm:py-1 text-[9px] sm:text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff]"
-                    >
-                      <option value="linkedin">LinkedIn</option>
-                      <option value="instagram">Instagram</option>
-                      <option value="whatsapp">WhatsApp</option>
-                    </select>
-                    <input
-                      type={link.platform === "whatsapp" ? "text" : "url"}
-                      value={link.url}
-                      onChange={(e) => updateSocialLink(index, "url", e.target.value)}
-                      maxLength={link.platform === "whatsapp" ? 10 : undefined}
-
-                      placeholder={
-                        link.platform === "whatsapp"
-                          ? "Enter phone number"
-                          : "Enter URL"
-                      }
-                      className="flex-1 px-2 py-1 sm:px-2.5 sm:py-1 text-[9px] sm:text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-[#fafbff]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeSocialLink(index)}
-                      className="p-1 text-red-600 hover:text-red-800 transition"
-                    >
-                      <X size={12} className="sm:w-3.5 sm:h-3.5" />
-                    </button>
+                    <div className="space-y-1.5">
+                      {socialLinks.map((link, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <select
+                            value={link.platform}
+                            onChange={(e) => updateSocialLink(index, "platform", e.target.value)}
+                            className="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 bg-slate-50 focus:bg-white cursor-pointer font-semibold text-slate-700 outline-none w-24 shrink-0"
+                          >
+                            <option value="linkedin">LinkedIn</option>
+                            <option value="twitter">Twitter</option>
+                            <option value="github">GitHub</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="whatsapp">WhatsApp</option>
+                          </select>
+                          <input
+                            type="text"
+                            value={link.url}
+                            onChange={(e) => updateSocialLink(index, "url", e.target.value)}
+                            placeholder="Profile Link / Number"
+                            className="flex-1 px-2.5 py-1.5 text-[10px] border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 bg-slate-50 focus:bg-white transition outline-none font-semibold text-slate-800 placeholder-slate-400"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeSocialLink(index)}
+                            className="p-1 text-red-500 hover:text-red-700 transition cursor-pointer"
+                            title="Delete link"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-                <p className="text-[7px] sm:text-[8px] text-gray-400 mt-0.5">
-                  For WhatsApp: Enter phone number with country code (e.g., +1234567890)
-                </p>
+
+                  {/* Footer Controls & Toggle */}
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_active}
+                        onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-8 h-4.5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <span className="ml-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active</span>
+                    </label>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCloseModal}
+                        className="px-3.5 py-1.5 border border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={
+                          uploadingImage ||
+                          !formData.name.trim() ||
+                          !formData.role.trim() ||
+                          !formData.image_url.trim()
+                        }
+                        className="px-3.5 py-1.5 bg-[#0D47A1] hover:bg-[#1976D2] text-white rounded-lg text-[10px] font-bold transition disabled:opacity-50 cursor-pointer shadow-sm"
+                      >
+                        <span>{editingMember ? "Update" : "Create"}</span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
               </div>
+            </div>
+          </div>
+        )}
 
-              {/* Divider */}
-              <hr className="border-t border-gray-100 my-1" />
-
-              {/* ROW 5: Active Status */}
-              <div className="flex items-center gap-1.5 sm:gap-2 py-0.5">
-                <input
-                  type="checkbox"
-                  checked={formData.is_active}
-                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="w-3.5 h-3.5 text-blue-600 rounded accent-blue-600"
-                />
-                <span className="text-[9px] sm:text-xs text-gray-700">Active Member</span>
-              </div>
-
-              {/* Divider */}
-              <hr className="border-t border-gray-100 my-1" />
-
-              {/* Form Actions */}
-              <div className="flex justify-end gap-1.5 sm:gap-2 pt-1">
+        {/* Delete Confirmation Modal */}
+        {isDeleteConfirmOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-xl p-6 border border-slate-100 animate-in zoom-in-95 duration-200">
+              <h3 className="text-base font-extrabold text-slate-800">Confirm Delete</h3>
+              <p className="text-xs text-slate-500 mt-2 font-medium">
+                Are you sure you want to delete {deleteTargetIds ? `${deleteTargetIds.length} item(s)` : 'this item'}? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2 mt-6">
                 <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-2 py-1 sm:px-3 sm:py-1 border border-gray-300 rounded-lg text-[9px] sm:text-xs text-gray-700 hover:bg-gray-50 transition"
+                  onClick={() => {
+                    setIsDeleteConfirmOpen(false);
+                    setDeleteTargetId(null);
+                    setDeleteTargetIds(null);
+                  }}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer transition-all"
                 >
                   Cancel
                 </button>
                 <button
-                  type="submit"
-                  disabled={
-                    uploadingImage ||
-                    !formData.name.trim() ||
-                    !formData.role.trim() ||
-                    !formData.image_url.trim()
-                  }
-                  className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 text-white rounded-lg text-[9px] sm:text-xs hover:bg-blue-700 flex items-center gap-1 disabled:opacity-50 transition"
+                  onClick={async () => {
+                    setIsDeleteConfirmOpen(false);
+                    if (deleteTargetId !== null) {
+                      await proceedDelete(deleteTargetId);
+                    } else if (deleteTargetIds !== null) {
+                      await proceedBulkDelete(deleteTargetIds);
+                    }
+                    setDeleteTargetId(null);
+                    setDeleteTargetIds(null);
+                  }}
+                  className="px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg cursor-pointer transition-all"
                 >
-                  <svg width="10" height="10" className="sm:w-3 sm:h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>{editingMember ? "Update" : "Create"}</span>
+                  Delete
                 </button>
               </div>
-
-            </form>
+            </div>
           </div>
-        </div>
-
+        )}
       </div>
-    </div>
-  </div>
-)}
     </div>
   );
 };

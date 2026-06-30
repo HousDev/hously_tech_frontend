@@ -16,7 +16,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAdmin: () => boolean;
   isAuthenticated: boolean;
 }
@@ -62,12 +62,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    sessionStorage.setItem('hasVisitedBefore', 'true'); // ✅ logout ke baad welcome page nahi
-    window.location.href = '/';
+  const logout = async () => {
+    try {
+      // Call backend to invalidate the session/token
+      await api.post('/auth/logout');
+    } catch (err) {
+      // Even if API call fails, clear client-side session
+      console.warn('Logout API error (proceeding anyway):', err);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      sessionStorage.setItem('hasVisitedBefore', 'true');
+      window.location.href = '/';
+    }
   };
 
   const isAdmin = () => user?.role === 'admin';

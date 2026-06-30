@@ -182,7 +182,7 @@ const Footer: React.FC = () => {
                   style={{ animationDelay: "270ms" }}
                 >
                   <h3
-                    className="text-white text-lg font-bold mb-6 pb-3 relative after:absolute after:left-0 after:bottom-0 after:w-10 after:h-0.5 after:bg-[#fed700]"
+                    className="text-white text-lg font-bold mb-6 pb-3 relative after:absolute after:left-0 after:bottom-0 after:w-10 after:h-0.5 after:bg-[#0077d9]"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     Useful Links
@@ -243,7 +243,7 @@ const Footer: React.FC = () => {
                   style={{ animationDelay: "540ms" }}
                 >
                   <h3
-                    className="text-white text-lg font-bold mb-6 pb-3 relative after:absolute after:left-0 after:bottom-0 after:w-10 after:h-0.5 after:bg-[#fed700]"
+                    className="text-white text-lg font-bold mb-6 pb-3 relative after:absolute after:left-0 after:bottom-0 after:w-10 after:h-0.5 after:bg-[#0077d9]"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     Company
@@ -276,7 +276,7 @@ const Footer: React.FC = () => {
                   style={{ animationDelay: "810ms" }}
                 >
                   <h3
-                    className="text-white text-lg font-bold mb-6 pb-3 relative after:absolute after:left-0 after:bottom-0 after:w-10 after:h-0.5 after:bg-[#fed700]"
+                    className="text-white text-lg font-bold mb-6 pb-3 relative after:absolute after:left-0 after:bottom-0 after:w-10 after:h-0.5 after:bg-[#0077d9]"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     Our Services
@@ -308,7 +308,7 @@ const Footer: React.FC = () => {
                   style={{ animationDelay: "1080ms" }}
                 >
                   <h3
-                    className="text-white text-lg font-bold mb-6 pb-3 relative after:absolute after:left-0 after:bottom-0 after:w-10 after:h-0.5 after:bg-[#fed700]"
+                    className="text-white text-lg font-bold mb-6 pb-3 relative after:absolute after:left-0 after:bottom-0 after:w-10 after:h-0.5 after:bg-[#0077d9]"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     Contact Us
@@ -316,7 +316,7 @@ const Footer: React.FC = () => {
 
                   <div className="mb-6 space-y-3">
                     <div className="flex items-start gap-2">
-                      <FaMapMarkerAlt className="text-[#fed700] mt-0.5 flex-shrink-0 text-sm" />
+                      <FaMapMarkerAlt className="text-[#0077d9] mt-0.5 flex-shrink-0 text-sm" />
                       <p
                         className="text-gray-300 text-sm"
                         style={{ fontFamily: '"DM Sans", sans-serif' }}
@@ -328,7 +328,7 @@ const Footer: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <FaPhoneAlt className="text-[#fed700] flex-shrink-0 text-sm" />
+                      <FaPhoneAlt className="text-[#0077d9] flex-shrink-0 text-sm" />
                       <a
                         href="tel:+919371009381"
                         className="text-gray-300 hover:text-white transition-colors text-sm"
@@ -338,7 +338,7 @@ const Footer: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <FaEnvelope className="text-[#fed700] flex-shrink-0 text-sm" />
+                      <FaEnvelope className="text-[#0077d9] flex-shrink-0 text-sm" />
                       <a
                         href="mailto:careers@hously.in"
                         className="text-gray-300 hover:text-white transition-colors text-sm"

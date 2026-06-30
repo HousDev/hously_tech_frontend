@@ -141,24 +141,7 @@ const SettingsCMS = () => {
 
       <div className="max-w-9xl mx-auto p-0 sm:p-0 md:p-0 space-y-5 sm:space-y-7">
 
-        {/* ── Page Header ── */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div className="flex items-center gap-3">
-            
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-blue-950">Settings</h1>
-              <p className="text-xs sm:text-sm text-blue-400 font-medium">Configure your CMS settings</p>
-            </div>
-          </div>
-          {/* <button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-600 hover:from-blue-900 hover:to-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md shadow-blue-200 transition disabled:opacity-50"
-          >
-            <Save size={16} />
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button> */}
-        </div>
+
 
         {/* ── Message banner ── */}
         {message && (
