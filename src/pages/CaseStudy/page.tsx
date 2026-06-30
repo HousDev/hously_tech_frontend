@@ -399,8 +399,7 @@
 // export default CaseStudyApp;
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, TrendingUp, CheckCircle, X, ArrowLeft } from 'lucide-react';
+import { ArrowRight, TrendingUp, CheckCircle, X } from 'lucide-react';
 import { caseStudyApi, type CaseStudy } from '../../lib/caseStudyApi';
 
 // Modal Component – only shows Key Results from metrics
@@ -459,7 +458,7 @@ const CaseStudyDetailsModal: React.FC<{ study: CaseStudy; onClose: () => void }>
 
 // Main Case Study Page Component
 const CaseStudyPage: React.FC = () => {
-  const navigate = useNavigate();
+  
   const [caseStudies, setCaseStudies] = useState<CaseStudy[]>([]);
   const [selectedStudy, setSelectedStudy] = useState<CaseStudy | null>(null);
   const [loading, setLoading] = useState(true);

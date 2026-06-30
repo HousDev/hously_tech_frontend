@@ -14,7 +14,16 @@ export interface CaseStudy {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // Optional extended fields (may be present in detailed API responses)
+  challenge?: string;
+  solution?: string;
+  result?: string;
+  technologies?: string[];
+  client?: string;
+  duration?: string;
+  external_url?: string;
 }
+
 
 export interface CaseStudyPayload {
   title: string;

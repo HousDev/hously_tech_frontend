@@ -86,10 +86,10 @@ const TimelineDot = ({ }: any) => {
           opacity="0.7"
         />
 
-        {/* ANIMATED FILL - yellow on scroll */}
+        {/* ANIMATED FILL - blue on scroll */}
         <motion.path
           d={pathD}
-          stroke="#ffd801"
+          stroke="#0076d8"
           strokeWidth="2.5"
           fill="none"
           strokeLinecap="round"
@@ -97,30 +97,32 @@ const TimelineDot = ({ }: any) => {
           style={{ pathLength: pathLengthProgress }}
         />
 
-        {/* MOVING DOT - blue */}
+        {/* MOVING DOT - Yellow fill, blue outline */}
         <motion.circle
           r="6"
-          fill="#0076d8"
+          fill="#facc15"
+          stroke="#0076d8"
+          strokeWidth="2"
           cx={dotX}
           cy={dotY}
         />
 
-        {/* GLOW */}
+        {/* GLOW - yellow glow */}
         <motion.circle
           r="12"
-          fill="#0076d8"
-          opacity="0.2"
+          fill="#facc15"
+          opacity="0.35"
           cx={dotX}
           cy={dotY}
         />
 
-        {/* PULSE RING */}
+        {/* SOFT PULSE RING */}
         <motion.circle
-          r="18"
+          r="16"
           fill="none"
-          stroke="#0076d8"
-          strokeWidth="1.5"
-          opacity="0.15"
+          stroke="#facc15"
+          strokeWidth="1"
+          opacity="0.25"
           cx={dotX}
           cy={dotY}
         />

@@ -120,6 +120,7 @@ const routeData = breadcrumbData[currentPath] || (isBlogDetail ? {
               overflow: hidden;
               transition: all 0.5s ease;
               margin-top: 80px; /* ADD THIS: Pushes breadcrumb below navbar */
+              z-index: 1; /* Establishes stacking context so z-index: -1 backgrounds show up properly */
             }
 
             .breadcumb-content::before {

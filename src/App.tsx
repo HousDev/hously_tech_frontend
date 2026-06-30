@@ -511,7 +511,8 @@ import AboutPage from "./pages/About/page";
 import ServicesPage from "./pages/services/page";
 import ContactSection from "./pages/Contact/page";
 import TestimonialPage from "./pages/Testinomial/page";
-import CaseStudyPage from "./pages/CaseStudy/page";
+import { CaseStudiesPage, CaseStudyDetailsPage } from "./components/CaseStudy";
+import ScheduleMeetingPage from "./pages/ScheduleMeeting/page";
 import HouslyCareerPage from "./pages/Career/page";
 import CareersPage from "./pages/Career/job/page";
 import JobDetailsPage from "./pages/Career/job/[id]/page";
@@ -539,11 +540,15 @@ import EnquiriesCMS from "./pages/Admin/EnquiriesCMS";
 import TeamCMS from "./pages/Admin/TeamCMS";
 import DashboardAnalytics from "./pages/Admin/DashboardAnalytics";
 import CaseStudyCMS from "./pages/Admin/CaseStudyCMS";
+import MeetingsCMS from "./pages/Admin/MeetingsCMS";
+
 
 import VisitorTracker from "./components/VisitorTracker";
 import AuthModal from "./components/auth/AuthModal";
 import { useAuth } from "./context/AuthContext";
 import { toast } from "react-toastify";
+import WhatsAppFAB from "./components/WhatsAppFAB";
+import HouslyChatBoot from "./components/HouslyChatbotWidget";
 
 const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAdmin, logout } = useAuth();
@@ -617,6 +622,8 @@ function AppContent() {
       <>
         <VisitorTracker />
         <WelcomePage onSectorClick={handleSectorClick} />
+        <WhatsAppFAB />
+        <HouslyChatBoot />
       </>
     );
   }
@@ -663,8 +670,10 @@ function AppContent() {
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/contact" element={<ContactSection />} />
           <Route path="/testimonial" element={<TestimonialPage />} />
-<Route path="/casestudy" element={<CaseStudyPage />} />
-<Route path="/casestudy/:id" element={<CaseStudyPage />} />
+<Route path="/casestudy" element={<CaseStudiesPage />} />
+          <Route path="/caseStudyDetails" element={<CaseStudyDetailsPage />} />
+          <Route path="/schedule-meeting" element={<ScheduleMeetingPage />} />
+          <Route path="/homes/schedule-meeting" element={<ScheduleMeetingPage />} />
           {/* ✅ Blog routes — outside admin, at top level */}
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:id" element={<BlogDetailPage />} />
@@ -693,6 +702,7 @@ function AppContent() {
             <Route path="blog" element={<BlogCMS />} />
             <Route path="testimonials" element={<TestimonialsCMS />} />
             <Route path="enquiries" element={<EnquiriesCMS />} />
+            <Route path="meetings" element={<MeetingsCMS />} />
             <Route path="career" element={<CareerCMS />} />
             <Route path="settings" element={<SettingsCMS />} />
             <Route path="profile" element={<Profile />} />
@@ -704,6 +714,8 @@ function AppContent() {
 
       {!hideLayout && !isAdminRoute && <Footer />}
       {!hideLayout && !isAdminRoute && <BackToTop />}
+      {!hideLayout && !isAdminRoute && <WhatsAppFAB />}
+      {!hideLayout && !isAdminRoute && <HouslyChatBoot />}
 
       <AuthModal 
         isOpen={showAuthModal}
