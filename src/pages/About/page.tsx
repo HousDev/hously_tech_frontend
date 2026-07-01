@@ -351,7 +351,7 @@ export default function Component() {
                 <div className="relative rounded-[28px] overflow-hidden shadow-2xl p-2 bg-white border border-slate-100/50 animate-float-rev">
                   <img
                     alt="IT Work Process"
-                    src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80"
+                    src="/talk.png"
                     className="w-full h-[380px] rounded-[22px] object-cover"
                   />
                   {/* Floating badge inside image */}
