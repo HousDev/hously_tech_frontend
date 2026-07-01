@@ -54,6 +54,7 @@ const ScheduleMeetingPopup: React.FC<{
   const [smTimeFormat, setSmTimeFormat] = useState<'12h' | '24h'>('12h');
   const [smSelectedTime, setSmSelectedTime] = useState<string | null>(null);
   const [smInterviewLink, setSmInterviewLink] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -108,6 +109,7 @@ const ScheduleMeetingPopup: React.FC<{
   };
 
   const handleSchedule = async () => {
+    if (loading) return;
     if (!calendarSelectedCandidate) { toast.error('Please select a candidate'); return; }
     if (!smSelectedTime) { toast.error('Please select a time slot'); return; }
 
@@ -118,12 +120,15 @@ const ScheduleMeetingPopup: React.FC<{
     const scheduledAtStr = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
 
     try {
+      setLoading(true);
       await onSchedule(scheduledAtStr, 'online', smInterviewLink);
       toast.success(`Interview scheduled for ${calendarSelectedCandidate.applicant_name} on ${fmtSelectedDate} at ${smSelectedTime}`);
       onClose();
     } catch (err) {
       toast.error('Failed to schedule interview');
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -241,9 +246,20 @@ const ScheduleMeetingPopup: React.FC<{
               {/* Schedule Button */}
               <button
                 onClick={handleSchedule}
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-200"
+                disabled={loading}
+                className={`w-full py-2.5 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2
+                  ${loading
+                    ? 'bg-blue-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 active:scale-95 shadow-md shadow-blue-200'}`}
               >
-                Schedule Interview
+                {loading ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Scheduling...</span>
+                  </>
+                ) : (
+                  'Schedule Interview'
+                )}
               </button>
             </div>
           </div>
@@ -2001,7 +2017,17 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                             </div>
                             <div>
                               <div className="text-[11px] font-bold text-slate-800 leading-tight">{app.applicant_name}</div>
-                              <div className="text-[9px] text-slate-400 mt-0.5 leading-none">{app.email}</div>
+                              <div 
+                                onClick={() => {
+                                  const subject = `Interview Schedule: ${app.job_title || 'Position'} - Hously`;
+                                  const body = `Dear ${app.applicant_name},\n\nThank you for applying for the ${app.job_title || 'Position'} role at Hously.\n\nWe have reviewed your application and would like to invite you for an interview. Here are the details:\n\n- Date: [Enter Date, e.g., July 6]\n- Time: [Enter Time, e.g., 3:00 PM]\n- Mode: [Online (Google Meet) / In-person]\n- Link/Address: [Meeting Link or Address]\n\nPlease let us know if this works for you.\n\nBest regards,\nHously HR Team`;
+                                  window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${app.email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+                                }}
+                                className="text-[9px] text-slate-400 mt-0.5 leading-none cursor-pointer hover:text-blue-600 hover:underline"
+                                title="Email candidate with template"
+                              >
+                                {app.email}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -2060,7 +2086,11 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                               <Calendar size={11} />
                             </button>
                             <button
-                              onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${app.email}`, '_blank')}
+                              onClick={() => {
+                                const subject = `Interview Schedule: ${app.job_title || 'Position'} - Hously`;
+                                const body = `Dear ${app.applicant_name},\n\nThank you for applying for the ${app.job_title || 'Position'} role at Hously.\n\nWe have reviewed your application and would like to invite you for an interview. Here are the details:\n\n- Date: [Enter Date, e.g., July 6]\n- Time: [Enter Time, e.g., 3:00 PM]\n- Mode: [Online (Google Meet) / In-person]\n- Link/Address: [Meeting Link or Address]\n\nPlease let us know if this works for you.\n\nBest regards,\nHously HR Team`;
+                                window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${app.email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+                              }}
                               className="p-0.5 text-emerald-600 hover:bg-emerald-50 border border-emerald-100 rounded cursor-pointer transition-all"
                               title="Email Applicant"
                             >
@@ -2179,7 +2209,17 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
 
                   <div className="flex justify-between py-1 border-b border-slate-100">
                     <span className="font-semibold text-slate-400">Email:</span>
-                    <span className="font-bold text-slate-700 select-text truncate max-w-[170px]" title={viewingCandidateApp.email}>{viewingCandidateApp.email}</span>
+                    <span 
+                      onClick={() => {
+                        const subject = `Interview Schedule: ${viewingCandidateApp.job_title || 'Position'} - Hously`;
+                        const body = `Dear ${viewingCandidateApp.applicant_name},\n\nThank you for applying for the ${viewingCandidateApp.job_title || 'Position'} role at Hously.\n\nWe have reviewed your application and would like to invite you for an interview. Here are the details:\n\n- Date: [Enter Date, e.g., July 6]\n- Time: [Enter Time, e.g., 3:00 PM]\n- Mode: [Online (Google Meet) / In-person]\n- Link/Address: [Meeting Link or Address]\n\nPlease let us know if this works for you.\n\nBest regards,\nHously HR Team`;
+                        window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${viewingCandidateApp.email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+                      }}
+                      className="font-bold text-slate-700 select-text truncate max-w-[170px] cursor-pointer hover:text-blue-600 hover:underline" 
+                      title="Email candidate with template"
+                    >
+                      {viewingCandidateApp.email}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-100">
                     <span className="font-semibold text-slate-400">Phone:</span>
@@ -2378,7 +2418,9 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                       <button
                         onClick={() => {
                           if (selectedApp?.email) {
-                            window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${selectedApp.email}&su=Application%20for%20${encodeURIComponent(selectedApp.job_title || 'position')}&body=Dear%20${encodeURIComponent(selectedApp.applicant_name.split(' ')[0])},%0A%0A`, '_blank');
+                            const subject = `Interview Schedule: ${selectedApp.job_title || 'Position'} - Hously`;
+                            const body = `Dear ${selectedApp.applicant_name},\n\nThank you for applying for the ${selectedApp.job_title || 'Position'} role at Hously.\n\nWe have reviewed your application and would like to invite you for an interview. Here are the details:\n\n- Date: [Enter Date, e.g., July 6]\n- Time: [Enter Time, e.g., 3:00 PM]\n- Mode: [Online (Google Meet) / In-person]\n- Link/Address: [Meeting Link or Address]\n\nPlease let us know if this works for you.\n\nBest regards,\nHously HR Team`;
+                            window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${selectedApp.email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
                           } else {
                             toast.error('No email address available');
                           }

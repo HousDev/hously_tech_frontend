@@ -485,7 +485,7 @@ export default function Dashboard({ }: DashboardAnalyticsProps = {}) {
             </span>
           </h1>
           <p className="text-[10px] sm:text-xs text-slate-500 font-semibold tracking-wide leading-none mt-0.5">
-            Here's a quick overview of your workspace analytics, active enquiries, and career applications.
+            Here's what's happening today.
           </p>
         </div>
 

@@ -154,7 +154,6 @@ const MeetingsCMS: React.FC = () => {
       const data = await meetingApi.uploadAttachment(file);
       setAttachmentPath(data.url);
       setAttachmentName(file.name);
-      toast.success('Attachment uploaded successfully! Save to confirm.');
     } catch (err: any) {
       toast.error(err.message || 'Attachment upload failed.');
     } finally {

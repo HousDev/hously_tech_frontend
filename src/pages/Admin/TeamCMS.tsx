@@ -79,7 +79,7 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
     const deleteToast = toast.loading('Deleting team member...');
     try {
       await teamApi.delete(id);
-      toast.success('Team member deleted successfully', { id: deleteToast });
+      toast.dismiss(deleteToast);
       fetchTeamMembers();
     } catch (error: any) {
       console.error('Delete error:', error);
@@ -91,7 +91,7 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
     const deleteToast = toast.loading(`Deleting ${ids.length} team member(s)...`);
     try {
       await teamApi.bulkDelete(ids);
-      toast.success(`Successfully deleted ${ids.length} team member(s)`, { id: deleteToast });
+      toast.dismiss(deleteToast);
       setSelectedMembers([]);
       fetchTeamMembers();
     } catch (error: any) {
@@ -181,7 +181,6 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
       setUploadingImage(true);
       const uploadedUrl = await teamApi.uploadImage(file);
       setFormData(prev => ({ ...prev, image_url: uploadedUrl.url }));
-      toast.success("Image uploaded successfully!");
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
@@ -201,7 +200,6 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
       const uploadedUrl = await uploadImageToServer(selectedFile);
 
       setFormData({ ...formData, image_url: uploadedUrl });
-      toast.success("Image uploaded successfully!");
 
       setSelectedFile(null);
       if (fileInputRef.current) {
@@ -318,7 +316,6 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
         toast.success("Team member updated successfully");
       } else {
         await teamApi.create(payload);
-        toast.success("Team member created successfully");
       }
 
       fetchTeamMembers();
@@ -372,10 +369,7 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
         )
       );
 
-      toast.success(
-        `Team member ${!currentStatus ? "activated" : "deactivated"} successfully`,
-        { id: toggleToast }
-      );
+      toast.dismiss(toggleToast);
     } catch (error: any) {
       console.error("Toggle error:", error);
       toast.error(error.message || "Failed to toggle status", { id: toggleToast });
@@ -401,10 +395,7 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
         )
       );
 
-      toast.success(
-        `Successfully ${activate ? "activated" : "deactivated"} ${selectedMembers.length} team member(s)`,
-        { id: toggleToast }
-      );
+      toast.dismiss(toggleToast);
     } catch (error: any) {
       console.error("Bulk toggle error:", error);
       toast.error(error.message || "Failed to update team members", { id: toggleToast });
@@ -446,7 +437,7 @@ const TeamCMS = ({ isSidebarOpen = false }: TeamCMSProps) => {
       await teamApi.reorder(orderData);
 
       setTeamMembers(updatedMembers);
-      toast.success("Team member moved successfully!", { id: reorderToast });
+      toast.dismiss(reorderToast);
     } catch (error: any) {
       console.error("Reorder error:", error);
       toast.error(error.message || "Failed to move team member", { id: reorderToast });

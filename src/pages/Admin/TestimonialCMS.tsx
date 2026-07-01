@@ -67,7 +67,7 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
     const t = toast.loading('Deleting testimonial...');
     try {
       await testimonialsApi.delete(id);
-      toast.success('Deleted successfully!', { id: t });
+      toast.dismiss(t);
       fetchTestimonials();
     } catch (err: any) {
       toast.error('Failed to delete', { id: t });
@@ -78,7 +78,7 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
     const t = toast.loading(`Deleting ${ids.length}...`);
     try {
       await testimonialsApi.bulkDelete(ids);
-      toast.success(`Deleted ${ids.length} testimonial(s)`, { id: t });
+      toast.dismiss(t);
       setSelectedTestimonials([]);
       fetchTestimonials();
     } catch (err: any) {
@@ -139,7 +139,6 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
       setUploadingImage(true);
       const fullUrl = await testimonialsApi.uploadImage(file);
       setFormData(prev => ({ ...prev, image_url: fullUrl }));
-      toast.success('Image uploaded successfully!');
       // Clean up blob URL
       URL.revokeObjectURL(previewUrl);
     } catch (err: any) {
@@ -158,7 +157,6 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
       setUploadingImage(true);
       const fullUrl = await testimonialsApi.uploadImage(selectedFile);
       setFormData(prev => ({ ...prev, image_url: fullUrl }));
-      toast.success('Image uploaded successfully!');
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err: any) {
@@ -208,7 +206,7 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
         toast.success('Testimonial updated successfully!', { id: loadingToast });
       } else {
         await testimonialsApi.create(submitData);
-        toast.success('Testimonial created successfully!', { id: loadingToast });
+        toast.dismiss(loadingToast);
       }
 
       fetchTestimonials();
@@ -246,7 +244,7 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
     try {
       await testimonialsApi.toggleActive(id);
       setTestimonials(prev => prev.map(tm => tm.id === id ? { ...tm, is_active: !currentStatus } : tm));
-      toast.success(`Testimonial ${!currentStatus ? 'activated' : 'deactivated'}`, { id: t });
+      toast.dismiss(t);
     } catch (err: any) {
       toast.error('Failed to update status', { id: t });
     }
@@ -260,7 +258,7 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
       setTestimonials(prev => prev.map(t =>
         selectedTestimonials.includes(t.id) ? { ...t, is_active: activate } : t
       ));
-      toast.success(`Updated ${selectedTestimonials.length} testimonial(s)`, { id: t });
+      toast.dismiss(t);
     } catch (err: any) {
       toast.error('Failed to update', { id: t });
     }

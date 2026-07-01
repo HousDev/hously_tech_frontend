@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FaSpinner,
-  FaSearch,
-  FaRegClock,
-  FaRegCommentAlt,
-  FaTag,
-} from 'react-icons/fa';
+  Loader2,
+  Search,
+  Clock,
+  MessageSquare,
+  Tag,
+  ArrowRight,
+} from 'lucide-react';
 import Breadcrumb from '../../components/Breadcrumb';
 import { blogApi, type BlogPost } from '../../lib/blogApi';
 
@@ -179,8 +180,8 @@ const BlogCard: React.FC<{ post: BlogPost; fallbackImg: string; onClick: () => v
     {/* Body */}
     <div className="p-4 flex flex-col flex-1">
       {/* Read time */}
-      <div className="flex items-center gap-1 text-gray-500 text-[11px] mb-2">
-        <FaRegClock className="text-[10px]" />
+      <div className="flex items-center gap-1.5 text-gray-500 text-[11px] mb-2">
+        <Clock className="w-3.5 h-3.5 text-gray-400" />
         <span>{post.read_time || '5 min read'}</span>
       </div>
 
@@ -200,9 +201,9 @@ const BlogCard: React.FC<{ post: BlogPost; fallbackImg: string; onClick: () => v
           {post.tags.slice(0, 3).map((tag, i) => (
             <span
               key={i}
-              className="flex items-center gap-1 text-[10px] text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full"
+              className="flex items-center gap-1 text-[10px] text-gray-600 bg-gray-50 border border-gray-200 px-2.5 py-0.5 rounded-full hover:bg-gray-100 transition-colors"
             >
-              <FaTag className="text-[8px] text-gray-400" />
+              <Tag className="w-2.5 h-2.5 text-blue-500/80" />
               {tag}
             </span>
           ))}
@@ -222,16 +223,17 @@ const BlogCard: React.FC<{ post: BlogPost; fallbackImg: string; onClick: () => v
             <p className="text-[10px] text-gray-400 mt-0.5">{formatDate(post.published_at)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <span className="flex items-center gap-1 text-[10px] text-gray-400">
-            <FaRegCommentAlt className="text-[9px]" />
+            <MessageSquare className="w-3 h-3 text-gray-400" />
             {post.comment_count ?? 0} comments
           </span>
           <button
             onClick={e => { e.stopPropagation(); onClick(); }}
-            className="inline-flex items-center gap-1 bg-[#0077d9] text-white text-[10px] font-semibold px-3 py-1.5 rounded-full hover:bg-[#005db0] transition-all"
+            className="inline-flex items-center gap-1 bg-[#0077d9] text-white text-[10px] font-semibold px-3 py-1.5 rounded-full hover:bg-[#005db0] transition-all shadow-sm group-hover:shadow"
           >
-            Read <span>→</span>
+            <span>Read</span>
+            <ArrowRight className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-0.5" />
           </button>
         </div>
       </div>
@@ -308,7 +310,7 @@ const BlogPage: React.FC = () => {
           {/* Search + Filter */}
           <div className="flex flex-col md:flex-row gap-4 mb-10 items-center justify-between">
             <div className="relative w-full md:w-80">
-              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
                 placeholder="Search articles..."
@@ -337,7 +339,7 @@ const BlogPage: React.FC = () => {
           {/* Loading */}
           {loading && (
             <div className="flex justify-center items-center py-24">
-              <FaSpinner className="w-8 h-8 text-[#0077d9] animate-spin" />
+              <Loader2 className="w-8 h-8 text-[#0077d9] animate-spin" />
             </div>
           )}
 

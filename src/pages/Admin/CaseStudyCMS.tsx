@@ -57,7 +57,7 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
     const t = toast.loading('Deleting...');
     try {
       await caseStudyApi.delete(id);
-      toast.success('Deleted successfully!', { id: t });
+      toast.dismiss(t);
       fetchAll();
     } catch {
       toast.error('Delete failed', { id: t });
@@ -68,7 +68,7 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
     const t = toast.loading(`Deleting ${ids.length} case study(s)...`);
     try {
       await caseStudyApi.bulkDelete(ids);
-      toast.success(`Deleted ${ids.length} case study(s)`, { id: t });
+      toast.dismiss(t);
       setSelected([]);
       fetchAll();
     } catch {
@@ -152,7 +152,6 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
       setUploadImg(true);
       const url = await caseStudyApi.uploadImage(f);
       setForm(p => ({ ...p, image_url: url }));
-      toast.success('Image uploaded successfully!');
       URL.revokeObjectURL(previewUrl);
     } catch (err: any) {
       toast.error(err?.message || 'Failed to upload image');
@@ -170,7 +169,6 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
       setUploadImg(true);
       const url = await caseStudyApi.uploadImage(selectedFile);
       setForm(p => ({ ...p, image_url: url }));
-      toast.success('Image uploaded!');
       setFile(null);
       if (fileRef.current) fileRef.current.value = '';
     } catch (e: any) { toast.error(e?.message || 'Upload failed'); }
@@ -191,7 +189,7 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
         toast.success('Case study updated successfully!', { id: t });
       } else {
         await caseStudyApi.create(payload);
-        toast.success('Case study created successfully!', { id: t });
+        toast.dismiss(t);
       }
       fetchAll();
       closeModal();
@@ -222,7 +220,7 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
     try {
       await caseStudyApi.toggleActive(id);
       setItems(p => p.map(i => i.id === id ? { ...i, is_active: !current } : i));
-      toast.success(`Case study ${!current ? 'activated' : 'deactivated'}`, { id: t });
+      toast.dismiss(t);
     } catch {
       toast.error('Failed to update status', { id: t });
     }

@@ -69,7 +69,7 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
     try {
       await homeApi.delete(id);
       setSlides(prev => prev.filter(s => s.id !== id));
-      toast.success('Slide deleted successfully', { id: t });
+      toast.dismiss(t);
     } catch {
       toast.error('Failed to delete slide', { id: t });
     }
@@ -79,7 +79,7 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
     const t = toast.loading(`Deleting ${ids.length} slide(s)...`);
     try {
       await homeApi.bulkDelete(ids);
-      toast.success(`${ids.length} slide(s) deleted successfully`, { id: t });
+      toast.dismiss(t);
       setSelectedSlides([]);
       fetchSlides();
     } catch {
@@ -173,7 +173,6 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
       setUploadingImage(true);
       const uploadedUrl = await uploadImageToServer(file);
       setFormData({ ...formData, image_url: uploadedUrl });
-      toast.success('Image uploaded successfully!');
 
       // Clean up the blob URL after upload
       if (previewUrl && previewUrl.startsWith('blob:')) {
@@ -204,7 +203,6 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
       const uploadedUrl = await uploadImageToServer(selectedFile);
 
       setFormData({ ...formData, image_url: uploadedUrl });
-      toast.success('Image uploaded successfully!');
 
       setSelectedFile(null);
       if (fileInputRef.current) {
@@ -275,7 +273,6 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
         toast.success('Slide updated successfully');
       } else {
         await homeApi.create(slideData);
-        toast.success('Slide created successfully');
       }
 
       fetchSlides();
@@ -323,7 +320,7 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
       setSlides(prev =>
         prev.map(s => s.id === slideId ? { ...s, is_active: !currentStatus } : s)
       );
-      toast.success(`Slide ${!currentStatus ? 'activated' : 'deactivated'} successfully`, { id: t });
+      toast.dismiss(t);
     } catch (err: any) {
       toast.error(err.message || 'Failed to toggle slide status', { id: t });
     }
@@ -337,7 +334,7 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
       setSlides(prev =>
         prev.map(s => selectedSlides.includes(s.id) ? { ...s, is_active: activate } : s)
       );
-      toast.success(`Successfully ${activate ? 'activated' : 'deactivated'} ${selectedSlides.length} slide(s)`, { id: t });
+      toast.dismiss(t);
     } catch {
       toast.error('Failed to update slides', { id: t });
     }
@@ -374,7 +371,7 @@ const HomeCMS = ({ isSidebarOpen = false }: HomeCMSProps) => {
 
       setSlides(newSlides);
       validateOrders(newSlides);
-      toast.success('Slide moved successfully!', { id: reorderToast });
+      toast.dismiss(reorderToast);
     } catch (error: any) {
       console.error('❌ Swap error:', error.response?.data || error.message);
       toast.error(error.response?.data?.message || 'Failed to move slide', { id: reorderToast });
