@@ -2141,7 +2141,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
           <div className="fixed inset-0 cursor-default" onClick={() => setViewingCandidateApp(null)} />
           <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 animate-modal-content overflow-hidden flex flex-col justify-between">
             {/* Header */}
-            <div className="flex justify-between items-center px-5 py-3.5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+            <div className="flex justify-between items-center px-5 py-3.5 border-b border-slate-100 bg-white flex-shrink-0">
               <div className="flex items-center space-x-3">
                 <div className="w-9 h-9 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-[#0D47A1] font-bold text-xs">
                   {viewingCandidateApp.applicant_name
@@ -2162,29 +2162,29 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
               </div>
               <button
                 onClick={() => setViewingCandidateApp(null)}
-                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-lg transition-all cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-lg transition-all cursor-pointer z-20"
               >
                 <X size={16} />
               </button>
             </div>
 
             {/* Content Area - Two Columns, No tabs, No next, all in one view! */}
-            <div className="flex-1 p-5 flex flex-col sm:flex-row gap-5 overflow-hidden min-h-0 select-text">
+            <div className="flex-1 p-5 flex flex-col sm:flex-row gap-5 overflow-hidden min-h-0 select-text bg-white">
               
               {/* Left Column: Personal details + Resume */}
               <div className="flex-1 flex flex-col justify-between space-y-4">
-                <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-xl space-y-2.5 text-[11px] text-slate-600">
+                <div className="bg-white border border-slate-200/60 p-3.5 rounded-xl space-y-2.5 text-[11px] text-slate-600 shadow-sm">
                   <p className="text-[10px] font-extrabold text-blue-600 uppercase tracking-wider mb-1">Basic Details</p>
                   
-                  <div className="flex justify-between py-1 border-b border-slate-200/50">
+                  <div className="flex justify-between py-1 border-b border-slate-100">
                     <span className="font-semibold text-slate-400">Email:</span>
                     <span className="font-bold text-slate-700 select-text truncate max-w-[170px]" title={viewingCandidateApp.email}>{viewingCandidateApp.email}</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-slate-200/50">
+                  <div className="flex justify-between py-1 border-b border-slate-100">
                     <span className="font-semibold text-slate-400">Phone:</span>
                     <span className="font-bold text-slate-700 select-text">{viewingCandidateApp.phone || '—'}</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-slate-200/50">
+                  <div className="flex justify-between py-1 border-b border-slate-100">
                     <span className="font-semibold text-slate-400">Applied:</span>
                     <span className="font-bold text-slate-700">{formatDate(viewingCandidateApp.applied_at)}</span>
                   </div>
@@ -2197,8 +2197,8 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                 </div>
 
                 {/* Resume Card & Button */}
-                <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col justify-center space-y-2">
-                  <div className="flex items-center space-x-2 bg-white border border-slate-200/60 p-2 rounded-lg">
+                <div className="bg-white border border-slate-200/60 p-3 rounded-xl flex flex-col justify-center space-y-2 shadow-sm">
+                  <div className="flex items-center space-x-2 bg-slate-50 border border-slate-100 p-2 rounded-lg">
                     <div className="w-7 h-7 rounded bg-red-50 flex items-center justify-center text-red-500 border border-red-100 shrink-0">
                       <FileText className="w-3.5 h-3.5" />
                     </div>
@@ -2219,10 +2219,10 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
 
               {/* Right Column: Profiles, Experience & Message */}
               <div className="flex-1 flex flex-col justify-between space-y-4">
-                <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-xl space-y-2.5 text-[11px] text-slate-600">
+                <div className="bg-white border border-slate-200/60 p-3.5 rounded-xl space-y-2.5 text-[11px] text-slate-600 shadow-sm">
                   <p className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider mb-1">Profiles & Experience</p>
 
-                  <div className="flex items-center justify-between py-1 border-b border-slate-200/50">
+                  <div className="flex items-center justify-between py-1 border-b border-slate-100">
                     <span className="font-semibold text-slate-400 flex items-center gap-1.5">
                       <Linkedin size={12} className="text-blue-600" />
                       LinkedIn:
@@ -2241,7 +2241,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between py-1 border-b border-slate-200/50">
+                  <div className="flex items-center justify-between py-1 border-b border-slate-100">
                     <span className="font-semibold text-slate-400 flex items-center gap-1.5">
                       <Globe size={12} className="text-emerald-600" />
                       Portfolio:
@@ -2272,9 +2272,9 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                 </div>
 
                 {/* Cover Letter Block */}
-                <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex-1 flex flex-col min-h-0">
+                <div className="bg-white border border-slate-200/60 p-3 rounded-xl flex-1 flex flex-col min-h-0 shadow-sm">
                   <span className="text-[10px] font-bold text-slate-400 block mb-1">Cover Letter / Message:</span>
-                  <div className="bg-white border border-slate-100 rounded-lg p-2.5 text-[10px] text-slate-500 leading-relaxed italic overflow-y-auto flex-1 max-h-[85px]">
+                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5 text-[10px] text-slate-500 leading-relaxed italic overflow-y-auto flex-1 max-h-[85px]">
                     {viewingCandidateApp.cover_letter ? `"${viewingCandidateApp.cover_letter}"` : 'No cover letter provided.'}
                   </div>
                 </div>
@@ -2283,7 +2283,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
             </div>
 
             {/* Footer Buttons */}
-            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex justify-end items-center text-[10px] sm:text-xs font-bold flex-shrink-0">
+            <div className="px-5 py-3 border-t border-slate-100 bg-white flex justify-end items-center text-[10px] sm:text-xs font-bold flex-shrink-0">
               <button
                 onClick={() => setViewingCandidateApp(null)}
                 className="px-4 py-1.5 rounded-lg bg-[#0D47A1] hover:bg-[#1976D2] text-white transition-all cursor-pointer font-bold"

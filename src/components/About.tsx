@@ -109,7 +109,7 @@
 //        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-6 relative z-10 w-full">
 //   {/* Section Header */}
 //   <div className="mb-2 sm:mb-6 lg:mb-8">
-    
+
 //     {/* Centered WHO WE ARE with lines */}
 //     <div className="flex items-center justify-center space-x-3 mb-3 sm:mb-4">
 //       <div className="w-8 sm:w-10 lg:w-16 h-0.5 bg-[#0076d8]"></div>
@@ -129,7 +129,7 @@
 
 //   {/* Content Grid */}
 //   <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 items-center">
-    
+
 //     {/* Left Side - Images */}
 //     <div className="grid grid-cols-2 gap-4 sm:gap-4">
 //       <div className="rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl transform hover:scale-105 transition duration-500">
@@ -283,7 +283,7 @@ import {
   Rocket,
   Settings,
   Palette,
-  
+
   Sparkles,
   Zap,
   Award,
@@ -370,7 +370,7 @@ const About: React.FC = () => {
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-32 -right-32 w-72 h-72 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute -bottom-32 -left-32 w-72 h-72 bg-gradient-to-tr from-cyan-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          
+
           {/* Subtle Grid */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(0,118,216,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,118,216,0.02)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
         </div>
@@ -394,7 +394,7 @@ const About: React.FC = () => {
                   Innovative IT Solutions
                 </span>
               </h2>
-              
+
               <p className="text-sm sm:text-base text-slate-600 text-center max-w-2xl">
                 Empowering enterprises with cutting-edge technology and premium digital solutions
               </p>
@@ -409,7 +409,7 @@ const About: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent z-10"></div>
                 <img
-                  src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&q=80"
+                  src="/Innovatio.png"
                   alt="IT Services"
                   className="w-full h-[240px] sm:h-[300px] lg:h-[380px] object-cover transition-transform duration-700 group-hover:scale-110"
                 />
@@ -425,7 +425,7 @@ const About: React.FC = () => {
                   <div className="absolute inset-0 bg-gradient-to-bl from-blue-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent z-10"></div>
                   <img
-                    src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1600&q=80"
+                    src="/technology.png"
                     alt="Cloud Computing"
                     className="w-full h-[160px] sm:h-[200px] lg:h-[240px] object-cover transition-transform duration-700 group-hover:scale-110"
                   />
@@ -435,7 +435,7 @@ const About: React.FC = () => {
                     </span>
                   </div>
                 </div>
-                
+
                 {/* Stats Mini */}
                 <div className="grid grid-cols-3 gap-2 bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-white/80 shadow-md">
                   {[
@@ -528,7 +528,7 @@ const About: React.FC = () => {
       {/* Premium Auto-Scrolling Services Marquee */}
       <section className="relative py-4 sm:py-5 overflow-hidden bg-gradient-to-r from-slate-50 via-white to-blue-50/50 border-y border-blue-100/30">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-transparent to-purple-600/5 pointer-events-none"></div>
-        
+
         <div
           ref={scrollRef}
           className="flex items-center overflow-x-hidden whitespace-nowrap"
