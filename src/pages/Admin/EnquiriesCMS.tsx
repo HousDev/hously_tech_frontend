@@ -722,7 +722,7 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
   }
 
   return (
-    <div className="bg-transparent font-sans px-4 py-2 md:px-6 md:py-3">
+    <div className="bg-transparent font-sans px-6 pt-6 md:px-6 md:py-3">
       <Toaster
         position="top-right"
         toastOptions={{

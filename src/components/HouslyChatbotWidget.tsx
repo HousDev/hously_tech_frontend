@@ -121,9 +121,9 @@ export default function HouslyChatbotWidget() {
         try {
           const caseStudies = await caseStudyApi.getPublic();
           const queryWords = lowerText.trim().split(/\s+/).filter(Boolean);
-          
+
           let matchedProject = null;
-          
+
           if (queryWords.length > 0) {
             for (const cs of caseStudies) {
               const titleLower = cs.title.toLowerCase();
@@ -146,7 +146,7 @@ export default function HouslyChatbotWidget() {
               }
             }
           }
-          
+
           if (matchedProject) {
             addBotMessage(
               `Yes! We found your project "${matchedProject.title}". Please contact our support team at Mobile: ${CONTACT_INFO.phone} or Email: ${CONTACT_INFO.email}.`
@@ -303,7 +303,7 @@ export default function HouslyChatbotWidget() {
               <img src="/chatboot.png" alt="Hously AI" style={{ width: 22, height: 22, objectFit: 'contain' }} />
             </div>
             <div>
-              <div style={styles.headerName}>Hously Fintech Realty</div>
+              <div style={styles.headerName}>Hously</div>
               <div style={styles.headerStatus}>
                 <span style={styles.statusDot} />
                 Online · Realty &amp; Tech Support
@@ -421,7 +421,7 @@ export default function HouslyChatbotWidget() {
                       onChange={e => setFormData({ ...formData, enquiryType: e.target.value })}
                       style={styles.formInput}
                     />
-                    
+
                     <div style={{ display: 'flex', gap: 6, justifySelf: 'flex-end', justifyContent: 'flex-end', marginTop: 4 }}>
                       <button
                         type="button"

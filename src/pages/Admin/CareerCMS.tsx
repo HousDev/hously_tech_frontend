@@ -3,7 +3,7 @@ import { useLocation, useOutletContext } from 'react-router-dom';
 import {
   Plus, Edit, Trash2, Eye, EyeOff, MapPin, Briefcase,
   Users, DollarSign, Clock, Search,
-  Save, X, Mail,
+  Save, X, Mail, FileText, Linkedin,
   ChevronLeft, ChevronRight, BarChart3,
   Building, Headphones, Code, Server,
   Award, Globe, Palette,
@@ -469,6 +469,8 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   // States
   const [jobs, setJobs] = useState<Job[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [totalJobs, setTotalJobs] = useState(0);
+  const [totalApps, setTotalApps] = useState(0);
   const [loading, setLoading] = useState(true);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [activeTab, setActiveTab] = useState<'jobs' | 'applications'>('jobs');
@@ -614,6 +616,10 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   const [showCalendarPopup, setShowCalendarPopup] = useState(false);
   const [calendarSelectedCandidate, setCalendarSelectedCandidate] = useState<Application | null>(null);
 
+  // Candidate Details Popup State
+  const [viewingCandidateApp, setViewingCandidateApp] = useState<Application | null>(null);
+  const [candidatePopupTab, setCandidatePopupTab] = useState<'basic' | 'profiles' | 'experience' | 'resume'>('basic');
+
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
@@ -750,6 +756,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       });
 
       setJobs(response.jobs);
+      setTotalJobs(response.total || 0);
     } catch (error) {
       console.error('Failed to fetch jobs:', error);
       showToast('Failed to fetch jobs', 'error');
@@ -770,6 +777,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
         order: sortDirection
       });
       setApplications(response.applications);
+      setTotalApps(response.total || 0);
     } catch (error) {
       console.error('Failed to fetch applications:', error);
     }
@@ -803,7 +811,8 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
         careerApi.getApplications({ limit: 100 }).then(res => {
           const found = res.applications.find(a => a.id === appId);
           if (found) {
-            openInterviewModal(found);
+            setViewingCandidateApp(found);
+            setCandidatePopupTab('basic');
           }
         }).catch(console.error);
       }
@@ -1265,7 +1274,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       app.job_title?.toLowerCase().includes(search)
     );
   });
-  const totalItems = activeTab === 'jobs' ? jobStats.total : appStats.total;
+  const totalItems = activeTab === 'jobs' ? (totalJobs || jobStats.total) : (totalApps || appStats.total);
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // Selection handlers
@@ -1303,6 +1312,99 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
 
   // Sort handler
 
+  const renderPagination = (hasBg = true) => {
+    if (totalItems === 0) return null;
+    if (isSidebarOpen && window.innerWidth < 640) return null;
+
+    return (
+      <div className={`flex items-center justify-between gap-2 text-slate-700 ${
+        hasBg 
+          ? 'p-2 sm:p-2.5 bg-slate-50 border-t border-slate-200' 
+          : 'pt-3 border-t border-slate-200'
+      }`}>
+        {/* Left side - showing info compact */}
+        <div className="text-[10px] sm:text-xs text-gray-600 whitespace-nowrap">
+          <span className="hidden sm:inline">Showing </span>
+          <span className="font-semibold text-gray-800">{(currentPage - 1) * itemsPerPage + 1}</span>
+          <span className="hidden sm:inline"> - </span>
+          <span className="sm:hidden">-</span>
+          <span className="font-semibold text-gray-800">
+            {Math.min(currentPage * itemsPerPage, totalItems)}
+          </span>
+          <span className="hidden sm:inline"> of </span>
+          <span className="sm:hidden">/</span>
+          <span className="font-semibold text-gray-800">{totalItems}</span>
+        </div>
+
+        {/* Pagination controls - compact row */}
+        <div className="flex items-center gap-0.5 sm:gap-1">
+          {/* Previous button */}
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+          >
+            <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+          </button>
+
+          {/* Page numbers - Desktop */}
+          <div className="hidden sm:flex items-center gap-0.5 sm:gap-1">
+            {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+              let pageNumber;
+              if (totalPages <= 3) {
+                pageNumber = i + 1;
+              } else if (currentPage <= 2) {
+                pageNumber = i + 1;
+              } else if (currentPage >= totalPages - 1) {
+                pageNumber = totalPages - 2 + i;
+              } else {
+                pageNumber = currentPage - 1 + i;
+              }
+
+              return (
+                <button
+                  key={pageNumber}
+                  onClick={() => setCurrentPage(pageNumber)}
+                  className={`min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs rounded-md transition cursor-pointer ${currentPage === pageNumber
+                    ? 'bg-blue-600 text-white font-medium shadow-sm'
+                    : 'border border-gray-300 text-gray-700 hover:bg-white'
+                    }`}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+
+            {totalPages > 3 && currentPage < totalPages - 1 && (
+              <>
+                <span className="text-gray-400 text-[10px] sm:text-xs px-0.5">...</span>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  className="min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-white transition cursor-pointer"
+                >
+                  {totalPages}
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Mobile: Current page indicator */}
+          <span className="sm:hidden text-[10px] font-medium text-gray-700 px-1">
+            {currentPage}/{totalPages}
+          </span>
+
+          {/* Next button */}
+          <button
+            onClick={() => setCurrentPage(p => p + 1)}
+            disabled={currentPage >= totalPages}
+            className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+          >
+            <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   if (loading && jobs.length === 0 && applications.length === 0) {
     return (
@@ -1313,7 +1415,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   }
 
   return (
-    <div>
+    <div className="flex flex-col h-full px-6 pt-6">
       <Toaster
         position="top-right"
         toastOptions={{
@@ -1341,7 +1443,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       />
 
       {/* Main Container */}
-      <div className={`transition-all duration-300 ${isSidebarOpen ? 'ml-0 sm:ml-0' : ''
+      <div className={`bg-transparent font-sans flex flex-col flex-1 min-h-0 transition-all duration-300 ${isSidebarOpen ? 'ml-0 sm:ml-0' : ''
         }`}>
         <style>{`
           @keyframes modalFadeIn {
@@ -1614,10 +1716,12 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
           )}
 
         {/* Content Area */}
-        <div className={`flex flex-col justify-between min-h-[500px] ${isSidebarOpen && window.innerWidth < 640 ? 'hidden' : 'block'}`}>
+        <div className={`flex-col flex-1 min-h-0 ${isSidebarOpen && window.innerWidth < 640 ? 'hidden' : 'flex'}`}>
           {activeTab === 'jobs' ? (
             viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+              <div className="flex flex-col flex-1 min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-slate-200/60 shadow-sm overflow-hidden p-4">
+                <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                 {jobs.map((job) => (
                   <div
                     key={job.id}
@@ -1732,10 +1836,14 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                     </div>
                   </div>
                 ))}
+                </div>
               </div>
+              {renderPagination(false)}
+            </div>
             ) : (
-              <div className="overflow-x-auto bg-white/40 backdrop-blur-md rounded-xl border border-white/20 shadow-sm overflow-hidden">
-                <table className="min-w-full border-collapse border border-slate-300">
+              <div className="flex flex-col flex-1 min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  <table className="min-w-full border-collapse border border-slate-300">
                   <thead className="bg-slate-200/50 backdrop-blur-md sticky top-0 z-20">
                     <tr>
                       <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-8 border-r border-b border-slate-300">
@@ -1829,13 +1937,15 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                     ))}
                   </tbody>
                 </table>
+                </div>
+                {renderPagination(true)}
               </div>
-
             )
           ) : (
             // Applications Table
-            <div className="overflow-x-auto bg-white/40 backdrop-blur-md rounded-xl border border-white/20 shadow-sm overflow-hidden">
-              <table className="min-w-full border-collapse border border-slate-300">
+            <div className="flex flex-col flex-1 min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
+              <div className="flex-1 overflow-y-auto min-h-0">
+                <table className="min-w-full border-collapse border border-slate-300">
                 <thead className="bg-slate-200/50 backdrop-blur-md sticky top-0 z-20">
                   <tr>
                     <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-8 border-r border-b border-slate-300">
@@ -1919,9 +2029,12 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                           {app.resume_path && (
                             <>
                               <button
-                                onClick={() => viewResume(app.resume_path!)}
+                                onClick={() => {
+                                  setViewingCandidateApp(app);
+                                  setCandidatePopupTab('basic');
+                                }}
                                 className="p-0.5 text-indigo-600 hover:bg-indigo-50 border border-indigo-100 rounded cursor-pointer transition-all"
-                                title="View Resume"
+                                title="View Candidate Details"
                               >
                                 <Eye size={11} />
                               </button>
@@ -1965,6 +2078,8 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                   ))}
                 </tbody>
               </table>
+              </div>
+              {renderPagination(true)}
             </div>
 
           )}
@@ -1995,93 +2110,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
             </div>
           )}
 
-          {/* Pagination - Hide when sidebar is open on mobile */}
-          {(activeTab === 'jobs' ? jobs.length : filteredApplications.length) > 0 && (!isSidebarOpen || window.innerWidth >= 640) && (
-            <div className="mt-3 sm:mt-4 p-2 sm:p-2.5 bg-gray-50 border border-gray-200 rounded-md">
-              <div className="flex items-center justify-between gap-2">
-                {/* Left side - showing info compact */}
-                <div className="text-[10px] sm:text-xs text-gray-600 whitespace-nowrap">
-                  <span className="hidden sm:inline">Showing </span>
-                  <span className="font-semibold text-gray-800">{(currentPage - 1) * itemsPerPage + 1}</span>
-                  <span className="hidden sm:inline"> - </span>
-                  <span className="sm:hidden">-</span>
-                  <span className="font-semibold text-gray-800">
-                    {Math.min(currentPage * itemsPerPage, totalItems)}
-                  </span>
-                  <span className="hidden sm:inline"> of </span>
-                  <span className="sm:hidden">/</span>
-                  <span className="font-semibold text-gray-800">{totalItems}</span>
-                </div>
 
-                {/* Pagination controls - compact row */}
-                <div className="flex items-center gap-0.5 sm:gap-1">
-                  {/* Previous button */}
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  >
-                    <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  </button>
-
-                  {/* Page numbers - Desktop */}
-                  <div className="hidden sm:flex items-center gap-0.5 sm:gap-1">
-                    {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-                      let pageNumber;
-                      if (totalPages <= 3) {
-                        pageNumber = i + 1;
-                      } else if (currentPage <= 2) {
-                        pageNumber = i + 1;
-                      } else if (currentPage >= totalPages - 1) {
-                        pageNumber = totalPages - 2 + i;
-                      } else {
-                        pageNumber = currentPage - 1 + i;
-                      }
-
-                      return (
-                        <button
-                          key={pageNumber}
-                          onClick={() => setCurrentPage(pageNumber)}
-                          className={`min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs rounded-md transition ${currentPage === pageNumber
-                            ? 'bg-blue-600 text-white font-medium shadow-sm'
-                            : 'border border-gray-300 text-gray-700 hover:bg-white'
-                            }`}
-                        >
-                          {pageNumber}
-                        </button>
-                      );
-                    })}
-
-                    {totalPages > 3 && currentPage < totalPages - 1 && (
-                      <>
-                        <span className="text-gray-400 text-[10px] sm:text-xs px-0.5">...</span>
-                        <button
-                          onClick={() => setCurrentPage(totalPages)}
-                          className="min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-white transition"
-                        >
-                          {totalPages}
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Mobile: Current page indicator */}
-                  <span className="sm:hidden text-[10px] font-medium text-gray-700 px-1">
-                    {currentPage}/{totalPages}
-                  </span>
-
-                  {/* Next button */}
-                  <button
-                    onClick={() => setCurrentPage(p => p + 1)}
-                    disabled={currentPage >= totalPages}
-                    className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  >
-                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -2104,6 +2133,241 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
             }
           }}
         />
+      )}
+
+      {/* ========== CANDIDATE DETAILS POPUP ========== */}
+      {viewingCandidateApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-modal-backdrop bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 cursor-default" onClick={() => setViewingCandidateApp(null)} />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 animate-modal-content overflow-hidden flex flex-col justify-between h-[410px]">
+            {/* Header */}
+            <div className="flex justify-between items-center px-5 py-3.5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+              <div className="flex items-center space-x-3">
+                <div className="w-9 h-9 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-[#0D47A1] font-bold text-xs">
+                  {viewingCandidateApp.applicant_name
+                    ?.split(" ")
+                    .map((n: string) => n.charAt(0))
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-800 text-xs sm:text-sm leading-tight">
+                    {viewingCandidateApp.applicant_name}
+                  </h3>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                    {viewingCandidateApp.job_title || 'Candidate'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewingCandidateApp(null)}
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-lg transition-all cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="flex border-b border-slate-100 px-4 bg-slate-50/20 text-[10px] sm:text-xs font-bold flex-shrink-0">
+              <button
+                onClick={() => setCandidatePopupTab('basic')}
+                className={`flex-1 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
+                  candidatePopupTab === 'basic'
+                    ? 'border-[#0D47A1] text-[#0D47A1]'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Personal Info
+              </button>
+              <button
+                onClick={() => setCandidatePopupTab('profiles')}
+                className={`flex-1 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
+                  candidatePopupTab === 'profiles'
+                    ? 'border-[#0D47A1] text-[#0D47A1]'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Profiles & Letter
+              </button>
+              {viewingCandidateApp.experience_level && viewingCandidateApp.experience_level.toLowerCase() !== 'fresher' && (
+                <button
+                  onClick={() => setCandidatePopupTab('experience')}
+                  className={`flex-1 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
+                    candidatePopupTab === 'experience'
+                      ? 'border-[#0D47A1] text-[#0D47A1]'
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Experience
+                </button>
+              )}
+              <button
+                onClick={() => setCandidatePopupTab('resume')}
+                className={`flex-1 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
+                  candidatePopupTab === 'resume'
+                    ? 'border-[#0D47A1] text-[#0D47A1]'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Resume
+              </button>
+            </div>
+
+            {/* Content Area - Fixed height, NO scrollbar inside */}
+            <div className="flex-1 p-5 flex flex-col justify-center select-none overflow-hidden min-h-0">
+              {candidatePopupTab === 'basic' && (
+                <div className="space-y-3 text-[11px] text-slate-600">
+                  <div className="flex justify-between py-1.5 border-b border-slate-50">
+                    <span className="font-semibold text-slate-400">Full Name:</span>
+                    <span className="font-bold text-slate-700 select-text">{viewingCandidateApp.applicant_name}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-50">
+                    <span className="font-semibold text-slate-400">Email Address:</span>
+                    <span className="font-bold text-slate-700 select-text">{viewingCandidateApp.email}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-50">
+                    <span className="font-semibold text-slate-400">Phone Number:</span>
+                    <span className="font-bold text-slate-700 select-text">{viewingCandidateApp.phone || '—'}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-50">
+                    <span className="font-semibold text-slate-400">Applied Date:</span>
+                    <span className="font-bold text-slate-700">{formatDate(viewingCandidateApp.applied_at)}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 items-center">
+                    <span className="font-semibold text-slate-400">Application Status:</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${getStatusColor(viewingCandidateApp.status)}`}>
+                      {viewingCandidateApp.status.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {candidatePopupTab === 'profiles' && (
+                <div className="space-y-3.5 text-[11px] text-slate-600">
+                  {/* LinkedIn */}
+                  <div className="flex items-center justify-between py-1.5 border-b border-slate-50">
+                    <span className="font-semibold text-slate-400 flex items-center gap-1.5">
+                      <Linkedin size={13} className="text-blue-600" />
+                      LinkedIn Profile:
+                    </span>
+                    {viewingCandidateApp.linkedin ? (
+                      <a
+                        href={viewingCandidateApp.linkedin}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-bold text-blue-600 hover:underline select-text truncate max-w-[200px]"
+                      >
+                        {viewingCandidateApp.linkedin.replace(/^https?:\/\/(www\.)?/, '')}
+                      </a>
+                    ) : (
+                      <span className="text-slate-400 font-medium">Not Provided</span>
+                    )}
+                  </div>
+
+                  {/* Portfolio */}
+                  <div className="flex items-center justify-between py-1.5 border-b border-slate-50">
+                    <span className="font-semibold text-slate-400 flex items-center gap-1.5">
+                      <Globe size={13} className="text-emerald-600" />
+                      Portfolio / Website:
+                    </span>
+                    {viewingCandidateApp.portfolio ? (
+                      <a
+                        href={viewingCandidateApp.portfolio}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-bold text-emerald-600 hover:underline select-text truncate max-w-[200px]"
+                      >
+                        {viewingCandidateApp.portfolio.replace(/^https?:\/\/(www\.)?/, '')}
+                      </a>
+                    ) : (
+                      <span className="text-slate-400 font-medium">Not Provided</span>
+                    )}
+                  </div>
+
+                  {/* Cover Letter */}
+                  <div className="mt-2.5">
+                    <span className="font-semibold text-slate-400 block mb-1">Cover Letter Preview:</span>
+                    <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5 text-[10px] text-slate-500 leading-relaxed italic max-h-[70px] overflow-hidden truncate whitespace-normal">
+                      {viewingCandidateApp.cover_letter ? `"${viewingCandidateApp.cover_letter}"` : 'No cover letter provided.'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {candidatePopupTab === 'experience' && (
+                <div className="flex flex-col items-center justify-center text-center space-y-2.5 h-full">
+                  <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100">
+                    <Briefcase size={15} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-700 text-xs">Experience Information</h4>
+                    <p className="text-[10px] text-slate-500 font-extrabold mt-0.5 uppercase tracking-wider">
+                      Level: {viewingCandidateApp.experience_level}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1.5 max-w-[280px] leading-relaxed">
+                      Detailed listings of past employment, roles, and candidate qualifications are detailed inside the attached resume document.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {candidatePopupTab === 'resume' && (
+                <div className="flex flex-col items-center justify-center space-y-3.5 h-full">
+                  <div className="flex items-center space-x-2.5 bg-slate-50 border border-slate-200/60 p-2.5 rounded-xl w-full max-w-[260px]">
+                    <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-red-500 border border-red-100">
+                      <FileText className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold text-slate-700 truncate">Candidate_Resume.pdf</p>
+                      <p className="text-[9px] text-slate-400">PDF Document</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => viewResume(viewingCandidateApp.resume_path!)}
+                    className="w-full max-w-[260px] bg-[#0D47A1] hover:bg-[#1976D2] text-white py-2 rounded-xl text-[10px] font-bold transition shadow-md shadow-blue-500/20 flex items-center justify-center space-x-1.5 cursor-pointer"
+                  >
+                    <Eye size={12} />
+                    <span>View Resume in New Tab</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center text-[10px] sm:text-xs font-bold flex-shrink-0">
+              <button
+                disabled={candidatePopupTab === 'basic'}
+                onClick={() => {
+                  const tabs = (['basic', 'profiles', 'experience', 'resume'] as const).filter(
+                    t => t !== 'experience' || (viewingCandidateApp.experience_level && viewingCandidateApp.experience_level.toLowerCase() !== 'fresher')
+                  ) as ('basic' | 'profiles' | 'experience' | 'resume')[];
+                  const idx = tabs.indexOf(candidatePopupTab);
+                  if (idx > 0) setCandidatePopupTab(tabs[idx - 1]);
+                }}
+                className="px-3 py-1.5 rounded-lg border border-slate-200/60 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent transition-all cursor-pointer"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => {
+                  const tabs = (['basic', 'profiles', 'experience', 'resume'] as const).filter(
+                    t => t !== 'experience' || (viewingCandidateApp.experience_level && viewingCandidateApp.experience_level.toLowerCase() !== 'fresher')
+                  ) as ('basic' | 'profiles' | 'experience' | 'resume')[];
+                  const idx = tabs.indexOf(candidatePopupTab);
+                  if (idx < tabs.length - 1) {
+                    setCandidatePopupTab(tabs[idx + 1]);
+                  } else {
+                    setViewingCandidateApp(null);
+                  }
+                }}
+                className="px-4 py-1.5 rounded-lg bg-[#0D47A1] hover:bg-[#1976D2] text-white transition-all cursor-pointer"
+              >
+                {candidatePopupTab === 'resume' ? 'Done' : 'Next'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
 

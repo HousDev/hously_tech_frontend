@@ -386,7 +386,7 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
   }
 
   return (
-    <div>
+    <div className="flex flex-col h-full px-6 pt-6">
 
       <Toaster
         position="top-right"
@@ -417,7 +417,7 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
         }
       `}</style>
       {/* Main Container */}
-      <div className={`transition-all duration-300 ${isSidebarOpen ? 'ml-0 sm:ml-0' : ''
+      <div className={`bg-transparent font-sans flex flex-col flex-1 min-h-0 transition-all duration-300 ${isSidebarOpen ? 'ml-0 sm:ml-0' : ''
         }`}>
         {/* Header - Fixed with sidebar consideration */}
         {/* Header - Fixed with sidebar consideration */}
@@ -647,7 +647,7 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
           </div>
         )}        {/* Table View */}
         {viewMode === 'table' && (!isSidebarOpen || window.innerWidth >= 640) && (
-          <div className="flex flex-col justify-between min-h-[480px] bg-white/40 backdrop-blur-md rounded-xl border border-white/20 shadow-sm overflow-hidden">
+          <div className="flex flex-col flex-1 min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-white/20 shadow-sm overflow-hidden">
             {currentTestimonials.length === 0 ? (
               <div className="p-6 sm:p-12 text-center">
                 <Users className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
@@ -668,7 +668,7 @@ const TestimonialsCMS = ({ isSidebarOpen = false }: TestimonialsCMSProps) => {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <div className="flex-1 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <table className="min-w-full border-collapse border border-slate-300">
                     <thead className="bg-slate-200/50 backdrop-blur-md sticky top-0 z-20">
                       <tr>

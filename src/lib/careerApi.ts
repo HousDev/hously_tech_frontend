@@ -38,6 +38,8 @@ export interface Application {
   notes: string | null;
   applied_at: string;
   updated_at: string;
+  linkedin?: string | null;
+  portfolio?: string | null;
 }
 
 export interface JobStats {
