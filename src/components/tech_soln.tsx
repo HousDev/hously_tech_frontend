@@ -61,7 +61,7 @@ const TechFeaturesSection: React.FC = () => {
 
           <div className="container mx-auto px-4 max-w-7xl relative z-10">
             <div className="grid grid-cols-12 gap-10 items-center">
-              
+
               {/* Content Column (Left Side) */}
               <div className="col-span-6">
                 <div className="mb-6">
@@ -85,7 +85,7 @@ const TechFeaturesSection: React.FC = () => {
                       className="group bg-white p-4.5 rounded-xl border border-slate-100/70 hover:border-[#0077d9]/35 hover:shadow-[0_8px_25px_-5px_rgba(0,119,217,0.06)] transition-all duration-300 hover:-translate-y-0.5 relative overflow-hidden"
                     >
                       <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#0077d9] scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300" />
-                      
+
                       <div className="w-8 h-8 flex items-center justify-center bg-[#0077d9]/10 rounded-lg mb-3 group-hover:bg-[#0077d9] transition-all duration-300">
                         <img
                           alt={feature.title}
@@ -93,7 +93,7 @@ const TechFeaturesSection: React.FC = () => {
                           className="w-4 h-4 filter group-hover:brightness-0 group-hover:invert transition-all duration-300"
                         />
                       </div>
-                      
+
                       <h3 className="text-xs font-bold text-slate-900 mb-1 group-hover:text-[#0077d9] transition-colors duration-250">
                         {feature.title}
                       </h3>
@@ -109,18 +109,18 @@ const TechFeaturesSection: React.FC = () => {
               <div className="col-span-6">
                 <div className="relative animate-slideInRight max-w-[540px] mx-auto">
                   <div className="flex -mx-3 items-center">
-                    
+
                     {/* Left Tall Image */}
                     <div className="w-1/2 px-3">
                       <div className="rounded-[24px] overflow-hidden shadow-xl border border-slate-100/50 bg-white p-1.5 transition-transform duration-500 hover:scale-[1.02]">
                         <img
                           alt="IT Consulting"
-                          src="https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?auto=format&fit=crop&w=800&q=80"
+                          src="/tech2.png"
                           className="w-full h-[420px] object-cover rounded-[18px]"
                         />
                       </div>
                     </div>
-                    
+
                     {/* Right Double Image Stack */}
                     <div className="w-1/2 px-3 flex flex-col gap-4">
                       {/* Top Rotated Image (30deg) */}
@@ -131,7 +131,7 @@ const TechFeaturesSection: React.FC = () => {
                           className="w-full h-[210px] object-cover rounded-[18px]"
                         />
                       </div>
-                      
+
                       {/* Bottom Unrotated Image */}
                       <div className="rounded-[24px] overflow-hidden shadow-xl border border-slate-100/50 bg-white p-1.5 transition-transform duration-500 hover:scale-[1.02]">
                         <img
@@ -155,7 +155,7 @@ const TechFeaturesSection: React.FC = () => {
       <div className="block lg:hidden bg-slate-50 border-t border-b border-slate-100">
         <section className="py-10 px-4">
           <div className="max-w-md mx-auto">
-            
+
             {/* Mobile Title Section */}
             <div className="text-center mb-6">
               <span className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-[#0077d9]/10 rounded-full border border-[#0077d9]/20 text-[10px] font-bold text-[#0077d9] tracking-wider uppercase mb-2">
@@ -178,7 +178,7 @@ const TechFeaturesSection: React.FC = () => {
                   className="w-full h-40 object-cover rounded-xl"
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl overflow-hidden border-2 border-white shadow-sm">
                   <img

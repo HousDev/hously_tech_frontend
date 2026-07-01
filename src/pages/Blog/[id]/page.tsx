@@ -405,9 +405,9 @@ const BlogDetailPage: React.FC = () => {
       case 'twitter':  shareUrl = `https://twitter.com/intent/tweet?text=${title}&url=${url}`; break;
       case 'linkedin': shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`; break;
       case 'whatsapp': shareUrl = `https://wa.me/?text=${title}%20${url}`; break;
-      case 'email':    shareUrl = `mailto:?subject=${title}&body=${url}`; break;
+      case 'email':    shareUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${title}&body=${url}`; break;
     }
-    if (shareUrl) window.open(shareUrl, '_blank', 'width=600,height=400');
+    if (shareUrl) window.open(shareUrl, '_blank');
   };
 
   const recentPosts = allPosts.filter(p => p.id !== post?.id).slice(0, 5);

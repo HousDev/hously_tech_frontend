@@ -1330,7 +1330,12 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
                           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Email</p>
                           <div className="flex items-center">
                             <Mail className="w-4 h-4 text-gray-400 mr-2" />
-                            <a href={`mailto:${selectedEnquiry.email}`} className="font-medium text-indigo-600 hover:underline text-sm">
+                            <a 
+                              href={`https://mail.google.com/mail/?view=cm&fs=1&to=${selectedEnquiry.email}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="font-medium text-indigo-600 hover:underline text-sm"
+                            >
                               {selectedEnquiry.email}
                             </a>
                           </div>
@@ -1502,7 +1507,9 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
                       {/* Email/Call/Close buttons */}
                       <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-gray-200">
                         <a
-                          href={`mailto:${selectedEnquiry.email}?subject=Regarding your enquiry #${selectedEnquiry.id}`}
+                          href={`https://mail.google.com/mail/?view=cm&fs=1&to=${selectedEnquiry.email}&su=Regarding your enquiry #${selectedEnquiry.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center space-x-1.5 text-xs flex-1"
                         >
                           <Mail size={12} />
@@ -1750,7 +1757,9 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
             <div className="border-t border-slate-100 px-5 py-3 bg-slate-50/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <a
-                  href={`mailto:${selectedEnquiry.email}`}
+                  href={`https://mail.google.com/mail/?view=cm&fs=1&to=${selectedEnquiry.email}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="px-3 py-1.5 bg-[#0D47A1] text-white rounded-lg hover:bg-[#1565C0] flex items-center gap-1.5 text-xs font-semibold transition-all cursor-pointer"
                 >
                   <Mail size={12} />

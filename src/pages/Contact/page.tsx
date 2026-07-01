@@ -412,7 +412,12 @@ const HouslyContactPage = () => {
                   <div>
                     <h3 className="font-semibold text-sm text-gray-900">Email Us</h3>
                     <p className="text-xs text-gray-500 mb-0.5">Send your project requirements</p>
-                    <a href="mailto:careers@hously.in" className="text-[#0f3b7a] font-medium hover:underline text-sm">
+                    <a 
+                      href="https://mail.google.com/mail/?view=cm&fs=1&to=careers@hously.in" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[#0f3b7a] font-medium hover:underline text-sm"
+                    >
                       careers@hously.in
                     </a>
                   </div>

@@ -66,92 +66,42 @@ const StatItem = ({
 
   return (
     <div
-      key={index}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`relative bg-white/90 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-slate-200/50 
-        shadow-lg hover:shadow-xl md:hover:shadow-2xl transition-all duration-500 overflow-hidden group
+      className={`relative bg-white/90 backdrop-blur-sm rounded-xl p-3.5 border border-slate-200/60 
+        shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group flex items-center gap-3.5 select-text
         ${visibleStats ? "animate-scale-in" : "opacity-0"}`}
       style={{
         animationDelay: `${index * 150}ms`,
-        transform: isHovered
-          ? "translateY(-4px) sm:translateY(-6px) md:translateY(-8px) scale(1.02)"
-          : "translateY(0) scale(1)",
+        transform: isHovered ? "translateY(-3px) scale(1.01)" : "none",
       }}
     >
-      {/* Animated Background Gradient */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-cyan-500/5 to-transparent"></div>
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-700"></div>
-        <div
-          className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 transform origin-right scale-x-0 group-hover:scale-x-100 transition-transform duration-700"
-          style={{ transitionDelay: "100ms" }}
-        ></div>
-      </div>
-
-      {/* Icon Container with Glow Effect */}
-      <div className="relative flex justify-center mb-2 sm:mb-3 md:mb-4">
-        <div className="relative">
-          {/* Outer Glow */}
-          <div
-            className={`absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-md sm:rounded-lg md:rounded-xl blur-lg opacity-0 group-hover:opacity-70 transition-opacity duration-500`}
-          ></div>
-
-          {/* Icon Background */}
-          <div
-            className={`relative p-1.5 sm:p-2 md:p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-md sm:rounded-lg md:rounded-xl shadow-lg 
-            transform transition-all duration-500 ${isHovered ? "scale-110 rotate-6" : ""}`}
-          >
-            <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 lg:w-5 lg:h-5 xl:w-6 xl:h-6 text-white" />
-          </div>
-
-          {/* Pulsing Ring */}
-          <div
-            className={`absolute inset-0 border-2 border-blue-400/50 rounded-md sm:rounded-lg md:rounded-xl ${isHovered ? "animate-ping-slow" : ""
-              }`}
-          ></div>
+      {/* Icon with subtle background */}
+      <div className="flex-shrink-0 z-10">
+        <div className={`p-2 bg-blue-50 border border-blue-100/50 rounded-lg transition-transform duration-500 ${isHovered ? 'scale-110 rotate-6' : ''}`}>
+          <Icon className="w-4 h-4 text-blue-600" />
         </div>
       </div>
 
-      {/* Animated Number Counter */}
-      <div className="flex flex-col items-center text-center">
-        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-cyan-500 group-hover:bg-clip-text transition-all duration-500">
+      {/* Info Section */}
+      <div className="flex-1 min-w-0 select-text text-left z-10">
+        <div className="text-base sm:text-lg font-extrabold text-slate-800 leading-tight">
           {stat.value.includes("+") ? (
             <>
-              <span className="inline-block min-w-[2ch] text-center">
-                {visibleStats ? count : 0}
-              </span>
+              <span>{visibleStats ? count : 0}</span>
               <span>+</span>
             </>
           ) : (
             stat.value
           )}
         </div>
-
-        {/* Animated Underline */}
-        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-6 sm:w-8 h-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-center"></div>
-      </div>
-
-      {/* Label with Hover Effect */}
-      <div className="relative flex justify-center mt-1 sm:mt-2">
-        <div className="text-[10px] xs:text-xs sm:text-sm text-slate-600 group-hover:text-slate-700 transition-colors duration-500 leading-tight px-1 sm:px-2 text-center">
+        <p className="text-[10px] sm:text-xs font-bold text-slate-500 mt-0.5 leading-tight truncate">
           {stat.label}
-        </div>
-
-        {/* Label Background on Hover */}
-        <div className="absolute inset-x-0 -inset-y-1 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
+        </p>
       </div>
 
-      {/* Corner Accents */}
-      <div className="absolute top-0 left-0 w-2 h-2 sm:w-3 sm:h-3 border-t border-l border-blue-400/30 group-hover:border-blue-500/70 transition-colors duration-500"></div>
-      <div className="absolute top-0 right-0 w-2 h-2 sm:w-3 sm:h-3 border-t border-r border-cyan-400/30 group-hover:border-cyan-500/70 transition-colors duration-500"></div>
-      <div className="absolute bottom-0 left-0 w-2 h-2 sm:w-3 sm:h-3 border-b border-l border-blue-400/30 group-hover:border-blue-500/70 transition-colors duration-500"></div>
-      <div className="absolute bottom-0 right-0 w-2 h-2 sm:w-3 sm:h-3 border-b border-r border-cyan-400/30 group-hover:border-cyan-500/70 transition-colors duration-500"></div>
-
-      {/* Pulse Effect on Hover */}
-      {isHovered && (
-        <div className="absolute inset-0 rounded-lg sm:rounded-xl md:rounded-2xl ring-2 ring-blue-400/30 animate-pulse pointer-events-none"></div>
-      )}
+      {/* Subtle top accent line on hover */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
     </div>
   );
 };
@@ -672,7 +622,7 @@ function WelcomePage({ onSectorClick }: WelcomePageProps) {
                 Click on any division to access specialized services and solutions
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5 max-w-6xl mx-auto">
                 {sectors.map((sector, index) => {
                   const Icon = sector.icon;
                   return (
@@ -688,77 +638,60 @@ function WelcomePage({ onSectorClick }: WelcomePageProps) {
                         opacity: 0,
                       }}
                     >
-                      <div className="relative bg-white rounded-lg sm:rounded-xl md:rounded-2xl shadow-lg hover:shadow-xl md:hover:shadow-2xl transition-all duration-500 overflow-hidden h-full border border-slate-200 hover:border-transparent group-hover:-translate-y-1 md:group-hover:-translate-y-2">
+                      <div className="relative bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-500 overflow-hidden h-full border border-slate-200/60 hover:border-transparent group-hover:-translate-y-1.5 flex flex-col justify-between">
+
                         {/* Animated Background Layer */}
-                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                          <div className="absolute inset-0" style={{ background: sector.gradient, clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)", transition: "clip-path 0.6s cubic-bezier(0.4, 0, 0.2, 1)" }}></div>
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0">
+                          <div className="absolute inset-0" style={{ background: sector.gradient }}></div>
                         </div>
 
                         {/* Image Section */}
-                        <div className="relative h-32 sm:h-36 md:h-40 lg:h-48 xl:h-56 overflow-hidden">
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent z-10"></div>
-                          <img src={sector.image} alt={sector.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" />
+                        <div className="relative h-28 sm:h-32 overflow-hidden flex-shrink-0 z-10">
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent z-10"></div>
+                          <img
+                            src={sector.image}
+                            alt={sector.title}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            loading="lazy"
+                          />
 
-                          {/* Floating Icon */}
-                          <div className="absolute top-2 sm:top-3 md:top-4 right-2 sm:right-3 md:right-4 z-20">
-                            <div className="p-1.5 sm:p-2 md:p-3 rounded-md sm:rounded-lg md:rounded-xl bg-white/90 backdrop-blur-sm shadow-lg transform transition-all duration-500 group-hover:scale-110 group-hover:rotate-12">
-                              <Icon className={`w-5.5 h-5.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 ${sector.color.replace("from-", "text-").replace(" to-", "-500")}`} />
-                            </div>
+                          {/* Left Badge Overlay */}
+                          <div className="absolute bottom-3 left-3 z-20 flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white/95 backdrop-blur-md shadow-sm border border-slate-100/50">
+                            <Icon className={`w-3.5 h-3.5 ${sector.color.replace("from-", "text-").replace(" to-", "-500")}`} />
+                            <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-800">{sector.title}</span>
                           </div>
-
-                          {/* Animated Overlay */}
-                          <div className={`absolute inset-0 ${sector.color} opacity-0 group-hover:opacity-20 transition-opacity duration-500`}></div>
                         </div>
 
                         {/* Content Section */}
-                        <div className="relative p-3 sm:p-4 md:p-6 lg:p-8">
-                          {/* Floating Badge */}
-                          <div className={`absolute -top-3 sm:-top-4 md:-top-6 left-3 sm:left-4 md:left-8 p-2 sm:p-2 md:p-3 lg:p-4 rounded-md sm:rounded-lg md:rounded-xl bg-gradient-to-br ${sector.color} shadow-lg transform transition-all duration-500 group-hover:scale-110 group-hover:-rotate-6`}>
-                            <Icon className="w-5 h-5 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 lg:w-5 lg:h-5 xl:w-6 xl:h-6 text-white" />
-                          </div>
-
-                          <div className="pt-3 sm:pt-4 md:pt-6 lg:pt-8">
-                            <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold mb-1 sm:mb-2 md:mb-3 lg:mb-4 text-slate-800 group-hover:text-white transition-colors duration-300">
+                        <div className="p-4 flex-1 flex flex-col justify-between z-10">
+                          <div>
+                            <h3 className="text-sm sm:text-base font-extrabold mb-1 text-slate-800 group-hover:text-white transition-colors duration-300">
                               {sector.title}
                             </h3>
-                            <p className="text-xs sm:text-sm text-slate-600 group-hover:text-slate-200 transition-colors duration-300 mb-2 sm:mb-3 md:mb-4 lg:mb-6 leading-relaxed">
+                            <p className="text-xs text-slate-500 group-hover:text-slate-200 transition-colors duration-300 leading-relaxed mb-3.5">
                               {sector.description}
                             </p>
 
-                            {/* Features List */}
-                            <div className="mb-3 sm:mb-4 md:mb-6 transition-all duration-500 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
-                              <div className="grid grid-cols-2 gap-1 sm:gap-2">
-                                {sector.features.map((feature, i) => (
-                                  <div key={i} className="flex items-center gap-0.5 sm:gap-1">
-                                    <div className={`w-1 h-1 rounded-full ${sector.color.replace("from-", "bg-").replace(" to-", "-500")}`}></div>
-                                    <span className="text-[10px] xs:text-xs text-slate-600 group-hover:text-slate-300 transition-colors duration-300">{feature}</span>
-                                  </div>
-                                ))}
-                              </div>
+                            {/* Features wrap pills */}
+                            <div className="flex flex-wrap gap-1.5 mb-4">
+                              {sector.features.map((feature, i) => (
+                                <span
+                                  key={i}
+                                  className="inline-flex items-center text-[9px] font-semibold bg-slate-50 border border-slate-100 text-slate-600 group-hover:bg-white/10 group-hover:border-white/10 group-hover:text-white px-1.5 py-0.5 rounded-md transition-all duration-300"
+                                >
+                                  {feature}
+                                </span>
+                              ))}
                             </div>
+                          </div>
 
-                            {/* CTA Button */}
-                            <div className="flex items-center text-blue-600 font-semibold group-hover:text-white transition-all duration-300">
-                              <span className="text-xs sm:text-sm md:text-base">Explore Division</span>
-                              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ml-1 sm:ml-2 transform transition-transform duration-300 group-hover:translate-x-2 group-hover:scale-110" />
-                            </div>
+                          {/* CTA Button */}
+                          <div className="flex items-center justify-between pt-3 border-t border-slate-100 group-hover:border-white/20 mt-auto text-xs font-bold text-slate-700 group-hover:text-white transition-all duration-300">
+                            <span>Explore Division</span>
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:translate-x-1 transition-all" />
                           </div>
                         </div>
 
-                        {/* Animated Border Bottom */}
-                        <div className={`h-0.5 sm:h-1 md:h-1.5 bg-gradient-to-r ${sector.color} transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-700`}></div>
-
-                        {/* Glow Effect */}
-                        <div className="absolute inset-0 rounded-lg sm:rounded-xl md:rounded-2xl ring-1 ring-transparent group-hover:ring-white/30 transition-all duration-500 pointer-events-none"></div>
-
-                        {/* Particle Effects on Hover */}
-                        {hoveredCard === sector.id && (
-                          <>
-                            <div className="absolute top-1/4 left-1/4 w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 bg-white/30 rounded-full animate-ping" style={{ animationDelay: "0s" }}></div>
-                            <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-3 md:h-3 bg-white/30 rounded-full animate-ping" style={{ animationDelay: "0.2s" }}></div>
-                            <div className="absolute bottom-1/4 left-1/3 w-1 h-1 sm:w-1.5 sm:h-1.5 md:w-2 md:h-2 bg-white/30 rounded-full animate-ping" style={{ animationDelay: "0.4s" }}></div>
-                          </>
-                        )}
                       </div>
                     </div>
                   );
@@ -794,19 +727,19 @@ function WelcomePage({ onSectorClick }: WelcomePageProps) {
                   What sets us apart from the rest
                 </p>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto px-2 sm:px-3 md:px-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 max-w-5xl mx-auto px-2 sm:px-3">
                 {features.map((feature, index) => {
                   const Icon = feature.icon;
                   return (
-                    <div key={index} className="group bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-slate-200 shadow-lg transition-all duration-500 animate-fade-in hover:bg-white hover:shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 active:scale-95"
-                      style={{ animationDelay: `${index * 150 + 3500}ms` }}>
-                      <div className="flex justify-center sm:justify-start mb-3 sm:mb-4">
-                        <div className="inline-flex p-2 sm:p-2.5 md:p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-md sm:rounded-lg md:rounded-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 animate-pulse sm:animate-none">
-                          <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5 xl:w-6 xl:h-6 text-white" />
+                    <div key={index} className="group bg-white/80 hover:bg-white border border-slate-200/50 hover:border-slate-300 shadow-sm hover:shadow-md rounded-xl p-4 transition-all duration-300 transform hover:-translate-y-1 select-text"
+                      style={{ animationDelay: `${index * 150 + 1000}ms` }}>
+                      <div className="flex items-center gap-3 mb-2.5">
+                        <div className="flex-shrink-0 p-2 bg-blue-50 border border-blue-100 rounded-lg text-blue-600 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
+                          <Icon className="w-4 h-4" />
                         </div>
+                        <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 leading-tight">{feature.title}</h3>
                       </div>
-                      <h3 className="text-sm sm:text-base md:text-lg font-bold text-slate-800 mb-1 sm:mb-2 text-center sm:text-left">{feature.title}</h3>
-                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-center sm:text-left">{feature.desc}</p>
+                      <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed text-left">{feature.desc}</p>
                     </div>
                   );
                 })}
@@ -955,96 +888,135 @@ function WelcomePage({ onSectorClick }: WelcomePageProps) {
             </div>
 
             {/* CTA Section */}
-            <div className="mt-12 sm:mt-20 md:mt-32 mb-0 w-full">
-              <div className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 py-8 sm:py-12 md:py-16 px-3 sm:px-4 md:px-6 overflow-hidden">
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute top-0 left-1/4 w-32 h-32 sm:w-48 sm:h-48 md:w-96 md:h-96 bg-blue-500 rounded-full blur-2xl sm:blur-3xl animate-pulse-slow"></div>
-                  <div className="absolute bottom-0 right-1/4 w-32 h-32 sm:w-48 sm:h-48 md:w-96 md:h-96 bg-cyan-500 rounded-full blur-2xl sm:blur-3xl animate-pulse-slow" style={{ animationDelay: "1.5s" }}></div>
+            <div className="mt-12 sm:mt-16 md:mt-20 mb-8 w-full px-2 sm:px-4">
+              <div className="relative bg-gradient-to-br from-slate-50/60 via-blue-50/20 to-slate-50/60 py-10 sm:py-12 px-4 overflow-hidden border border-slate-200/50 rounded-2xl max-w-5xl mx-auto">
+
+                {/* Modern subtle ambient glows */}
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-48 h-48 bg-blue-500/5 rounded-full blur-[80px]" />
+                  <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-48 h-48 bg-cyan-500/5 rounded-full blur-[80px]" />
                 </div>
 
-                <div className="relative z-10 container mx-auto max-w-6xl">
-                  <div className="text-center mb-6 sm:mb-8 md:mb-10">
-                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1 sm:mb-2 md:mb-3">
+                <div className="relative z-10 container mx-auto">
+                  {/* Section Title */}
+                  <div className="text-center mb-8">
+                    <span className="text-[9px] font-extrabold text-blue-600 uppercase tracking-widest">Evolution Timeline</span>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-800 mt-1 tracking-tight">
                       Our Journey Forward
                     </h2>
-                    <p className="text-xs sm:text-sm md:text-base text-blue-100">
-                      A transformation story of vision and innovation
+                    <p className="text-[11px] sm:text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
+                      Evolving from core infrastructure build mandates to smart tech-enabled real estate integrations.
                     </p>
                   </div>
 
-                  <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3 sm:gap-4 md:gap-6 items-center mb-4 sm:mb-6 md:mb-8">
-                    <div className="bg-white/10 backdrop-blur-lg rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-white/20 hover:bg-white/15 transition-all duration-500">
-                      <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 mb-1.5 sm:mb-2 md:mb-3">
-                        <div className="p-1.5 sm:p-2 md:p-3 bg-slate-700/50 rounded-md sm:rounded-lg md:rounded-xl">
-                          <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7 text-slate-300" />
+                  {/* Journey Visual Flow */}
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 mb-8 max-w-4xl mx-auto">
+
+                    {/* Source Node: Aakar Infra */}
+                    <div className="w-full md:w-[45%] bg-white border border-slate-200/60 p-4.5 rounded-xl transition-all duration-300 group text-left">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-slate-50 border border-slate-100 rounded-lg text-slate-500 group-hover:text-blue-600 transition-colors">
+                          <Building2 className="w-4 h-4" />
                         </div>
                         <div>
-                          <h3 className="text-xs sm:text-sm md:text-base lg:text-lg font-bold text-slate-300">AAKAR INFRA SERVICES</h3>
-                          <p className="text-blue-200 text-[10px] xs:text-xs">Where it began</p>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">Est. 2013</span>
+                          <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 tracking-wide mt-0.5">AAKAR INFRA SERVICES</h3>
                         </div>
                       </div>
-                      <p className="text-slate-200 text-xs sm:text-sm leading-relaxed">
-                        Built on excellence and trust, establishing a legacy of quality infrastructure.
+                      <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed mb-3">
+                        Rooted in civil engineering and construction mandates, delivering excellence and trust in regional development.
                       </p>
-                    </div>
-
-                    <div className="flex justify-center my-1 sm:my-0">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full blur-xl opacity-50 animate-pulse"></div>
-                        <div className="relative bg-gradient-to-r from-blue-500 to-cyan-500 p-1.5 sm:p-2 md:p-3 lg:p-4 rounded-full">
-                          <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 xl:w-8 xl:h-8 text-white" />
-                        </div>
+                      <div className="flex flex-wrap gap-1.5 pt-2.5 border-t border-slate-100">
+                        {["Infrastructure", "Construction"].map((tag, i) => (
+                          <span key={i} className="text-[9px] font-bold text-slate-500 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded">
+                            {tag}
+                          </span>
+                        ))}
                       </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-lg rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-blue-400/30 shadow-lg sm:shadow-xl md:shadow-2xl transition-all duration-500">
-                      <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 mb-1.5 sm:mb-2 md:mb-3">
-                        <div className="p-1.5 sm:p-2 md:p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-md sm:rounded-lg md:rounded-xl shadow-lg">
-                          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7 text-white animate-spin-slow" />
+                    {/* Animated Flow Arrow / Connector */}
+                    <div className="w-full md:w-[10%] flex md:flex-col items-center justify-center py-2 md:py-0">
+                      <div className="relative flex items-center md:flex-col justify-center gap-2.5 w-full">
+                        {/* Animated Line */}
+                        <div className="h-0.5 md:h-10 w-full md:w-0.5 bg-gradient-to-r md:bg-gradient-to-b from-blue-500 to-cyan-500 opacity-20" />
+                        {/* Pulse circle */}
+                        <div className="relative flex-shrink-0">
+                          <span className="animate-ping absolute inline-flex h-5 w-5 rounded-full bg-blue-500/30 opacity-70"></span>
+                          <div className="relative bg-gradient-to-br from-blue-600 to-cyan-500 p-1.5 rounded-full border border-white">
+                            <ArrowRight className="w-3 h-3 text-white rotate-90 md:rotate-0" />
+                          </div>
+                        </div>
+                        <div className="h-0.5 md:h-10 w-full md:w-0.5 bg-gradient-to-r md:bg-gradient-to-b from-blue-500 to-cyan-500 opacity-20" />
+                      </div>
+                    </div>
+
+                    {/* Destination Node: Hously Finntech */}
+                    <div className="w-full md:w-[45%] bg-white border border-blue-100 p-4.5 rounded-xl hover:border-blue-200 transition-all duration-300 group text-left">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-blue-50 border border-blue-100 rounded-lg text-blue-600">
+                          <Sparkles className="w-4 h-4 animate-pulse" />
                         </div>
                         <div>
-                          <h3 className="text-xs sm:text-sm md:text-base lg:text-lg font-bold text-white">HOUSLY FINNTECH REALTY</h3>
-                          <p className="text-cyan-200 text-[10px] xs:text-xs">The future is now</p>
+                          <span className="text-[9px] font-bold text-blue-500 uppercase">Reimagined 2025</span>
+                          <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 tracking-wide mt-0.5">HOUSLY FINNTECH REALTY</h3>
                         </div>
                       </div>
-                      <p className="text-white text-xs sm:text-sm leading-relaxed">
-                        Expanding horizons across real estate, finance, and technology.
+                      <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed mb-3">
+                        Unifying Realty operations, Financial technologies, and smart IT solutions under a single future-ready conglomerate.
                       </p>
+                      <div className="flex flex-wrap gap-1.5 pt-2.5 border-t border-slate-100">
+                        {["Real Estate", "FinTech", "IT Solutions"].map((tag, i) => (
+                          <span key={i} className="text-[9px] font-extrabold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
                     </div>
+
                   </div>
 
-                  <div className="bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-lg rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 lg:p-8 border border-white/20 text-center">
-                    <blockquote className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-white mb-1.5 sm:mb-2 md:mb-3 italic leading-relaxed">
-                      "Building on our strong foundation, we're creating a future where real estate, finance, and technology converge to deliver unparalleled value."
-                    </blockquote>
-                    <p className="text-blue-200 text-xs sm:text-sm">Transforming industries and shaping the future together.</p>
+                  {/* Quote / Vision Card */}
+                  <div className="mt-8 text-center max-w-xl mx-auto border-t border-slate-200/60 pt-6">
+                    <p className="text-slate-600 italic text-[11px] sm:text-xs leading-relaxed px-4">
+                      "Building on our strong legacy of trust, we are scaling new heights by converging real estate, finance, and technology into a unified ecosystem of growth."
+                    </p>
+                    <span className="block text-[9px] font-extrabold uppercase tracking-widest text-blue-500 mt-2.5">Corporate Vision</span>
                   </div>
+
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Footer */}
-          <footer className="bg-slate-900 border-t border-slate-800">
-            <div className="container mx-auto px-3 sm:px-4 md:px- py-3 sm:py-4 md:py-6">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 md:gap-4 text-[10px] xs:text-xs sm:text-sm">
-                <p className="text-slate-400 text-center sm:text-left">
+        {/* Footer */}
+        <footer className="bg-slate-50 border-t border-slate-200/60 py-4.5">
+          <div className="container mx-auto max-w-5xl px-4">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
+              {/* Logo/Brand Info */}
+              <div className="space-y-1">
+
+
+                <p className="text-[10px] text-slate-400">
                   © {new Date().getFullYear()} Hously Finntech Realty. All rights reserved.
                 </p>
-                <div className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6">
-                  <Link to="/privacy-policy" state={{ fromWelcome: true }} className="text-slate-400 hover:text-white transition-colors duration-300">Privacy Policy</Link>
-                  <Link to="/terms-of-service" state={{ fromWelcome: true }} className="text-slate-400 hover:text-white transition-colors duration-300">Terms of Service</Link>
-                  <Link to="/cookie-policy" state={{ fromWelcome: true }} className="text-slate-400 hover:text-white transition-colors duration-300">Cookie Policy</Link>
-                </div>
+              </div>
+
+              {/* Quick Links */}
+              <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-[11px] font-bold text-slate-500">
+                <Link to="/privacy-policy" state={{ fromWelcome: true }} className="hover:text-blue-600 transition-colors duration-300">Privacy Policy</Link>
+                <Link to="/terms-of-service" state={{ fromWelcome: true }} className="hover:text-blue-600 transition-colors duration-300">Terms of Service</Link>
+                <Link to="/cookie-policy" state={{ fromWelcome: true }} className="hover:text-blue-600 transition-colors duration-300">Cookie Policy</Link>
               </div>
             </div>
-          </footer>
+          </div>
+        </footer>
 
-          {/* Scroll to Top Button */}
-          <button onClick={scrollToTop} className={`fixed right-2 bottom-2 sm:right-4 sm:bottom-4 md:right-8 md:bottom-8 z-50 p-2 sm:p-3 md:p-4 bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-full shadow-xl hover:shadow-blue-500/50 hover:scale-110 active:scale-95 transition-all duration-300 ${showScrollTop ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0 pointer-events-none"}`}>
-            <ChevronUp className="w-6 h-6 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
-          </button>
-        </div>
+        {/* Scroll to Top Button */}
+        <button onClick={scrollToTop} className={`fixed right-2 bottom-2 sm:right-4 sm:bottom-4 md:right-8 md:bottom-8 z-50 p-2 sm:p-3 md:p-4 bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-full shadow-xl hover:shadow-blue-500/50 hover:scale-110 active:scale-95 transition-all duration-300 ${showScrollTop ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0 pointer-events-none"}`}>
+          <ChevronUp className="w-6 h-6 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
+        </button>
 
         {/* Add custom animations */}
         <style>{`

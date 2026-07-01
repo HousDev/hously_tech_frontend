@@ -31,8 +31,8 @@ const WhatsAppFAB: React.FC = () => {
   const handleEmailClick = () => {
     const email = "careers@hously.in";
     const subject = encodeURIComponent("Inquiry regarding Hously Careers");
-    const url = `mailto:${email}?subject=${subject}`;
-    window.location.href = url;
+    const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${subject}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const handleMeetingClick = () => {

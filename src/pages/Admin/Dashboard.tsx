@@ -619,8 +619,22 @@ const AdminDashboard = () => {
           )}
         </nav>
 
-        {/* Logout Button - Bottom of Sidebar */}
-        <div className={`px-3 pb-4 pt-2 border-t border-slate-100 ${sidebarOpen ? '' : 'flex justify-center'}`}>
+        {/* Visit Website & Logout Buttons - Bottom of Sidebar */}
+        <div className={`px-3 pb-4 pt-2 border-t border-slate-100 flex flex-col gap-1`}>
+          {/* Visit Website */}
+          <button
+            onClick={() => {
+              const baseUrl = window.location.origin;
+              window.open(`${baseUrl}/homes`, "_blank");
+            }}
+            className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-slate-100/80 hover:text-slate-900 transition-all duration-200 group cursor-pointer ${!sidebarOpen ? 'justify-center' : ''}`}
+            title="Visit Website"
+          >
+            <Home className="w-4 h-4 flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
+            {sidebarOpen && <span className="text-sm font-semibold tracking-wide">Visit Website</span>}
+          </button>
+
+          {/* Logout */}
           <button
             onClick={async () => {
               try {
@@ -629,7 +643,7 @@ const AdminDashboard = () => {
                 // fallback: already handled inside logout()
               }
             }}
-            className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 group cursor-pointer ${!sidebarOpen ? 'justify-center' : ''}`}
+            className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 group cursor-pointer ${!sidebarOpen ? 'justify-center' : ''}`}
             title="Logout"
           >
             <LogOut className="w-4 h-4 flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
@@ -679,19 +693,6 @@ const AdminDashboard = () => {
 
               {/* RIGHT */}
               <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => {
-                    const baseUrl = window.location.origin;
-                    window.open(`${baseUrl}/homes`, "_blank");
-                  }}
-                  className="flex items-center space-x-2 px-2 py-1 rounded-lg text-white 
-             bg-gradient-to-r from-[#0D47A1] to-[#1976D2] 
-             hover:opacity-90 transition text-sm shadow-md"
-                >
-                  <Home size={16} />
-                  <span className="hidden md:inline font-medium">Visit Website</span>
-                </button>
-
                 {/* Notifications */}
                 <div className="relative" ref={notificationsRef}>
                   <button
