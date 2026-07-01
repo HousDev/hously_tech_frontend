@@ -535,11 +535,11 @@ const TeamSection: React.FC = () => {
   }
 
   return (
-    <section className="relative overflow-hidden bg-[#070b17] py-20 text-white">
+    <section className="relative overflow-hidden bg-[#070b17] py-10 text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.24),transparent_30%),radial-gradient(circle_at_center,rgba(168,85,247,0.12),transparent_40%),radial-gradient(circle_at_bottom,rgba(59,130,246,0.06),transparent_35%)]" />
 
       <div className="relative mx-auto max-w-7xl px-4">
-        <div className="mb-10 text-center">
+        <div className="mb-6 text-center">
           <span className="inline-flex items-center rounded-full border border-purple-500/30 bg-[#0076d8] px-4 py-1 text-xs font-medium tracking-wide text-white">
             Expert IT Team
           </span>
@@ -571,7 +571,7 @@ const TeamSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="flex flex-wrap justify-center gap-4">
           {visibleMembers.map((member, index) => {
             const absoluteIndex = currentPage * membersPerPage + index;
             const theme = cardThemes[absoluteIndex % cardThemes.length];
@@ -585,11 +585,11 @@ const TeamSection: React.FC = () => {
             return (
               <div
                 key={member.id}
-                className="group relative rounded-[24px] border border-white/8 bg-white/[0.03] p-5 backdrop-blur-md transition-all duration-300 hover:-translate-y-1"
+                className="group relative w-full sm:w-[255px] rounded-[20px] border border-white/8 bg-white/[0.03] p-4 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 flex-shrink-0"
                 style={{
                   boxShadow:
                     '0 8px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)',
-                  borderTop: `3px solid ${theme.accent}`
+                  borderTop: `2.5px solid ${theme.accent}`
                 }}
               >
                 <div

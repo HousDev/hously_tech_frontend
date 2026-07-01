@@ -260,9 +260,25 @@ const AdminDashboard = () => {
   const formatDateTime = (dateString: string) => {
     if (!dateString) return 'Unknown';
 
-    const date = new Date(dateString);
+    let date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Unknown';
+
     const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
+    let diffMs = now.getTime() - date.getTime();
+
+    // timezone offset correction if server returned local time parsed as UTC or vice versa
+    if (diffMs < 0) {
+      const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+      const adjustedDate = new Date(date.getTime() + timezoneOffsetMs);
+      const adjustedDiffMs = now.getTime() - adjustedDate.getTime();
+      
+      if (adjustedDiffMs >= 0) {
+        diffMs = adjustedDiffMs;
+      } else {
+        diffMs = 0; // clock desync clamp
+      }
+    }
+
     const diffSeconds = Math.floor(diffMs / 1000);
     const diffMins = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -282,6 +298,12 @@ const AdminDashboard = () => {
     if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
     const years = Math.floor(diffDays / 365);
     return years === 1 ? '1 year ago' : `${years} years ago`;
+  };
+
+  // Helper to remove duplicate leading emoji or database fallback characters from title
+  const cleanNotificationTitle = (title: string) => {
+    if (!title) return '';
+    return title.replace(/^[📅📋📥🔄📝👤💼📢?\s]+/, '').trim();
   };
 
   // ─── Notification icon ───────────────────────────────────────────────────────
@@ -758,7 +780,7 @@ const AdminDashboard = () => {
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-start justify-between">
-                                          <p className="text-sm font-medium text-gray-900">{notification.title}</p>
+                                          <p className="text-sm font-medium text-gray-900">{cleanNotificationTitle(notification.title)}</p>
                                           {!notification.is_read && (
                                             <span className="w-2 h-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></span>
                                           )}
