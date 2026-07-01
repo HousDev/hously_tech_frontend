@@ -716,7 +716,9 @@ export default function Dashboard({ }: DashboardAnalyticsProps = {}) {
                           </button>
                           {application.email && (
                             <a
-                              href={`mailto:${application.email}`}
+                              href={`https://mail.google.com/mail/?view=cm&fs=1&to=${application.email}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50/50 rounded cursor-pointer"
                             >
                               <Mail className="w-3.5 h-3.5" />
@@ -783,7 +785,9 @@ export default function Dashboard({ }: DashboardAnalyticsProps = {}) {
                           </button>
                           {enquiry.email && (
                             <a
-                              href={`mailto:${enquiry.email}`}
+                              href={`https://mail.google.com/mail/?view=cm&fs=1&to=${enquiry.email}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50/50 rounded cursor-pointer"
                             >
                               <Mail className="w-3.5 h-3.5" />

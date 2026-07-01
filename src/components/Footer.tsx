@@ -340,7 +340,9 @@ const Footer: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <FaEnvelope className="text-[#0077d9] flex-shrink-0 text-sm" />
                       <a
-                        href="mailto:careers@hously.in"
+                        href="https://mail.google.com/mail/?view=cm&fs=1&to=careers@hously.in"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-gray-300 hover:text-white transition-colors text-sm"
                       >
                         careers@hously.in
@@ -559,7 +561,9 @@ const Footer: React.FC = () => {
                   <div className="flex items-center gap-1.5">
                     <FaEnvelope className="text-[#0077d9] text-[10px] flex-shrink-0" />
                     <a
-                      href="mailto:careers@hously.in"
+                      href="https://mail.google.com/mail/?view=cm&fs=1&to=careers@hously.in"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-gray-300 hover:text-white text-[10px]"
                     >
                       careers@hously.in
