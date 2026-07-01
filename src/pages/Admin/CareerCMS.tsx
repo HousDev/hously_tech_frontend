@@ -128,14 +128,13 @@ const ScheduleMeetingPopup: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm">
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm"
-        style={{ animation: 'smFadeIn 0.2s ease' }}
+        className="fixed inset-0 cursor-default"
         onClick={onClose}
       />
       <div
-        className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl my-8"
+        className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden"
         style={{ animation: 'smSlideUp 0.35s cubic-bezier(0.34,1.46,0.64,1)' }}
       >
         {/* Title */}
@@ -187,7 +186,7 @@ const ScheduleMeetingPopup: React.FC<{
           </div>
 
           {/* ── RIGHT: Time + Candidate ── */}
-          <div className="w-full sm:w-60 flex flex-col gap-4">
+          <div className="flex-1 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#0D1B3E] text-sm">{fmtSelectedDate}</span>
               <div className="flex bg-gray-100 rounded-lg p-0.5">
@@ -197,12 +196,12 @@ const ScheduleMeetingPopup: React.FC<{
             </div>
 
             {/* Time Slots */}
-            <div className="grid grid-cols-4 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-5 gap-1.5">
               {timeSlots.map(slot => (
                 <button
                   key={slot}
                   onClick={() => setSmSelectedTime(slot)}
-                  className={`py-2 rounded-xl text-xs font-medium border transition-all
+                  className={`py-1 rounded-lg text-[10px] font-medium border transition-all
                     ${smSelectedTime === slot
                       ? 'bg-blue-600 text-white border-blue-600 shadow-md'
                       : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:text-blue-600'}`}
@@ -1667,6 +1666,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                           <option value="10">Show 10</option>
                           <option value="25">Show 25</option>
                           <option value="50">Show 50</option>
+                          <option value="9999">Show All</option>
                         </select>
                       </>
                     )}
@@ -2139,9 +2139,9 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       {viewingCandidateApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-modal-backdrop bg-slate-900/60 backdrop-blur-sm">
           <div className="fixed inset-0 cursor-default" onClick={() => setViewingCandidateApp(null)} />
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 animate-modal-content overflow-hidden flex flex-col justify-between h-[410px]">
+          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 animate-modal-content overflow-hidden flex flex-col justify-between">
             {/* Header */}
-            <div className="flex justify-between items-center px-5 py-3.5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+            <div className="flex justify-between items-center px-5 py-3.5 border-b border-slate-100 bg-white flex-shrink-0">
               <div className="flex items-center space-x-3">
                 <div className="w-9 h-9 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-[#0D47A1] font-bold text-xs">
                   {viewingCandidateApp.applicant_name
@@ -2162,160 +2162,44 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
               </div>
               <button
                 onClick={() => setViewingCandidateApp(null)}
-                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-lg transition-all cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-lg transition-all cursor-pointer z-20"
               >
                 <X size={16} />
               </button>
             </div>
 
-            {/* Tab Navigation */}
-            <div className="flex border-b border-slate-100 px-4 bg-slate-50/20 text-[10px] sm:text-xs font-bold flex-shrink-0">
-              <button
-                onClick={() => setCandidatePopupTab('basic')}
-                className={`flex-1 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
-                  candidatePopupTab === 'basic'
-                    ? 'border-[#0D47A1] text-[#0D47A1]'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Personal Info
-              </button>
-              <button
-                onClick={() => setCandidatePopupTab('profiles')}
-                className={`flex-1 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
-                  candidatePopupTab === 'profiles'
-                    ? 'border-[#0D47A1] text-[#0D47A1]'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Profiles & Letter
-              </button>
-              {viewingCandidateApp.experience_level && viewingCandidateApp.experience_level.toLowerCase() !== 'fresher' && (
-                <button
-                  onClick={() => setCandidatePopupTab('experience')}
-                  className={`flex-1 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
-                    candidatePopupTab === 'experience'
-                      ? 'border-[#0D47A1] text-[#0D47A1]'
-                      : 'border-transparent text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  Experience
-                </button>
-              )}
-              <button
-                onClick={() => setCandidatePopupTab('resume')}
-                className={`flex-1 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
-                  candidatePopupTab === 'resume'
-                    ? 'border-[#0D47A1] text-[#0D47A1]'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Resume
-              </button>
-            </div>
-
-            {/* Content Area - Fixed height, NO scrollbar inside */}
-            <div className="flex-1 p-5 flex flex-col justify-center select-none overflow-hidden min-h-0">
-              {candidatePopupTab === 'basic' && (
-                <div className="space-y-3 text-[11px] text-slate-600">
-                  <div className="flex justify-between py-1.5 border-b border-slate-50">
-                    <span className="font-semibold text-slate-400">Full Name:</span>
-                    <span className="font-bold text-slate-700 select-text">{viewingCandidateApp.applicant_name}</span>
+            {/* Content Area - Two Columns, No tabs, No next, all in one view! */}
+            <div className="flex-1 p-5 flex flex-col sm:flex-row gap-5 overflow-hidden min-h-0 select-text bg-white">
+              
+              {/* Left Column: Personal details + Resume */}
+              <div className="flex-1 flex flex-col justify-between space-y-4">
+                <div className="bg-white border border-slate-200/60 p-3.5 rounded-xl space-y-2.5 text-[11px] text-slate-600 shadow-sm">
+                  <p className="text-[10px] font-extrabold text-blue-600 uppercase tracking-wider mb-1">Basic Details</p>
+                  
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="font-semibold text-slate-400">Email:</span>
+                    <span className="font-bold text-slate-700 select-text truncate max-w-[170px]" title={viewingCandidateApp.email}>{viewingCandidateApp.email}</span>
                   </div>
-                  <div className="flex justify-between py-1.5 border-b border-slate-50">
-                    <span className="font-semibold text-slate-400">Email Address:</span>
-                    <span className="font-bold text-slate-700 select-text">{viewingCandidateApp.email}</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-slate-50">
-                    <span className="font-semibold text-slate-400">Phone Number:</span>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="font-semibold text-slate-400">Phone:</span>
                     <span className="font-bold text-slate-700 select-text">{viewingCandidateApp.phone || '—'}</span>
                   </div>
-                  <div className="flex justify-between py-1.5 border-b border-slate-50">
-                    <span className="font-semibold text-slate-400">Applied Date:</span>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="font-semibold text-slate-400">Applied:</span>
                     <span className="font-bold text-slate-700">{formatDate(viewingCandidateApp.applied_at)}</span>
                   </div>
-                  <div className="flex justify-between py-1.5 items-center">
-                    <span className="font-semibold text-slate-400">Application Status:</span>
+                  <div className="flex justify-between py-1 items-center">
+                    <span className="font-semibold text-slate-400">Status:</span>
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${getStatusColor(viewingCandidateApp.status)}`}>
                       {viewingCandidateApp.status.toUpperCase()}
                     </span>
                   </div>
                 </div>
-              )}
 
-              {candidatePopupTab === 'profiles' && (
-                <div className="space-y-3.5 text-[11px] text-slate-600">
-                  {/* LinkedIn */}
-                  <div className="flex items-center justify-between py-1.5 border-b border-slate-50">
-                    <span className="font-semibold text-slate-400 flex items-center gap-1.5">
-                      <Linkedin size={13} className="text-blue-600" />
-                      LinkedIn Profile:
-                    </span>
-                    {viewingCandidateApp.linkedin ? (
-                      <a
-                        href={viewingCandidateApp.linkedin}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-bold text-blue-600 hover:underline select-text truncate max-w-[200px]"
-                      >
-                        {viewingCandidateApp.linkedin.replace(/^https?:\/\/(www\.)?/, '')}
-                      </a>
-                    ) : (
-                      <span className="text-slate-400 font-medium">Not Provided</span>
-                    )}
-                  </div>
-
-                  {/* Portfolio */}
-                  <div className="flex items-center justify-between py-1.5 border-b border-slate-50">
-                    <span className="font-semibold text-slate-400 flex items-center gap-1.5">
-                      <Globe size={13} className="text-emerald-600" />
-                      Portfolio / Website:
-                    </span>
-                    {viewingCandidateApp.portfolio ? (
-                      <a
-                        href={viewingCandidateApp.portfolio}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-bold text-emerald-600 hover:underline select-text truncate max-w-[200px]"
-                      >
-                        {viewingCandidateApp.portfolio.replace(/^https?:\/\/(www\.)?/, '')}
-                      </a>
-                    ) : (
-                      <span className="text-slate-400 font-medium">Not Provided</span>
-                    )}
-                  </div>
-
-                  {/* Cover Letter */}
-                  <div className="mt-2.5">
-                    <span className="font-semibold text-slate-400 block mb-1">Cover Letter Preview:</span>
-                    <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5 text-[10px] text-slate-500 leading-relaxed italic max-h-[70px] overflow-hidden truncate whitespace-normal">
-                      {viewingCandidateApp.cover_letter ? `"${viewingCandidateApp.cover_letter}"` : 'No cover letter provided.'}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {candidatePopupTab === 'experience' && (
-                <div className="flex flex-col items-center justify-center text-center space-y-2.5 h-full">
-                  <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100">
-                    <Briefcase size={15} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-700 text-xs">Experience Information</h4>
-                    <p className="text-[10px] text-slate-500 font-extrabold mt-0.5 uppercase tracking-wider">
-                      Level: {viewingCandidateApp.experience_level}
-                    </p>
-                    <p className="text-[10px] text-slate-400 mt-1.5 max-w-[280px] leading-relaxed">
-                      Detailed listings of past employment, roles, and candidate qualifications are detailed inside the attached resume document.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {candidatePopupTab === 'resume' && (
-                <div className="flex flex-col items-center justify-center space-y-3.5 h-full">
-                  <div className="flex items-center space-x-2.5 bg-slate-50 border border-slate-200/60 p-2.5 rounded-xl w-full max-w-[260px]">
-                    <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-red-500 border border-red-100">
+                {/* Resume Card & Button */}
+                <div className="bg-white border border-slate-200/60 p-3 rounded-xl flex flex-col justify-center space-y-2 shadow-sm">
+                  <div className="flex items-center space-x-2 bg-slate-50 border border-slate-100 p-2 rounded-lg">
+                    <div className="w-7 h-7 rounded bg-red-50 flex items-center justify-center text-red-500 border border-red-100 shrink-0">
                       <FileText className="w-3.5 h-3.5" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -2325,45 +2209,86 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                   </div>
                   <button
                     onClick={() => viewResume(viewingCandidateApp.resume_path!)}
-                    className="w-full max-w-[260px] bg-[#0D47A1] hover:bg-[#1976D2] text-white py-2 rounded-xl text-[10px] font-bold transition shadow-md shadow-blue-500/20 flex items-center justify-center space-x-1.5 cursor-pointer"
+                    className="w-full bg-[#0D47A1] hover:bg-[#1976D2] text-white py-1.5 rounded-lg text-[10px] font-bold transition shadow-sm shadow-blue-500/20 flex items-center justify-center space-x-1.5 cursor-pointer"
                   >
-                    <Eye size={12} />
+                    <Eye size={11} />
                     <span>View Resume in New Tab</span>
                   </button>
                 </div>
-              )}
+              </div>
+
+              {/* Right Column: Profiles, Experience & Message */}
+              <div className="flex-1 flex flex-col justify-between space-y-4">
+                <div className="bg-white border border-slate-200/60 p-3.5 rounded-xl space-y-2.5 text-[11px] text-slate-600 shadow-sm">
+                  <p className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider mb-1">Profiles & Experience</p>
+
+                  <div className="flex items-center justify-between py-1 border-b border-slate-100">
+                    <span className="font-semibold text-slate-400 flex items-center gap-1.5">
+                      <Linkedin size={12} className="text-blue-600" />
+                      LinkedIn:
+                    </span>
+                    {viewingCandidateApp.linkedin ? (
+                      <a
+                        href={viewingCandidateApp.linkedin}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-bold text-blue-600 hover:underline select-text truncate max-w-[150px]"
+                      >
+                        {viewingCandidateApp.linkedin.replace(/^https?:\/\/(www\.)?/, '')}
+                      </a>
+                    ) : (
+                      <span className="text-slate-400 font-medium">Not Provided</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between py-1 border-b border-slate-100">
+                    <span className="font-semibold text-slate-400 flex items-center gap-1.5">
+                      <Globe size={12} className="text-emerald-600" />
+                      Portfolio:
+                    </span>
+                    {viewingCandidateApp.portfolio ? (
+                      <a
+                        href={viewingCandidateApp.portfolio}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-bold text-emerald-600 hover:underline select-text truncate max-w-[150px]"
+                      >
+                        {viewingCandidateApp.portfolio.replace(/^https?:\/\/(www\.)?/, '')}
+                      </a>
+                    ) : (
+                      <span className="text-slate-400 font-medium">Not Provided</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between py-1">
+                    <span className="font-semibold text-slate-400 flex items-center gap-1.5">
+                      <Briefcase size={12} className="text-indigo-600" />
+                      Experience:
+                    </span>
+                    <span className="font-bold text-slate-700 capitalize">
+                      {viewingCandidateApp.experience_level || 'Not Specified'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cover Letter Block */}
+                <div className="bg-white border border-slate-200/60 p-3 rounded-xl flex-1 flex flex-col min-h-0 shadow-sm">
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Cover Letter / Message:</span>
+                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5 text-[10px] text-slate-500 leading-relaxed italic overflow-y-auto flex-1 max-h-[85px]">
+                    {viewingCandidateApp.cover_letter ? `"${viewingCandidateApp.cover_letter}"` : 'No cover letter provided.'}
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             {/* Footer Buttons */}
-            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center text-[10px] sm:text-xs font-bold flex-shrink-0">
+            <div className="px-5 py-3 border-t border-slate-100 bg-white flex justify-end items-center text-[10px] sm:text-xs font-bold flex-shrink-0">
               <button
-                disabled={candidatePopupTab === 'basic'}
-                onClick={() => {
-                  const tabs = (['basic', 'profiles', 'experience', 'resume'] as const).filter(
-                    t => t !== 'experience' || (viewingCandidateApp.experience_level && viewingCandidateApp.experience_level.toLowerCase() !== 'fresher')
-                  ) as ('basic' | 'profiles' | 'experience' | 'resume')[];
-                  const idx = tabs.indexOf(candidatePopupTab);
-                  if (idx > 0) setCandidatePopupTab(tabs[idx - 1]);
-                }}
-                className="px-3 py-1.5 rounded-lg border border-slate-200/60 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent transition-all cursor-pointer"
+                onClick={() => setViewingCandidateApp(null)}
+                className="px-4 py-1.5 rounded-lg bg-[#0D47A1] hover:bg-[#1976D2] text-white transition-all cursor-pointer font-bold"
               >
-                Previous
-              </button>
-              <button
-                onClick={() => {
-                  const tabs = (['basic', 'profiles', 'experience', 'resume'] as const).filter(
-                    t => t !== 'experience' || (viewingCandidateApp.experience_level && viewingCandidateApp.experience_level.toLowerCase() !== 'fresher')
-                  ) as ('basic' | 'profiles' | 'experience' | 'resume')[];
-                  const idx = tabs.indexOf(candidatePopupTab);
-                  if (idx < tabs.length - 1) {
-                    setCandidatePopupTab(tabs[idx + 1]);
-                  } else {
-                    setViewingCandidateApp(null);
-                  }
-                }}
-                className="px-4 py-1.5 rounded-lg bg-[#0D47A1] hover:bg-[#1976D2] text-white transition-all cursor-pointer"
-              >
-                {candidatePopupTab === 'resume' ? 'Done' : 'Next'}
+                Close
               </button>
             </div>
           </div>
@@ -2373,9 +2298,9 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
 
       {/* ========== TABBED INTERVIEW & FOLLOW‑UP MODAL ========== */}
       {showInterviewModal && selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 animate-modal-backdrop overflow-y-auto">
-          <div className="fixed inset-0" onClick={() => setShowInterviewModal(false)} />
-          <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl z-10 animate-modal-content my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-modal-backdrop bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 cursor-default" onClick={() => setShowInterviewModal(false)} />
+          <div className="relative w-full max-w-xl bg-white rounded-xl shadow-2xl z-10 animate-modal-content flex flex-col max-h-[85vh] overflow-hidden">
 
             {/* Header (same gradient as job modal) */}
             <div className="bg-gradient-to-r from-[#0D47A1] to-[#1976D2] rounded-t-xl sticky top-0 z-10">
@@ -2414,7 +2339,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
             </div>
 
             {/* Tab Content using modalTab */}
-            <div className="p-5 space-y-5">
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
               {/* OVERVIEW */}
               {modalTab === 'overview' && (
                 <div className="grid md:grid-cols-2 gap-6">

@@ -540,7 +540,7 @@ const Footer: React.FC = () => {
                 </h3>
                 <div className="space-y-1.5">
                   <div className="flex items-start gap-1.5">
-                    <FaMapMarkerAlt className="text-[#fed700] mt-0.5 text-[10px] flex-shrink-0" />
+                    <FaMapMarkerAlt className="text-[#0077d9] mt-0.5 text-[10px] flex-shrink-0" />
                     <p className="text-gray-300 text-[10px]">
                       First Floor, Tamara Uprise,
                       <br />
@@ -548,7 +548,7 @@ const Footer: React.FC = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <FaPhoneAlt className="text-[#fed700] text-[10px] flex-shrink-0" />
+                    <FaPhoneAlt className="text-[#0077d9] text-[10px] flex-shrink-0" />
                     <a
                       href="tel:+919371009381"
                       className="text-gray-300 hover:text-white text-xs"
@@ -557,7 +557,7 @@ const Footer: React.FC = () => {
                     </a>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <FaEnvelope className="text-[#fed700] text-[10px] flex-shrink-0" />
+                    <FaEnvelope className="text-[#0077d9] text-[10px] flex-shrink-0" />
                     <a
                       href="mailto:careers@hously.in"
                       className="text-gray-300 hover:text-white text-[10px]"

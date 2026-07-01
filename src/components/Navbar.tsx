@@ -1064,7 +1064,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
                 <img
                   src={logoData.navbarLogo}
                   alt="Hously Logo"
-                  className="h-10 w-auto object-contain"
+                  className="h-13 w-auto object-contain"
                   onError={(e) => {
                     e.currentTarget.src = logo;
                   }}

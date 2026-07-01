@@ -13,72 +13,94 @@ interface AuthModalProps {
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      setShouldRender(true);
+      const timer = setTimeout(() => setIsAnimating(true), 10);
+      return () => clearTimeout(timer);
     } else {
       document.body.style.overflow = 'unset';
+      setIsAnimating(false);
+      const timer = setTimeout(() => setShouldRender(false), 300);
+      return () => clearTimeout(timer);
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   return (
     <>
       <ToastContainer position="top-right" autoClose={3000} />
       
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      {/* Modal Wrapper with Backdrop Transition */}
+      <div 
+        className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ${
+          isAnimating ? 'bg-black/60 backdrop-blur-sm' : 'bg-transparent backdrop-blur-none pointer-events-none'
+        }`}
+      >
+        {/* Backdrop click to close */}
+        <div className="fixed inset-0 cursor-default" onClick={onClose} />
         
-        <div className="flex min-h-full items-center justify-center p-4">
-          <div className="relative bg-white rounded-xl w-full max-w-sm shadow-2xl">
+        {/* Modal Box with Scale & Slide Transition */}
+        <div 
+          className={`relative bg-white rounded-2xl w-full max-w-[360px] shadow-2xl border border-slate-100/80 z-10 p-6 transition-all duration-300 transform border-t-[4px] border-t-[#0D47A1] ${
+            isAnimating 
+              ? 'opacity-100 scale-100 translate-y-0' 
+              : 'opacity-0 scale-95 translate-y-4'
+          }`}
+        >
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition-all cursor-pointer z-20"
+          >
+            <X size={16} />
+          </button>
+
+          {/* Logo & Header */}
+          <div className="flex flex-col items-center mb-5 mt-2">
+            <img 
+              src={houslyLogo} 
+              alt="Hously Finntech Realty" 
+              className="h-10 w-auto mb-3 object-contain"
+            />
+            <h2 className="text-base font-extrabold text-slate-800 tracking-tight">
+              {isLogin ? 'Welcome Back!' : 'Create Account'}
+            </h2>
+            <p className="text-[10px] font-bold text-slate-400 mt-1 text-center uppercase tracking-wider">
+              {isLogin ? 'Admin Portal Access' : 'Register Admin Account'}
+            </p>
+          </div>
+          
+          {/* Switcher Tab - Premium Pill Style */}
+          <div className="flex bg-slate-100/50 p-1 rounded-xl mb-4 border border-slate-200/20 text-xs font-bold">
             <button
-              onClick={onClose}
-              className="absolute -top-3 -right-3 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow z-10"
+              onClick={() => setIsLogin(true)}
+              className={`flex-1 py-1.5 text-center rounded-lg transition-all duration-300 ${
+                isLogin
+                  ? 'bg-[#0D47A1] text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
             >
-              <X size={18} className="text-gray-600" />
+              Sign In
             </button>
+          </div>
 
-            <div className="p-6">
-              <div className="flex flex-col items-center mb-6">
-                <img 
-                  src={houslyLogo} 
-                  alt="Hously Finntech Realty" 
-                  className="h-14 w-auto mb-3"
-                />
-                <h2 className="text-lg font-semibold text-gray-800">
-                  {isLogin ? 'Welcome Back!' : 'Create Account'}
-                </h2>
-                <p className="text-xs text-gray-500 mt-1 text-center">
-                  {isLogin ? 'Sign in to access your admin dashboard' : 'Register for a new admin account'}
-                </p>
-              </div>
-              
-              <div className="flex mb-4">
-                <button
-                  onClick={() => setIsLogin(true)}
-                  className={`flex-1 py-2 text-xs sm:text-sm font-medium border-b-2 transition ${
-                    isLogin ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-gray-200'
-                  }`}
-                >
-                  Sign In
-                </button>
-              </div>
-
-              {isLogin ? (
-                <Login 
-                  onToggle={() => setIsLogin(false)} 
-                  onSuccess={() => {
-                    onSuccess();
-                    onClose();
-                  }} 
-                />
-              ) : null}
-            </div>
+          {/* Form Content */}
+          <div className="min-h-0 select-text">
+            {isLogin ? (
+              <Login 
+                onToggle={() => setIsLogin(false)} 
+                onSuccess={() => {
+                  onSuccess();
+                  onClose();
+                }} 
+              />
+            ) : null}
           </div>
         </div>
       </div>
