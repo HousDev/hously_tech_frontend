@@ -1,14 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar as CalendarIcon,
   Clock,
   Video,
   MapPin,
-  User,
   Mail,
-  Phone,
   Search,
-  Filter,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -374,7 +371,7 @@ const MeetingsCMS: React.FC = () => {
   };
 
   return (
-    <div className="bg-transparent font-sans">
+    <div className="bg-transparent font-sans px-6 pt-6">
       <Toaster position="top-right" />
       <style>{`
         @keyframes modalFadeIn {

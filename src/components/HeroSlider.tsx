@@ -344,107 +344,11 @@ import { useState, useEffect, useRef } from "react";
 import {
   ArrowRight,
   Sparkles,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { homeApi, type Slide } from "../lib/homeApi";
 
-// ─── Canvas Animated Dots + Lines Background ───────────────────────────────
-const AnimatedBackground = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let animationId: number;
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const DOT_COUNT = 55;
-    const MAX_DIST = 160;
-    const DOT_COLOR = "#0077d9";
-    const LINE_COLOR_RGB = "0, 119, 217";
-
-    interface Dot {
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      r: number;
-    }
-
-    const dots: Dot[] = Array.from({ length: DOT_COUNT }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 1.8,
-      vy: (Math.random() - 0.5) * 1.8,
-      r: Math.random() * 3.2 + 2.2,
-    }));
-
-    const draw = () => {
-      if (!ctx || !canvas) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (const d of dots) {
-        d.x += d.vx;
-        d.y += d.vy;
-        if (d.x < 0 || d.x > canvas.width) d.vx *= -1;
-        if (d.y < 0 || d.y > canvas.height) d.vy *= -1;
-      }
-
-      for (let i = 0; i < dots.length; i++) {
-        for (let j = i + 1; j < dots.length; j++) {
-          const dx = dots[i].x - dots[j].x;
-          const dy = dots[i].y - dots[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < MAX_DIST) {
-            const alpha = (1 - dist / MAX_DIST) * 0.85;
-            ctx.beginPath();
-            ctx.moveTo(dots[i].x, dots[i].y);
-            ctx.lineTo(dots[j].x, dots[j].y);
-            ctx.strokeStyle = `rgba(${LINE_COLOR_RGB}, ${alpha})`;
-            ctx.lineWidth = 2.2;
-            ctx.stroke();
-          }
-        }
-      }
-
-      for (const d of dots) {
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-        ctx.fillStyle = DOT_COLOR;
-        ctx.fill();
-      }
-
-      animationId = requestAnimationFrame(draw);
-    };
-
-    draw();
-
-    return () => {
-      cancelAnimationFrame(animationId);
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 h-full w-full pointer-events-none"
-      style={{ opacity: 0.9 }}
-    />
-  );
-};
 
 // ─── Hero Slider ────────────────────────────────────────────────────────────
 const HeroSlider = () => {
@@ -518,7 +422,6 @@ const HeroSlider = () => {
   if (loading) {
     return (
       <div className="relative flex min-h-[100svh] items-center justify-center overflow-hidden bg-[#edf4f8] px-4 pt-24 sm:px-6 sm:pt-28 lg:px-10 lg:pt-32">
-        <AnimatedBackground />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,120,120,0.08),transparent_28%),radial-gradient(circle_at_top_right,rgba(139,92,246,0.08),transparent_28%)]" />
         <div className="relative z-10 flex flex-col items-center gap-4 rounded-[28px] bg-white/30 px-8 py-8 backdrop-blur-md">
           <div className="relative">
@@ -540,7 +443,6 @@ const HeroSlider = () => {
   if (error) {
     return (
       <div className="relative flex min-h-[100svh] items-center justify-center overflow-hidden bg-[#edf4f8] px-4 pt-24 sm:px-6 sm:pt-28 lg:px-10 lg:pt-32">
-        <AnimatedBackground />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,120,120,0.08),transparent_28%),radial-gradient(circle_at_top_right,rgba(139,92,246,0.08),transparent_28%)]" />
         <div className="relative z-10 w-full max-w-md rounded-[28px] border border-white/60 bg-white/78 px-6 py-8 text-center shadow-xl backdrop-blur-xl sm:px-8 sm:py-10">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
@@ -562,7 +464,6 @@ const HeroSlider = () => {
   if (slides.length === 0) {
     return (
       <div className="relative flex min-h-[100svh] items-center justify-center overflow-hidden bg-[#edf4f8] px-4 pt-24 sm:px-6 sm:pt-28 lg:px-10 lg:pt-32">
-        <AnimatedBackground />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,120,120,0.08),transparent_28%),radial-gradient(circle_at_top_right,rgba(139,92,246,0.08),transparent_28%)]" />
         <div className="relative z-10 rounded-[28px] border border-white/60 bg-white/78 px-8 py-10 text-center shadow-xl backdrop-blur-xl">
           <p className="text-base font-medium text-[#2f2f35] sm:text-lg">No slides available</p>
@@ -576,9 +477,6 @@ const HeroSlider = () => {
 
   return (
     <section className="relative min-h-[100svh] overflow-hidden bg-[#edf4f8]">
-
-      {/* ── Canvas animated dots background ── */}
-      <AnimatedBackground />
 
       {/* ── Radial color overlays ── */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,120,120,0.09),transparent_26%),radial-gradient(circle_at_85%_18%,rgba(139,92,246,0.09),transparent_24%),radial-gradient(circle_at_70%_78%,rgba(255,107,122,0.07),transparent_20%)]" />
@@ -693,40 +591,6 @@ const HeroSlider = () => {
                 </button>
               </div>
 
-              {/* Slide controls */}
-              <div className="mt-8 flex flex-col items-center gap-4 sm:mt-10 sm:flex-row sm:justify-center lg:justify-start">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={prevSlide}
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dfe5ee] bg-white/88 text-[#444] shadow-sm transition-all duration-300 hover:border-[#0076d8] hover:text-[#0076d8] hover:shadow-md sm:h-11 sm:w-11"
-                    aria-label="Previous slide"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={nextSlide}
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dfe5ee] bg-white/88 text-[#444] shadow-sm transition-all duration-300 hover:border-[#0076d8] hover:text-[#0076d8] hover:shadow-md sm:h-11 sm:w-11"
-                    aria-label="Next slide"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-center gap-2 lg:justify-start">
-                  {slides.map((slide, index) => (
-                    <button
-                      key={slide.id}
-                      onClick={() => triggerSlide(() => index)}
-                      aria-label={`Go to slide ${index + 1}`}
-                      className={`h-2 rounded-full transition-all duration-500 ${
-                        index === currentSlide
-                          ? "w-10 bg-gradient-to-r from-[#0076d8] to-[#0076d8]"
-                          : "w-2 bg-[#cbd6e2] hover:bg-[#aebed0]"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -768,6 +632,22 @@ const HeroSlider = () => {
           </div>
 
         </div>
+      </div>
+
+      {/* ── Slide controls (Centered globally at the bottom) ── */}
+      <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center items-center gap-2 sm:bottom-8">
+        {slides.map((slide, index) => (
+          <button
+            key={slide.id}
+            onClick={() => triggerSlide(() => index)}
+            aria-label={`Go to slide ${index + 1}`}
+            className={`h-2 rounded-full transition-all duration-500 cursor-pointer ${
+              index === currentSlide
+                ? "w-10 bg-gradient-to-r from-[#0076d8] to-[#0076d8]"
+                : "w-2 bg-[#cbd6e2] hover:bg-[#aebed0]"
+            }`}
+          />
+        ))}
       </div>
 
       {/* ── Progress bar ── */}

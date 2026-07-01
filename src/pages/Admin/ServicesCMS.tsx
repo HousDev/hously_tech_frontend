@@ -440,7 +440,7 @@ const ServicesCMS = () => {
   }
 
   return (
-    <div >
+    <div className="flex flex-col h-full px-6 pt-6">
       <Toaster
         position="top-right"
         toastOptions={{
@@ -468,7 +468,7 @@ const ServicesCMS = () => {
       />
 
       {/* Main Container */}
-      <div className="bg-transparent font-sans">
+      <div className="bg-transparent font-sans flex flex-col flex-1 min-h-0">
 
 
         {/* Stats Cards - Compressed & High Density & Glassmorphic */}
@@ -548,25 +548,25 @@ const ServicesCMS = () => {
 
         {/* Bulk Actions Bar */}
         {selectedServices.length > 0 && (
-          <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
-              <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center space-x-3">
                 <div className="flex items-center">
-                  <Check className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-1 sm:mr-2" />
-                  <span className="text-xs sm:text-sm font-medium text-blue-800">
+                  <CheckCircle className="w-5 h-5 text-blue-600 mr-2" />
+                  <span className="text-sm font-medium text-blue-800">
                     {selectedServices.length} selected
                   </span>
                 </div>
-                <div className="flex space-x-1 sm:space-x-2">
+                <div className="flex space-x-2">
                   <button
                     onClick={() => handleBulkToggleActive(true)}
-                    className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
+                    className="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
                   >
                     Activate
                   </button>
                   <button
                     onClick={() => handleBulkToggleActive(false)}
-                    className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition"
+                    className="px-3 py-1.5 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition"
                   >
                     Deactivate
                   </button>
@@ -574,7 +574,7 @@ const ServicesCMS = () => {
               </div>
               <button
                 onClick={handleBulkDeleteClick}
-                className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition mt-1 sm:mt-0 cursor-pointer font-bold"
+                className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition mt-1 sm:mt-0 cursor-pointer font-bold"
               >
                 Delete ({selectedServices.length})
               </button>
@@ -583,7 +583,7 @@ const ServicesCMS = () => {
         )}
 
         {/* Table View - Main View */}
-        <div className="flex flex-col justify-between min-h-[480px] bg-white/40 backdrop-blur-md rounded-xl border border-white/20 shadow-sm overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-white/20 shadow-sm overflow-hidden">
           {currentServices.length === 0 ? (
             <div className="p-6 sm:p-12 text-center">
               <Server className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
@@ -604,7 +604,7 @@ const ServicesCMS = () => {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="flex-1 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 <table className="min-w-full border-collapse border border-slate-300">
                   <thead className="bg-slate-200/50 backdrop-blur-md sticky top-0 z-20">
                     <tr>

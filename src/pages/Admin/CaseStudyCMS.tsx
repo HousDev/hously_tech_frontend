@@ -271,7 +271,7 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
   }
 
   return (
-    <div>
+    <div className="flex flex-col h-full px-6 pt-6">
       <Toaster
         position="top-right"
         toastOptions={{
@@ -282,7 +282,7 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
           loading: { duration: Infinity },
         }}
       />
-      <div className={`transition-all duration-300 ${isSidebarOpen ? 'ml-0' : ''}`}>
+      <div className={`bg-transparent font-sans flex flex-col flex-1 min-h-0 transition-all duration-300 ${isSidebarOpen ? 'ml-0' : ''}`}>
         <style>{`
           @keyframes modalFadeIn {
             from { opacity: 0; backdrop-filter: blur(0px); background-color: rgba(15, 23, 42, 0); }
@@ -411,7 +411,7 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
 
         {/* ── Table View ── */}
         {viewMode === 'table' && (
-          <div className="flex flex-col justify-between min-h-[480px] bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
+          <div className="flex flex-col flex-1 min-h-0 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
             {pageItems.length === 0 ? (
               <div className="p-6 sm:p-12 text-center">
                 <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
@@ -419,7 +419,7 @@ const CaseStudyCMS = ({ isSidebarOpen = false }: Props) => {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <div className="flex-1 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <table className="min-w-full border-collapse border border-slate-300">
                     <thead className="bg-slate-200/50 backdrop-blur-md sticky top-0 z-20">
                       <tr>

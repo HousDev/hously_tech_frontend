@@ -136,7 +136,7 @@ const SettingsCMS = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 px-6 pt-6">
       <Toaster position="top-right" toastOptions={{ style: { borderRadius: '12px', fontSize: '13px' } }} />
 
       <div className="max-w-9xl mx-auto p-0 sm:p-0 md:p-0 space-y-5 sm:space-y-7">

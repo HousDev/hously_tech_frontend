@@ -33,6 +33,8 @@ export interface Application {
   applied_at: string;
   notes?: string;
   job_title?: string;
+  linkedin?: string;
+  portfolio?: string;
 }
 
 export interface ApplicationFormData {
@@ -42,6 +44,8 @@ export interface ApplicationFormData {
   phone?: string;
   experience_level?: string;
   cover_letter?: string;
+  linkedin?: string;
+  portfolio?: string;
   resume?: File;
 }
 
@@ -120,6 +124,12 @@ class CareerService {
   }
     if (formData.cover_letter) {
       data.append('cover_letter', formData.cover_letter);
+    }
+    if (formData.linkedin) {
+      data.append('linkedin', formData.linkedin);
+    }
+    if (formData.portfolio) {
+      data.append('portfolio', formData.portfolio);
     }
     
     if (formData.resume instanceof File) {

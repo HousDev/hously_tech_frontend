@@ -24,13 +24,10 @@ import {
   ThumbsUp,
   User2,
   Users,
-  ArrowRight,
   FolderOpen,
   Calendar,
-  UserPlus
 } from 'lucide-react';
 
-const job = UserPlus;
 
 import { apiClient } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
@@ -41,11 +38,12 @@ import { toast } from 'react-hot-toast';
 // Interfaces
 interface EnquiryNotification {
   career_application_id: any;
+  meeting_id?: number;
   id: number;
   enquiry_id: number;
   title: string;
   message: string;
-  type: 'new_enquiry' | 'status_change' | 'note_added' | 'assigned';
+  type: 'new_enquiry' | 'status_change' | 'note_added' | 'assigned' | 'new_meeting';
   is_read: boolean;
   admin_id?: number;
   created_at: string;
@@ -300,6 +298,7 @@ const AdminDashboard = () => {
       case 'status_change': return '🔄';
       case 'note_added': return '📝';
       case 'assigned': return '👤';
+      case 'new_meeting': return '📅';
       default: return '📢';
     }
   };
@@ -336,11 +335,14 @@ const AdminDashboard = () => {
       setSocketConnected(false);
     });
 
-    // ✅ Only show toast, don't add to state
+    // Show toast for all notification types (enquiry, career, meeting)
     socket.on('new_notification', (notification) => {
-      toast.success(notification.title);
-      // No state update here - fetchAllData() will get it
-
+      if (notification.type === 'new_meeting') {
+        toast.success(` ${notification.title}`, { duration: 6000 });
+      } else {
+        toast.success(notification.title);
+      }
+      // Refresh both lists — meeting notifications land in the enquiry table
       fetchEnquiryNotifications();
       fetchCareerNotifications();
     });
@@ -386,7 +388,8 @@ const AdminDashboard = () => {
 
   // ─── Badge count: derived directly from arrays (always in sync) ──────────────
   const totalUnread = [
-    ...enquiryNotifications.filter(n => !n.is_read && !n.career_application_id),
+    ...enquiryNotifications.filter(n => !n.is_read && !n.career_application_id && !n.meeting_id),
+    ...enquiryNotifications.filter(n => !n.is_read && n.meeting_id),   // meeting notifications
     ...careerNotifications.filter(n => !n.is_read && n.career_application_id),
   ].length;
 
@@ -545,7 +548,9 @@ const AdminDashboard = () => {
           {!sidebarOpen && (
             <div className="space-y-1">
               {navItems.slice(0, 8).map((item) => {
-                const isActive = location.pathname === item.path;
+                const isActive = item.path === '/homes/admin'
+                  ? location.pathname === '/homes/admin'
+                  : location.pathname === item.path || location.pathname.startsWith(item.path + '/');
                 return (
                   <NavLink
                     key={item.path}
@@ -568,8 +573,9 @@ const AdminDashboard = () => {
             <div className="mb-6">
               <ul className="space-y-1">
                 {navItems.map((item) => {
-                  const isActive = location.pathname === item.path ||
-                    (item.path !== '/admin' && location.pathname.startsWith(item.path));
+                  const isActive = item.path === '/homes/admin'
+                    ? location.pathname === '/homes/admin'
+                    : location.pathname === item.path || location.pathname.startsWith(item.path + '/');
                   return (
                     <li key={item.path}>
                       <NavLink
@@ -725,40 +731,46 @@ const AdminDashboard = () => {
                               .slice(0, 10)
                               .map((notification) => {
                                 const isCareer = notification.career_application_id !== null &&
-                                  notification.career_application_id !== undefined; return (
-                                    <div
-                                      key={`${isCareer ? 'career' : 'enquiry'}_${notification.id}`}
-                                      className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition ${!notification.is_read ? 'bg-blue-50' : ''
-                                        }`}
-                                      onClick={() => {
-                                        if (isCareer) {
-                                          markCareerNotificationAsRead(notification.id);
-                                          navigate('/homes/admin/career');
-                                        } else {
-                                          markNotificationAsRead(notification.id);
-                                          navigate('/homes/admin/enquiries');
-                                        }
-                                      }}
-                                    >
-                                      <div className="flex items-start">
-                                        <div className="text-lg mr-2">
-                                          {getNotificationIcon(notification.type, isCareer)}
+                                  notification.career_application_id !== undefined;
+                                const isMeeting = notification.meeting_id !== null &&
+                                  notification.meeting_id !== undefined;
+                                return (
+                                  <div
+                                    key={`${isCareer ? 'career' : isMeeting ? 'meeting' : 'enquiry'}_${notification.id}`}
+                                    className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition ${!notification.is_read ? 'bg-blue-50' : ''
+                                      }`}
+                                    onClick={() => {
+                                      if (isCareer) {
+                                        markCareerNotificationAsRead(notification.id);
+                                        navigate('/homes/admin/career');
+                                      } else if (isMeeting) {
+                                        markNotificationAsRead(notification.id);
+                                        navigate('/homes/admin/meetings');
+                                      } else {
+                                        markNotificationAsRead(notification.id);
+                                        navigate('/homes/admin/enquiries');
+                                      }
+                                    }}
+                                  >
+                                    <div className="flex items-start">
+                                      <div className="text-lg mr-2">
+                                        {getNotificationIcon(notification.type, isCareer)}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between">
+                                          <p className="text-sm font-medium text-gray-900">{notification.title}</p>
+                                          {!notification.is_read && (
+                                            <span className="w-2 h-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></span>
+                                          )}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                          <div className="flex items-start justify-between">
-                                            <p className="text-sm font-medium text-gray-900">{notification.title}</p>
-                                            {!notification.is_read && (
-                                              <span className="w-2 h-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></span>
-                                            )}
-                                          </div>
-                                          <p className="text-xs text-gray-500 mt-0.5">{notification.message}</p>
-                                          <p className="text-xs text-gray-400 mt-1.5">
-                                            {formatDateTime(notification.created_at)}
-                                          </p>
-                                        </div>
+                                        <p className="text-xs text-gray-500 mt-0.5">{notification.message}</p>
+                                        <p className="text-xs text-gray-400 mt-1.5">
+                                          {formatDateTime(notification.created_at)}
+                                        </p>
                                       </div>
                                     </div>
-                                  );
+                                  </div>
+                                );
                               })}
 
                             {/* Show "X more" only if combined total > 10 */}
@@ -1012,7 +1024,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Main Content Area */}
-        <main className="p-4 bg-[#f3f6fb] min-h-screen">
+        <main className="bg-[#f3f6fb] flex flex-col overflow-y-auto" style={{ height: 'calc(100vh - 64px)' }}>
           {isDashboard ? (
             <DashboardAnalytics
               setHeaderTitle={setPageTitleOverride}

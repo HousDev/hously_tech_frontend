@@ -247,6 +247,8 @@ export default function JobApplicationPage() {
           experience_level: formData.experience_level,  // add this
 
         cover_letter: formData.cover_letter || undefined,
+        linkedin: formData.linkedin || undefined,
+        portfolio: formData.portfolio || undefined,
         resume: resume || undefined,
       };
 
