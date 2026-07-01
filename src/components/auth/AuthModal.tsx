@@ -76,19 +76,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
             </p>
           </div>
           
-          {/* Switcher Tab - Premium Pill Style */}
-          <div className="flex bg-slate-100/50 p-1 rounded-xl mb-4 border border-slate-200/20 text-xs font-bold">
-            <button
-              onClick={() => setIsLogin(true)}
-              className={`flex-1 py-1.5 text-center rounded-lg transition-all duration-300 ${
-                isLogin
-                  ? 'bg-[#0D47A1] text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Sign In
-            </button>
-          </div>
+       
+       
 
           {/* Form Content */}
           <div className="min-h-0 select-text">

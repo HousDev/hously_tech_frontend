@@ -194,7 +194,7 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
     const deleteToast = toast.loading('Deleting blog post...');
     try {
       await blogApi.delete(id);
-      toast.success('Blog post deleted successfully!', { id: deleteToast });
+      toast.dismiss(deleteToast);
       fetchPosts();
     } catch (err) {
       toast.error('Failed to delete blog post', { id: deleteToast });
@@ -205,7 +205,7 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
     const deleteToast = toast.loading(`Deleting ${ids.length} post(s)...`);
     try {
       await blogApi.bulkDelete(ids);
-      toast.success(`Successfully deleted ${ids.length} post(s)`, { id: deleteToast });
+      toast.dismiss(deleteToast);
       setSelectedPosts([]);
       fetchPosts();
     } catch (err: any) {
@@ -328,7 +328,7 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
         toast.success('Blog post updated successfully!', { id: loadingToast });
       } else {
         await blogApi.create(postData);
-        toast.success('Blog post created successfully!', { id: loadingToast });
+        toast.dismiss(loadingToast);
       }
 
       fetchPosts();
@@ -378,7 +378,7 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
       setPosts(prev => prev.map(p =>
         p.id === id ? { ...p, is_published: !currentStatus, published_at: !currentStatus ? new Date().toISOString() : null } : p
       ));
-      toast.success(`Post ${!currentStatus ? 'published' : 'moved to draft'}`, { id: t });
+      toast.dismiss(t);
       fetchStats();
     } catch (err: any) {
       toast.error(err?.message || 'Failed to update post status', { id: t });
@@ -393,7 +393,7 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
       setPosts(prev => prev.map(p =>
         selectedPosts.includes(p.id) ? { ...p, is_published: publish, published_at: publish ? new Date().toISOString() : null } : p
       ));
-      toast.success(`Successfully ${publish ? 'published' : 'unpublished'} ${selectedPosts.length} post(s)`, { id: t });
+      toast.dismiss(t);
       setSelectedPosts([]);
       fetchStats();
     } catch (err: any) {
@@ -406,7 +406,6 @@ const BlogCMS = ({ isSidebarOpen = false }: BlogCMSProps) => {
     try {
       const imageUrl = await blogApi.uploadImage(file);
       setFormData(prev => ({ ...prev, featured_image: imageUrl }));
-      toast.success('Image uploaded successfully!');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to upload image');
     } finally {

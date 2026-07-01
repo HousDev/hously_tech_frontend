@@ -287,16 +287,21 @@ export default function HouslyChatbotWidget() {
 
       {/* FAB */}
       <button
-        style={styles.fab}
+        className="fixed left-[14px] md:left-[18px] bottom-[14px] md:bottom-[18px] w-11 h-11 md:w-[62px] md:h-[62px] rounded-full bg-[#185FA5] border-2 md:border-[3px] border-white/30 text-white text-base md:text-xl cursor-pointer flex items-center justify-center shadow-[0_4px_20px_rgba(24,95,165,0.5),0_0_0_6px_rgba(24,95,165,0.15)] z-[9999]"
         onClick={() => setOpen(prev => !prev)}
         aria-label={open ? 'Close chat' : 'Open chat'}
       >
-        {open ? '✕' : <img src="/chatboot.png" alt="Chat" style={{ width: 38, height: 38, objectFit: 'contain' }} />}
+        {open ? '✕' : <img src="/chatboot.png" alt="Chat" className="w-[26px] h-[26px] md:w-[38px] md:h-[38px] object-contain" />}
       </button>
 
       {/* Chat Window */}
       {open && (
-        <div style={styles.window} role="dialog" aria-label="Hously AI Assistant">
+        <div 
+          className="fixed left-[14px] md:left-[18px] bottom-[70px] md:bottom-[96px] w-[min(330px,calc(100vw-24px))] h-[min(460px,calc(100vh-110px))] bg-white rounded-xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden z-[9998]"
+          role="dialog" 
+          aria-label="Hously AI Assistant"
+          style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+        >
           {/* Header */}
           <div style={styles.header}>
             <div style={styles.headerAv}>

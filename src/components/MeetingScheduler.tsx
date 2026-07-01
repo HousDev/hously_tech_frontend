@@ -169,30 +169,30 @@ const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({ onClose, isModal = 
       )}
 
       {/* Main Header */}
-      <div className="flex flex-col items-center pt-5 pb-2">
-        <h2 className="text-2xl font-extrabold tracking-tight text-[#0c1e4a] font-sans text-center">Schedule a Meeting</h2>
-        <div className="w-12 h-1 bg-[#ffd801] mt-1.5 rounded-full" />
+      <div className="flex flex-col items-center pt-3.5 md:pt-5 pb-1.5 md:pb-2">
+        <h2 className="text-lg md:text-2xl font-extrabold tracking-tight text-[#0c1e4a] font-sans text-center">Schedule a Meeting</h2>
+        <div className="w-10 md:w-12 h-0.5 md:h-1 bg-[#ffd801] mt-1 md:mt-1.5 rounded-full" />
       </div>
 
       {/* Scheduler Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 md:p-5">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 p-3 md:p-5">
 
         {/* LEFT COLUMN: Calendar Grid */}
-        <div className="md:col-span-7 flex flex-col bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 shadow-sm justify-between">
+        <div className="md:col-span-7 flex flex-col bg-slate-50/70 border border-slate-200/80 rounded-xl p-2.5 md:p-3 shadow-sm justify-between">
           <div>
             {/* Calendar Month & Year Header with Nav Arrows */}
-            <div className="flex items-center justify-between mb-3 px-1">
+            <div className="flex items-center justify-between mb-2 md:mb-3 px-1">
               <button
                 type="button"
                 onClick={handlePrevMonth}
                 className="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 hover:text-[#0076d8] transition-colors"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
 
-              <h3 className="text-base font-bold text-[#0c1e4a] tracking-wide">
+              <h3 className="text-sm md:text-base font-bold text-[#0c1e4a] tracking-wide">
                 {monthNames[currentMonth]} {currentYear}
               </h3>
 
@@ -201,16 +201,16 @@ const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({ onClose, isModal = 
                 onClick={handleNextMonth}
                 className="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 hover:text-[#0076d8] transition-colors"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
 
             {/* Weekday Headers */}
-            <div className="grid grid-cols-7 gap-1.5 mb-2 text-center">
+            <div className="grid grid-cols-7 gap-1 md:gap-1.5 mb-1.5 md:mb-2 text-center">
               {weekDays.map((day) => (
-                <span key={day} className="text-[10px] font-bold text-slate-400 py-0.5">{day}</span>
+                <span key={day} className="text-[9px] md:text-[10px] font-bold text-slate-400 py-0.5">{day}</span>
               ))}
             </div>
 
@@ -236,7 +236,7 @@ const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({ onClose, isModal = 
                     key={day}
                     type="button"
                     onClick={() => handleDaySelect(day)}
-                    className={`aspect-square rounded-lg flex items-center justify-center font-bold text-xs transition-all duration-200 border
+                    className={`aspect-square rounded-lg flex items-center justify-center font-bold text-[10px] md:text-xs transition-all duration-200 border
                       ${isSelected
                         ? 'bg-[#0076d8] text-white border-[#0076d8] shadow-[0_3px_8px_rgba(0,118,216,0.25)] scale-105'
                         : 'bg-white text-slate-800 hover:bg-[#0076d8]/10 hover:text-[#0076d8] border-slate-200'
@@ -251,14 +251,14 @@ const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({ onClose, isModal = 
         </div>
 
         {/* RIGHT COLUMN: Time slots & Form */}
-        <div className="md:col-span-5 flex flex-col justify-between space-y-4">
+        <div className="md:col-span-5 flex flex-col justify-between space-y-3 md:space-y-4">
 
           {/* Selected Date & Format Switcher */}
-          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-            <h3 className="text-sm font-bold text-[#0c1e4a]">{getSelectedDateString()}</h3>
+          <div className="flex items-center justify-between border-b border-slate-200 pb-1.5 md:pb-2">
+            <h3 className="text-xs md:text-sm font-bold text-[#0c1e4a]">{getSelectedDateString()}</h3>
 
             {/* 12h/24h toggle */}
-            <div className="flex border border-slate-200 rounded-lg overflow-hidden bg-slate-50 text-[10px]">
+            <div className="flex border border-slate-200 rounded-lg overflow-hidden bg-slate-50 text-[9px] md:text-[10px]">
               <button
                 type="button"
                 onClick={() => setIs24h(false)}
@@ -277,7 +277,7 @@ const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({ onClose, isModal = 
           </div>
 
           {/* Grid Time Slots (Replaces vertical scrolling list with 3-column grid) */}
-          <div className="grid grid-cols-3 gap-1.5 max-h-[110px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="grid grid-cols-3 gap-1 md:gap-1.5 max-h-[85px] md:max-h-[110px] overflow-y-auto pr-1 custom-scrollbar">
             {slots.map((slot) => {
               const isSelected = selectedTimeSlot === slot;
               return (
@@ -285,7 +285,7 @@ const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({ onClose, isModal = 
                   key={slot}
                   type="button"
                   onClick={() => handleSlotClick(slot)}
-                  className={`py-1.5 px-2 rounded-lg font-semibold text-xs text-center border transition-all duration-200
+                  className={`py-1 md:py-1.5 px-2 rounded-lg font-semibold text-[11px] md:text-xs text-center border transition-all duration-200
                     ${isSelected
                       ? 'bg-[#0076d8] text-white border-[#0076d8] shadow-[0_2px_6px_rgba(0,118,216,0.15)]'
                       : 'bg-white text-slate-700 border-slate-200 hover:border-[#0076d8]/45 hover:bg-blue-50/20'
@@ -298,18 +298,18 @@ const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({ onClose, isModal = 
           </div>
 
           {/* Schedule Form (Reorganized into 2 columns to save vertical space) */}
-          <form onSubmit={handleSchedule} className="flex flex-col bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 shadow-sm space-y-2">
-            <h4 className="text-xs font-bold text-[#0076d8] uppercase tracking-wider mb-0.5">Meeting details</h4>
+          <form onSubmit={handleSchedule} className="flex flex-col bg-slate-50/70 border border-slate-200/80 rounded-xl p-2.5 md:p-3 shadow-sm space-y-1.5 md:space-y-2">
+            <h4 className="text-[10px] md:text-xs font-bold text-[#0076d8] uppercase tracking-wider mb-0.5">Meeting details</h4>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5 md:space-y-2">
               {/* Row 1: Name and Email */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 md:gap-2">
                 <input
                   type="text"
                   value={attendeeName}
                   onChange={(e) => setAttendeeName(e.target.value)}
                   placeholder="Your full name"
-                  className="w-full bg-white text-slate-800 placeholder-slate-400 rounded-md border border-slate-200 py-1.5 px-2.5 text-xs focus:outline-none focus:ring-1.5 focus:ring-[#0076d8] focus:border-[#0076d8]"
+                  className="w-full bg-white text-slate-800 placeholder-slate-400 rounded-md border border-slate-200 py-1 md:py-1.5 px-2 md:px-2.5 text-[11px] md:text-xs focus:outline-none focus:ring-1.5 focus:ring-[#0076d8] focus:border-[#0076d8]"
                   required
                 />
                 <input
@@ -317,24 +317,24 @@ const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({ onClose, isModal = 
                   value={attendeeEmail}
                   onChange={(e) => setAttendeeEmail(e.target.value)}
                   placeholder="Your email address"
-                  className="w-full bg-white text-slate-800 placeholder-slate-400 rounded-md border border-slate-200 py-1.5 px-2.5 text-xs focus:outline-none focus:ring-1.5 focus:ring-[#0076d8] focus:border-[#0076d8]"
+                  className="w-full bg-white text-slate-800 placeholder-slate-400 rounded-md border border-slate-200 py-1 md:py-1.5 px-2 md:px-2.5 text-[11px] md:text-xs focus:outline-none focus:ring-1.5 focus:ring-[#0076d8] focus:border-[#0076d8]"
                   required
                 />
               </div>
 
               {/* Row 2: Phone and Meeting Type */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 md:gap-2">
                 <input
                   type="tel"
                   value={attendeePhone}
                   onChange={(e) => setAttendeePhone(e.target.value)}
                   placeholder="Phone number (optional)"
-                  className="w-full bg-white text-slate-800 placeholder-slate-400 rounded-md border border-slate-200 py-1.5 px-2.5 text-xs focus:outline-none focus:ring-1.5 focus:ring-[#0076d8] focus:border-[#0076d8]"
+                  className="w-full bg-white text-slate-800 placeholder-slate-400 rounded-md border border-slate-200 py-1 md:py-1.5 px-2 md:px-2.5 text-[11px] md:text-xs focus:outline-none focus:ring-1.5 focus:ring-[#0076d8] focus:border-[#0076d8]"
                 />
                 <select
                   value={meetingType}
                   onChange={(e) => setMeetingType(e.target.value)}
-                  className="w-full bg-white text-slate-800 rounded-md border border-slate-200 py-1.5 px-2.5 text-xs focus:outline-none focus:ring-1.5 focus:ring-[#0076d8] focus:border-[#0076d8] cursor-pointer"
+                  className="w-full bg-white text-slate-800 rounded-md border border-slate-200 py-1 md:py-1.5 px-2 md:px-2.5 text-[11px] md:text-xs focus:outline-none focus:ring-1.5 focus:ring-[#0076d8] focus:border-[#0076d8] cursor-pointer"
                 >
                   <option value="virtual">Virtual (Zoom / Meet)</option>
                   <option value="in_person">In-Person Meeting</option>
@@ -347,7 +347,7 @@ const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({ onClose, isModal = 
                 value={meetingTitle}
                 onChange={(e) => setMeetingTitle(e.target.value)}
                 placeholder="Meeting title / purpose"
-                className="w-full bg-white text-slate-800 placeholder-slate-400 rounded-md border border-slate-200 py-1.5 px-2.5 text-xs focus:outline-none focus:ring-1.5 focus:ring-[#0076d8] focus:border-[#0076d8]"
+                className="w-full bg-white text-slate-800 placeholder-slate-400 rounded-md border border-slate-200 py-1 md:py-1.5 px-2 md:px-2.5 text-[11px] md:text-xs focus:outline-none focus:ring-1.5 focus:ring-[#0076d8] focus:border-[#0076d8]"
                 required
               />
             </div>
@@ -356,7 +356,7 @@ const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({ onClose, isModal = 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-[#0076d8] hover:bg-[#0066c0] text-white font-bold py-2 px-4 rounded-md transition-all duration-200 text-xs shadow-[0_3px_8px_rgba(0,118,216,0.12)] hover:shadow-[0_4px_12px_rgba(0,118,216,0.2)] disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="w-full bg-[#0076d8] hover:bg-[#0066c0] text-white font-bold py-1.5 md:py-2 px-3 md:px-4 rounded-md transition-all duration-200 text-[11px] md:text-xs shadow-[0_3px_8px_rgba(0,118,216,0.12)] hover:shadow-[0_4px_12px_rgba(0,118,216,0.2)] disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {isSubmitting ? (
                 <>

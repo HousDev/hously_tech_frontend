@@ -3,26 +3,25 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  FaRegCalendarAlt,
-  FaRegUser,
-  FaRegClock,
-  FaSpinner,
-
-  FaArrowLeft,
-  FaHeart,
-  FaRegHeart,
-  FaShareAlt,
-  FaBookmark,
-  FaRegBookmark,
-  FaComment,
+  Clock,
+  Calendar,
+  User,
+  Loader2,
+  ArrowLeft,
+  Heart,
+  Share2,
+  Bookmark,
+  MessageSquare,
+  Eye,
+  Tag,
+  Copy,
+  X,
+} from 'lucide-react';
+import {
   FaFacebookF,
   FaTwitter,
   FaLinkedinIn,
   FaWhatsapp,
-  FaCopy,
-  FaTimes,
-  FaEye,
-  FaTag,
 } from 'react-icons/fa';
 import Breadcrumb from '../../../components/Breadcrumb';
 import { blogApi, type BlogPost, type BlogComment } from '../../../lib/blogApi';
@@ -402,10 +401,10 @@ const BlogDetailPage: React.FC = () => {
     let shareUrl = '';
     switch (platform) {
       case 'facebook': shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`; break;
-      case 'twitter':  shareUrl = `https://twitter.com/intent/tweet?text=${title}&url=${url}`; break;
+      case 'twitter': shareUrl = `https://twitter.com/intent/tweet?text=${title}&url=${url}`; break;
       case 'linkedin': shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`; break;
       case 'whatsapp': shareUrl = `https://wa.me/?text=${title}%20${url}`; break;
-      case 'email':    shareUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${title}&body=${url}`; break;
+      case 'email': shareUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${title}&body=${url}`; break;
     }
     if (shareUrl) window.open(shareUrl, '_blank');
   };
@@ -413,11 +412,10 @@ const BlogDetailPage: React.FC = () => {
   const recentPosts = allPosts.filter(p => p.id !== post?.id).slice(0, 5);
   const categories = Array.from(new Set(allPosts.map(p => p.category).filter(Boolean)));
 
-  // ── Loading / Not found ──
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <FaSpinner className="w-8 h-8 text-[#0077d9] animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#0077d9] animate-spin" />
       </div>
     );
   }
@@ -426,8 +424,8 @@ const BlogDetailPage: React.FC = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-gray-500 text-lg">Blog post not found.</p>
-        <button onClick={() => navigate('/blog')} className="text-[#0077d9] text-sm font-semibold hover:underline">
-          ← Back to Blog
+        <button onClick={() => navigate('/blog')} className="text-[#0077d9] text-sm font-semibold hover:underline flex items-center gap-1.5">
+          <ArrowLeft className="w-4 h-4" /> Back to Blog
         </button>
       </div>
     );
@@ -449,9 +447,9 @@ const BlogDetailPage: React.FC = () => {
           {/* ── Back button ── */}
           <button
             onClick={() => navigate('/blog')}
-            className="flex items-center gap-2 text-sm text-[#0077d9] font-medium mb-5 hover:gap-3 transition-all"
+            className="flex items-center gap-1.5 text-sm text-[#0077d9] font-medium mb-5 hover:gap-2.5 transition-all"
           >
-            <FaArrowLeft className="text-xs" /> Back to all posts
+            <ArrowLeft className="w-4 h-4" /> Back to all posts
           </button>
 
           <div className="flex flex-col lg:flex-row gap-8">
@@ -474,17 +472,16 @@ const BlogDetailPage: React.FC = () => {
                   <button
                     onClick={handlePostLike}
                     disabled={postLikeLoading}
-                    className={`w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center transition-all ${
-                      postLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-400'
-                    } disabled:opacity-50`}
+                    className={`w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center transition-all ${postLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-400'
+                      } disabled:opacity-50`}
                   >
-                    {postLiked ? <FaHeart className="text-sm" /> : <FaRegHeart className="text-sm" />}
+                    <Heart className={`w-4 h-4 ${postLiked ? 'fill-current' : ''}`} />
                   </button>
                   <button
                     onClick={handleShare}
                     className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center text-gray-500 hover:text-[#0077d9] transition-all"
                   >
-                    <FaShareAlt className="text-sm" />
+                    <Share2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -500,23 +497,23 @@ const BlogDetailPage: React.FC = () => {
                 {/* Meta row */}
                 <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 mb-4 pb-4 border-b border-gray-100">
                   <span className="flex items-center gap-1.5">
-                    <FaRegUser className="text-[#0077d9]" />
+                    <User className="w-3.5 h-3.5 text-[#0077d9]" />
                     {post.author_name || 'Admin'}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <FaComment className="text-[#0077d9]" />
+                    <MessageSquare className="w-3.5 h-3.5 text-[#0077d9]" />
                     {post.comment_count || comments.length} comments
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <FaRegCalendarAlt className="text-[#0077d9]" />
+                    <Calendar className="w-3.5 h-3.5 text-[#0077d9]" />
                     {formatDate(post.published_at)}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <FaRegClock className="text-[#0077d9]" />
+                    <Clock className="w-3.5 h-3.5 text-[#0077d9]" />
                     {post.read_time || '5 min read'}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <FaEye className="text-[#0077d9]" />
+                    <Eye className="w-3.5 h-3.5 text-[#0077d9]" />
                     {post.views?.toLocaleString() || 0} views
                   </span>
                 </div>
@@ -576,9 +573,9 @@ const BlogDetailPage: React.FC = () => {
                     {post.tags.map((tag, i) => (
                       <span
                         key={i}
-                        className="flex items-center gap-1.5 text-xs text-gray-500 border border-gray-200 px-3 py-1 rounded-full hover:border-[#0077d9] hover:text-[#0077d9] transition cursor-pointer"
+                        className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full hover:border-[#0077d9] hover:bg-[#0077d9] hover:text-white transition cursor-pointer"
                       >
-                        <FaTag className="text-[8px]" />
+                        <Tag className="w-3 h-3 text-blue-500/80" />
                         {tag}
                       </span>
                     ))}
@@ -637,7 +634,7 @@ const BlogDetailPage: React.FC = () => {
                   {/* Comments list */}
                   {commentsLoading ? (
                     <div className="flex justify-center py-8">
-                      <FaSpinner className="w-6 h-6 text-[#0077d9] animate-spin" />
+                      <Loader2 className="w-6 h-6 text-[#0077d9] animate-spin" />
                     </div>
                   ) : comments.length === 0 ? (
                     <p className="text-gray-400 text-sm text-center py-6">No comments yet. Be the first to comment!</p>
@@ -663,14 +660,14 @@ const BlogDetailPage: React.FC = () => {
                                   onClick={() => handleLikeComment(comment.id)}
                                   className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition"
                                 >
-                                  <FaRegHeart className="text-[10px]" />
+                                  <Heart className="w-3 h-3" />
                                   {comment.likes || 0} likes
                                 </button>
                                 <button
                                   onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
                                   className="flex items-center gap-1 text-xs text-[#0077d9] hover:underline"
                                 >
-                                  <FaComment className="text-[10px]" /> Reply
+                                  <MessageSquare className="w-3 h-3" /> Reply
                                 </button>
                               </div>
                               {/* Reply form */}
@@ -774,11 +771,10 @@ const BlogDetailPage: React.FC = () => {
                   </button>
                   <button
                     onClick={handleSave}
-                    className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg text-xs font-semibold transition ${
-                      isSaved ? 'border-[#0077d9] text-[#0077d9]' : 'border-gray-300 text-gray-600 hover:border-[#0077d9] hover:text-[#0077d9]'
-                    }`}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-2 border rounded-lg text-xs font-semibold transition ${isSaved ? 'border-[#0077d9] text-[#0077d9]' : 'border-gray-300 text-gray-600 hover:border-[#0077d9] hover:text-[#0077d9]'
+                      }`}
                   >
-                    {isSaved ? <FaBookmark className="text-[10px]" /> : <FaRegBookmark className="text-[10px]" />}
+                    <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
                     Save
                   </button>
                 </div>
@@ -819,7 +815,7 @@ const BlogDetailPage: React.FC = () => {
                 <h3 className="text-sm font-bold text-gray-900 mb-4">Recent comments</h3>
                 {commentsLoading ? (
                   <div className="flex justify-center py-3">
-                    <FaSpinner className="w-4 h-4 text-[#0077d9] animate-spin" />
+                    <Loader2 className="w-4 h-4 text-[#0077d9] animate-spin" />
                   </div>
                 ) : comments.length === 0 ? (
                   <p className="text-xs text-[#0077d9] text-center py-2">No recent comments</p>
@@ -889,7 +885,7 @@ const BlogDetailPage: React.FC = () => {
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-900">Share this post</h3>
               <button onClick={() => setShowShareModal(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition">
-                <FaTimes className="text-sm text-gray-600" />
+                <X className="w-4 h-4 text-gray-600" />
               </button>
             </div>
             <img src={getImageUrl(post.featured_image, fallbackImg)} alt={post.title} className="w-full h-32 object-cover rounded-lg mb-4" />
@@ -898,9 +894,9 @@ const BlogDetailPage: React.FC = () => {
             <div className="grid grid-cols-4 gap-3 mb-5">
               {[
                 { key: 'facebook', color: '#1877F2', Icon: FaFacebookF, label: 'Facebook' },
-                { key: 'twitter',  color: '#1DA1F2', Icon: FaTwitter,    label: 'Twitter' },
+                { key: 'twitter', color: '#1DA1F2', Icon: FaTwitter, label: 'Twitter' },
                 { key: 'linkedin', color: '#0077B5', Icon: FaLinkedinIn, label: 'LinkedIn' },
-                { key: 'whatsapp', color: '#25D366', Icon: FaWhatsapp,   label: 'WhatsApp' },
+                { key: 'whatsapp', color: '#25D366', Icon: FaWhatsapp, label: 'WhatsApp' },
               ].map(({ key, color, Icon, label }) => (
                 <button key={key} onClick={() => handleShareToSocial(key)} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-gray-50 transition">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: color }}>
@@ -916,7 +912,7 @@ const BlogDetailPage: React.FC = () => {
                 onClick={handleCopyLink}
                 className="px-4 py-2 bg-[#0077d9] text-white rounded-lg text-sm font-medium hover:bg-[#005db0] transition flex items-center gap-2"
               >
-                <FaCopy className="text-xs" />
+                <Copy className="w-4 h-4" />
                 {copySuccess ? 'Copied!' : 'Copy'}
               </button>
             </div>

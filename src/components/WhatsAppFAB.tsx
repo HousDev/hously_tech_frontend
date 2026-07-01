@@ -44,7 +44,7 @@ const WhatsAppFAB: React.FC = () => {
       {isVisible && (
         <>
           {/* LEFT SIDE STACK - WhatsApp (Top) & Email (Bottom) */}
-          <div className="fixed left-4 z-50 flex flex-col items-center gap-4" style={{ bottom: '95px' }}>
+          <div className="fixed left-[14px] md:left-4 z-50 flex flex-col items-center gap-3 md:gap-4 bottom-[72px] md:bottom-[95px]">
             {/* WHATSAPP FLOATING ACTION BUTTON (TOP) */}
             <motion.div
               initial={{ opacity: 0, scale: 0.5, x: -50 }}
@@ -83,7 +83,7 @@ const WhatsAppFAB: React.FC = () => {
                   scale: { type: 'spring', stiffness: 400, damping: 15 },
                   rotate: { type: 'spring', stiffness: 400, damping: 15 }
                 }}
-                className="relative flex items-center justify-center w-16 h-16 rounded-full overflow-hidden"
+                className="relative flex items-center justify-center w-11 h-11 md:w-16 md:h-16 rounded-full overflow-hidden"
               >
                 <img
                   src="/WhatsApp_icon.png"
@@ -132,7 +132,7 @@ const WhatsAppFAB: React.FC = () => {
                   scale: { type: 'spring', stiffness: 400, damping: 15 },
                   rotate: { type: 'spring', stiffness: 400, damping: 15 }
                 }}
-                className="relative flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#0076d8] to-[#004e92] shadow-[0_8px_30px_rgba(0,118,216,0.3)] border border-blue-400/30 overflow-hidden"
+                className="relative flex items-center justify-center w-11 h-11 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-[#0076d8] to-[#004e92] shadow-[0_8px_30px_rgba(0,118,216,0.3)] border border-blue-400/30 overflow-hidden"
               >
                 {/* Lucide Mail SVG Icon */}
                 <svg
@@ -143,7 +143,7 @@ const WhatsAppFAB: React.FC = () => {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="w-7 h-7 text-white"
+                  className="w-5 h-5 md:w-7 md:h-7 text-white"
                 >
                   <rect width="20" height="16" x="2" y="4" rx="2" />
                   <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
@@ -176,7 +176,7 @@ const WhatsAppFAB: React.FC = () => {
                 delay: 0.3
               }
             }}
-            className="fixed bottom-[92px] right-4 z-50 flex items-center justify-center cursor-pointer select-none group"
+            className="fixed bottom-[70px] md:bottom-[92px] right-[14px] md:right-4 z-50 flex items-center justify-center cursor-pointer select-none group"
             onClick={handleMeetingClick}
           >
             {/* Pulsing glow rings for meeting schedule */}
@@ -192,11 +192,11 @@ const WhatsAppFAB: React.FC = () => {
               transition={{
                 scale: { type: 'spring', stiffness: 400, damping: 15 }
               }}
-              className="relative flex items-center justify-center w-16 h-16 rounded-full bg-[#0076d8] shadow-lg border border-blue-400/20 overflow-hidden"
+              className="relative flex items-center justify-center w-11 h-11 md:w-16 md:h-16 rounded-full bg-[#0076d8] shadow-lg border border-blue-400/20 overflow-hidden"
             >
               <img
                 src="/calendar-days.png"
-                className="w-12 h-12 object-contain transition-transform duration-300 group-hover:scale-105"
+                className="w-8 h-8 md:w-12 md:h-12 object-contain transition-transform duration-300 group-hover:scale-105"
                 alt="Schedule Meeting"
               />
             </motion.div>
@@ -205,7 +205,7 @@ const WhatsAppFAB: React.FC = () => {
           {/* MEETING SCHEDULER MODAL POPUP */}
           <AnimatePresence>
             {isSchedulerOpen && (
-              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
                 {/* Backdrop blur & dark overlay */}
                 <motion.div
                   initial={{ opacity: 0 }}

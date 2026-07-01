@@ -76,7 +76,7 @@ const SettingsCMS = () => {
       const result = await settingsApi.uploadLogo(type, file);
       const logoKey = type === 'navbar' ? 'navbarLogo' : 'footerLogo';
       setSettings(prev => ({ ...prev, [logoKey]: result.fullUrl }));
-      toast.success(`${type} logo uploaded successfully!`, { id: loadingToast });
+      toast.dismiss(loadingToast);
       await fetchSettings();
     } catch (error: any) {
       toast.error(error.message || `Failed to upload ${type} logo`, { id: loadingToast });
@@ -93,7 +93,7 @@ const SettingsCMS = () => {
       setUploading('favicon');
       const result = await settingsApi.uploadFavicon(file);
       setSettings(prev => ({ ...prev, favicon: result.fullUrl }));
-      toast.success('Favicon uploaded successfully!', { id: loadingToast });
+      toast.dismiss(loadingToast);
       await fetchSettings();
     } catch (error: any) {
       toast.error(error.message || 'Failed to upload favicon', { id: loadingToast });
@@ -106,7 +106,7 @@ const SettingsCMS = () => {
     try {
       const result = await settingsApi.resetLogos();
       setSettings(prev => ({ ...prev, navbarLogo: result.navbarLogo, footerLogo: result.footerLogo, favicon: result.favicon }));
-      toast.success('Logos reset to defaults successfully!', { id: loadingToast });
+      toast.dismiss(loadingToast);
       await fetchSettings();
     } catch (error: any) {
       toast.error(error.message || 'Failed to reset logos', { id: loadingToast });

@@ -82,7 +82,7 @@ const ServicesCMS = () => {
     const deleteToast = toast.loading('Deleting service...');
     try {
       await servicesApi.delete(id);
-      toast.success('Service deleted successfully', { id: deleteToast });
+      toast.dismiss(deleteToast);
       fetchServices();
       setSelectedServices(prev => prev.filter(serviceId => serviceId !== id));
     } catch (err) {
@@ -94,7 +94,7 @@ const ServicesCMS = () => {
     const deleteToast = toast.loading(`Deleting ${ids.length} service(s)...`);
     try {
       await servicesApi.bulkDelete(ids);
-      toast.success(`Successfully deleted ${ids.length} service(s)`, { id: deleteToast });
+      toast.dismiss(deleteToast);
       setSelectedServices([]);
       fetchServices();
     } catch (err) {
@@ -182,7 +182,6 @@ const ServicesCMS = () => {
         toast.success('Service updated successfully!');
       } else {
         await servicesApi.create(serviceData);
-        toast.success('Service created successfully!');
       }
 
       fetchServices();
@@ -237,7 +236,7 @@ const ServicesCMS = () => {
       newServices[swapIndex].display_order = swapData.swapOrder;
 
       setServices([...newServices].sort((a, b) => a.display_order - b.display_order));
-      toast.success('Service moved successfully!', { id: reorderToast });
+      toast.dismiss(reorderToast);
     } catch (error: any) {
       toast.error(error?.message || 'Failed to move service', { id: reorderToast });
       fetchServices();
@@ -257,7 +256,7 @@ const ServicesCMS = () => {
       setServices(prev => prev.map(s => s.id === id ? { ...s, is_active: !currentStatus } : s));
 
 
-      toast.success(`Service ${!currentStatus ? 'activated' : 'deactivated'} successfully`, { id: toggleToast });
+      toast.dismiss(toggleToast);
     } catch (err) {
       toast.error('Failed to update service status', { id: toggleToast });
       fetchServices();
@@ -282,7 +281,7 @@ const ServicesCMS = () => {
           : service
       ));
 
-      toast.success(`Successfully ${activate ? 'activated' : 'deactivated'} ${selectedServices.length} service(s)`, { id: toggleToast });
+      toast.dismiss(toggleToast);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to update services', { id: toggleToast });
     }
@@ -299,8 +298,6 @@ const ServicesCMS = () => {
         icon_type: 'custom',
         icon_url: iconPath
       }));
-
-      toast.success('Icon uploaded successfully!');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to upload icon');
     } finally {
