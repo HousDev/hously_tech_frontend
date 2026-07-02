@@ -48,7 +48,7 @@ export default function TermsOfService() {
             {/* Back Button on Right */}
             <button
               onClick={handleBack}
-              className="flex items-center gap-1.5 bg-blue-500 hover:bg-balck-600 text-white rounded-full px-4 py-1.5 transition-all text-xs font-bold active:scale-95 shadow-sm"
+              className="flex items-center gap-1.5 bg-blue-500 hover:bg-balck-600 text-white rounded-full px-4 py-1.5 transition-all text-xs font-bold active:scale-95 shadow-sm cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Home</span>

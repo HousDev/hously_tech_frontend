@@ -26,7 +26,22 @@ import {
   Users,
   FolderOpen,
   Calendar,
+  Globe,
+  ChevronDown,
+  Database,
+  Clock,
+  UserPlus,
+  Wallet,
+  Receipt,
+  Ticket,
+  BarChart3,
+  Shield,
+  Plug,
+  Building2,
+  BarChart2,
+  Search,
 } from 'lucide-react';
+import { FiExternalLink } from "react-icons/fi";
 
 
 import { apiClient } from '../../lib/api';
@@ -74,12 +89,64 @@ const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showMessagesSidebar, setShowMessagesSidebar] = useState(false);
+  const [isCmsOpen, setIsCmsOpen] = useState(() => {
+    const saved = localStorage.getItem('isCmsOpen');
+    return saved !== 'false';
+  });
+
+  const toggleCms = () => {
+    setIsCmsOpen(prev => {
+      const next = !prev;
+      localStorage.setItem('isCmsOpen', String(next));
+      return next;
+    });
+  };
+
+  const [isHrmsOpen, setIsHrmsOpen] = useState(() => {
+    const saved = localStorage.getItem('isHrmsOpen');
+    return saved === 'true';
+  });
+
+  const toggleHrms = () => {
+    setIsHrmsOpen(prev => {
+      const next = !prev;
+      localStorage.setItem('isHrmsOpen', String(next));
+      return next;
+    });
+  };
+
+  const [isCrmOpen, setIsCrmOpen] = useState(() => {
+    const saved = localStorage.getItem('isCrmOpen');
+    return saved === 'true';
+  });
+
+  const toggleCrm = () => {
+    setIsCrmOpen(prev => {
+      const next = !prev;
+      localStorage.setItem('isCrmOpen', String(next));
+      return next;
+    });
+  };
+
+  const [isSettingsOpen, setIsSettingsOpen] = useState(() => {
+    const saved = localStorage.getItem('isSettingsOpen');
+    return saved === 'true';
+  });
+
+  const toggleSettings = () => {
+    setIsSettingsOpen(prev => {
+      const next = !prev;
+      localStorage.setItem('isSettingsOpen', String(next));
+      return next;
+    });
+  };
 
   // ✅ useAuth context - no more getCurrentUser / isAdmin / logout imports
   const { user, isAdmin, logout } = useAuth();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const [activeMessageTab, setActiveMessageTab] = useState('chat');
   const [careerNotifications, setCareerNotifications] = useState<any[]>([]);
@@ -104,17 +171,22 @@ const AdminDashboard = () => {
 
   // Navigation items
   const navItems = [
-    { path: '/homes/admin', icon: LayoutDashboard, label: 'Dashboard', section: 'dashboard', color: 'text-blue-500' },
-    { path: '/homes/admin/home', icon: Home, label: 'Home Page', section: 'home', color: 'text-indigo-500' },
-    { path: '/homes/admin/services', icon: Briefcase, label: 'Services', section: 'services', color: 'text-teal-500' },
-    { path: '/homes/admin/blog', icon: FileText, label: 'Blogs', section: 'blog', color: 'text-orange-500' },
-    { path: '/homes/admin/testimonials', icon: ThumbsUp, label: 'Testimonials', section: 'testimonials', color: 'text-amber-500' },
-    { path: '/homes/admin/enquiries', icon: MessageSquare, label: 'Enquiries', section: 'enquiries', color: 'text-sky-500' },
-    { path: '/homes/admin/meetings', icon: Calendar, label: 'Meeting Schedules', section: 'meetings', color: 'text-purple-500' },
-    { path: '/homes/admin/case-studies', icon: FolderOpen, label: 'Case Studies', section: 'casestudies', color: 'text-cyan-500' },
-    { path: '/homes/admin/career', icon: Users, label: 'Careers', section: 'career', color: 'text-emerald-500' },
-    { path: '/homes/admin/team', icon: User2, label: 'Team Members', section: 'team', color: 'text-rose-500' },
-    { path: '/homes/admin/settings', icon: Settings, label: 'Settings', section: 'settings', color: 'text-slate-500' },
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', section: 'dashboard', color: 'text-blue-500' },
+    { path: '/dashboard/home', icon: Home, label: 'Home Page', section: 'home', color: 'text-indigo-500' },
+    { path: '/dashboard/services', icon: Briefcase, label: 'Service', section: 'services', color: 'text-teal-500' },
+    { path: '/dashboard/blog', icon: FileText, label: 'Blogs', section: 'blog', color: 'text-orange-500' },
+    { path: '/dashboard/testimonials', icon: ThumbsUp, label: 'Testimonials', section: 'testimonials', color: 'text-amber-500' },
+    { path: '/dashboard/enquiries', icon: MessageSquare, label: 'Enquiries', section: 'enquiries', color: 'text-sky-500' },
+    { path: '/dashboard/meetings', icon: Calendar, label: 'Meeting Schedule', section: 'meetings', color: 'text-purple-500' },
+    { path: '/dashboard/case-studies', icon: FolderOpen, label: 'Case Studies', section: 'casestudies', color: 'text-cyan-500' },
+    { path: '/dashboard/career', icon: Users, label: 'Careers', section: 'career', color: 'text-emerald-500' },
+    { path: '/dashboard/team', icon: User2, label: 'Team Members', section: 'team', color: 'text-rose-500' },
+    { path: '/dashboard/settings', icon: Settings, label: 'Settings', section: 'settings', color: 'text-slate-500' },
+    { path: '/dashboard/integrations', icon: Plug, label: 'Integrations', section: 'integrations', color: 'text-violet-500' },
+    { path: '/dashboard/master', icon: Database, label: 'Master', section: 'master', color: 'text-indigo-600' },
+    { path: '/dashboard/permissions', icon: Shield, label: 'Permission', section: 'permissions', color: 'text-rose-500' },
+    { path: '/dashboard/users', icon: User, label: 'User', section: 'users', color: 'text-cyan-500' },
+    { path: '/dashboard/reports', icon: BarChart2, label: 'Reports', section: 'reports', color: 'text-orange-500' },
   ];
 
   // Messages data
@@ -159,9 +231,9 @@ const AdminDashboard = () => {
 
   // User dropdown items — defined AFTER handleLogout
   const userMenuItems = [
-    { icon: User, label: 'Profile', action: () => navigate('/homes/admin/profile') },
+    { icon: User, label: 'Profile', action: () => navigate('/dashboard/profile') },
     { icon: Bell, label: 'Notifications', action: () => setShowNotifications(true) },
-    { icon: Settings, label: 'Settings', action: () => navigate('/homes/admin/settings') },
+    { icon: Settings, label: 'Settings', action: () => navigate('/dashboard/settings') },
     { icon: LogOut, label: 'Logout', action: handleLogout, isLogout: true },
   ];
 
@@ -271,7 +343,7 @@ const AdminDashboard = () => {
       const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
       const adjustedDate = new Date(date.getTime() + timezoneOffsetMs);
       const adjustedDiffMs = now.getTime() - adjustedDate.getTime();
-      
+
       if (adjustedDiffMs >= 0) {
         diffMs = adjustedDiffMs;
       } else {
@@ -416,11 +488,11 @@ const AdminDashboard = () => {
   ].length;
 
   // ─── Breadcrumbs ─────────────────────────────────────────────────────────────
-  const isDashboard = location.pathname === '/homes/admin';
+  const isDashboard = location.pathname === '/dashboard';
 
   const getBreadcrumbs = () => {
     const pathnames = location.pathname.split('/').filter(Boolean);
-    const crumbs = [{ label: 'Dashboard', url: '/homes/admin' }];
+    const crumbs = [{ label: 'Dashboard', url: '/dashboard' }];
 
     pathnames.forEach((_, index) => {
       const url = '/' + pathnames.slice(0, index + 1).join('/');
@@ -442,57 +514,57 @@ const AdminDashboard = () => {
   const getHeaderFromPath = (path: string) => {
     const cleanPath = path.replace(/\/$/, '');
     switch (cleanPath) {
-      case '/homes/admin':
+      case '/dashboard':
         return {
           title: 'Dashboard',
           subtitle: ''
         };
-      case '/homes/admin/enquiries':
+      case '/dashboard/enquiries':
         return {
           title: 'Enquiries',
           subtitle: 'Track & manage customer relationships'
         };
-      case '/homes/admin/home':
+      case '/dashboard/home':
         return {
           title: 'Home Page CMS',
           subtitle: 'Manage home banner, features, and landing sections'
         };
-      case '/homes/admin/services':
+      case '/dashboard/services':
         return {
           title: 'Services CMS',
           subtitle: 'Add, update, and manage services offered'
         };
-      case '/homes/admin/blog':
+      case '/dashboard/blog':
         return {
           title: 'Blogs CMS',
           subtitle: 'Write and manage website blog articles'
         };
-      case '/homes/admin/testimonials':
+      case '/dashboard/testimonials':
         return {
           title: 'Testimonials CMS',
           subtitle: 'Manage client reviews and testimonials'
         };
-      case '/homes/admin/meetings':
+      case '/dashboard/meetings':
         return {
           title: 'Meeting Schedules',
           subtitle: 'Track client discovery calls and scheduled meetings'
         };
-      case '/homes/admin/case-studies':
+      case '/dashboard/case-studies':
         return {
           title: 'Case Studies CMS',
           subtitle: 'Publish and manage client success stories'
         };
-      case '/homes/admin/career':
+      case '/dashboard/career':
         return {
           title: 'Careers CMS',
           subtitle: 'Manage job postings and applicant submissions'
         };
-      case '/homes/admin/team':
+      case '/dashboard/team':
         return {
           title: 'Team Members',
           subtitle: 'Manage profile records of active team members'
         };
-      case '/homes/admin/settings':
+      case '/dashboard/settings':
         return {
           title: 'Settings',
           subtitle: 'Configure application settings and administrative configurations'
@@ -512,10 +584,125 @@ const AdminDashboard = () => {
     // Reset overrides when changing pages
     setPageTitleOverride('');
     setPageSubtitleOverride('');
+
+    // Collapse dropdowns when navigating away from their sections
+    const path = location.pathname;
+    
+    // Check CMS
+    const isCmsPath = ['/dashboard/home', '/dashboard/services', '/dashboard/blog', '/dashboard/testimonials', '/dashboard/case-studies', '/dashboard/career', '/dashboard/team'].some(
+      p => path === p || path.startsWith(p + '/')
+    );
+    if (!isCmsPath) {
+      setIsCmsOpen(false);
+      localStorage.setItem('isCmsOpen', 'false');
+    }
+
+    // Check CRM
+    const isCrmPath = ['/dashboard/enquiries', '/dashboard/meetings'].some(
+      p => path === p || path.startsWith(p + '/')
+    );
+    if (!isCrmPath) {
+      setIsCrmOpen(false);
+      localStorage.setItem('isCrmOpen', 'false');
+    }
+
+    // Check HRMS
+    const isHrmsPath = path.startsWith('/dashboard/hrms');
+    if (!isHrmsPath) {
+      setIsHrmsOpen(false);
+      localStorage.setItem('isHrmsOpen', 'false');
+    }
+
+    // Check Settings
+    const isSettingsPath = ['/dashboard/settings', '/dashboard/integrations', '/dashboard/master', '/dashboard/permissions'].some(
+      p => path === p || path.startsWith(p + '/')
+    );
+    if (!isSettingsPath) {
+      setIsSettingsOpen(false);
+      localStorage.setItem('isSettingsOpen', 'false');
+    }
   }, [location.pathname]);
 
   const breadcrumbs = getBreadcrumbs();
   const pageTitle = breadcrumbs[breadcrumbs.length - 1]?.label || 'Dashboard';
+
+  const dashboardItem = navItems[0];
+  const enquiriesItem = navItems.find(item => item.section === 'enquiries')!;
+  const meetingsItem = navItems.find(item => item.section === 'meetings')!;
+  const masterItem = navItems.find(item => item.section === 'master')!;
+  const settingsItem = navItems.find(item => item.section === 'settings')!;
+  const integrationsItem = navItems.find(item => item.section === 'integrations')!;
+  const usersItem = navItems.find(item => item.section === 'users')!;
+  const permissionsItem = navItems.find(item => item.section === 'permissions')!;
+  const reportsItem = navItems.find(item => item.section === 'reports')!;
+
+  // Settings sub-items
+  const settingsSubItems = [settingsItem, integrationsItem, masterItem, permissionsItem];
+  const isSettingsActive = settingsSubItems.some(
+    item => item && (location.pathname === item.path || location.pathname.startsWith(item.path + '/'))
+  );
+
+  const cmsItems = navItems.filter(item =>
+    ['home', 'services', 'blog', 'testimonials', 'casestudies', 'career', 'team'].includes(item.section)
+  );
+  const isCmsActive = cmsItems.some(
+    item => location.pathname === item.path || location.pathname.startsWith(item.path + '/')
+  );
+
+  const hrmsItems = [
+    { path: '/dashboard/hrms/dashboard', icon: LayoutDashboard, label: 'Dashboard', color: 'text-blue-500' },
+    { path: '/dashboard/hrms/employees', icon: Users, label: 'Employees', color: 'text-indigo-500' },
+    { path: '/dashboard/hrms/recruitment', icon: UserPlus, label: 'Recruitment', color: 'text-teal-500' },
+    { path: '/dashboard/hrms/attendance', icon: Clock, label: 'Attendance', color: 'text-amber-500' },
+    { path: '/dashboard/hrms/leaves', icon: Calendar, label: 'Leaves', color: 'text-rose-500' },
+    { path: '/dashboard/hrms/payroll', icon: Wallet, label: 'Payroll', color: 'text-purple-500' },
+    { path: '/dashboard/hrms/expenses', icon: Receipt, label: 'Expenses', color: 'text-emerald-500' },
+    { path: '/dashboard/hrms/tickets', icon: Ticket, label: 'Tickets', color: 'text-sky-500' },
+    { path: '/dashboard/hrms/documents', icon: FolderOpen, label: 'Documents', color: 'text-cyan-500' },
+    { path: '/dashboard/hrms/reports', icon: BarChart3, label: 'HR Reports', color: 'text-orange-500' },
+    { path: '/dashboard/hrms/settings', icon: Settings, label: 'HR Settings', color: 'text-slate-500' },
+  ];
+  const isHrmsActive = hrmsItems.some(
+    item => location.pathname === item.path || location.pathname.startsWith(item.path + '/')
+  );
+
+  const allSearchableItems = [
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', color: 'text-blue-500' },
+    { path: '/dashboard/home', icon: Home, label: 'Home Page', color: 'text-indigo-500' },
+    { path: '/dashboard/services', icon: Briefcase, label: 'Service', color: 'text-teal-500' },
+    { path: '/dashboard/blog', icon: FileText, label: 'Blogs', color: 'text-orange-500' },
+    { path: '/dashboard/testimonials', icon: ThumbsUp, label: 'Testimonials', color: 'text-amber-500' },
+    { path: '/dashboard/enquiries', icon: MessageSquare, label: 'Enquiries', color: 'text-sky-500' },
+    { path: '/dashboard/meetings', icon: Calendar, label: 'Meeting Schedule', color: 'text-purple-500' },
+    { path: '/dashboard/case-studies', icon: FolderOpen, label: 'Case Studies', color: 'text-cyan-500' },
+    { path: '/dashboard/career', icon: Users, label: 'Careers', color: 'text-emerald-500' },
+    { path: '/dashboard/team', icon: User2, label: 'Team Members', color: 'text-rose-500' },
+    { path: '/dashboard/settings', icon: Settings, label: 'General Setting', color: 'text-slate-500' },
+    { path: '/dashboard/integrations', icon: Plug, label: 'Integrations', color: 'text-violet-500' },
+    { path: '/dashboard/master', icon: Database, label: 'Master', color: 'text-indigo-600' },
+    { path: '/dashboard/permissions', icon: Shield, label: 'Permission', color: 'text-rose-500' },
+    { path: '/dashboard/users', icon: User, label: 'User', color: 'text-cyan-500' },
+    { path: '/dashboard/reports', icon: BarChart2, label: 'Reports', color: 'text-orange-500' },
+    
+    // HRMS
+    { path: '/dashboard/hrms/dashboard', icon: LayoutDashboard, label: 'HR Dashboard', color: 'text-blue-500' },
+    { path: '/dashboard/hrms/employees', icon: Users, label: 'Employees (HRMS)', color: 'text-indigo-500' },
+    { path: '/dashboard/hrms/recruitment', icon: UserPlus, label: 'Recruitment (HRMS)', color: 'text-teal-500' },
+    { path: '/dashboard/hrms/attendance', icon: Clock, label: 'Attendance (HRMS)', color: 'text-amber-500' },
+    { path: '/dashboard/hrms/leaves', icon: Calendar, label: 'Leaves (HRMS)', color: 'text-rose-500' },
+    { path: '/dashboard/hrms/payroll', icon: Wallet, label: 'Payroll (HRMS)', color: 'text-purple-500' },
+    { path: '/dashboard/hrms/expenses', icon: Receipt, label: 'Expenses (HRMS)', color: 'text-emerald-500' },
+    { path: '/dashboard/hrms/tickets', icon: Ticket, label: 'Tickets (HRMS)', color: 'text-sky-500' },
+    { path: '/dashboard/hrms/documents', icon: FolderOpen, label: 'Documents (HRMS)', color: 'text-cyan-500' },
+    { path: '/dashboard/hrms/reports', icon: BarChart3, label: 'HR Reports (HRMS)', color: 'text-orange-500' },
+    { path: '/dashboard/hrms/settings', icon: Settings, label: 'HR Settings (HRMS)', color: 'text-slate-500' },
+  ];
+
+  const filteredSearchItems = searchQuery
+    ? allSearchableItems.filter(item =>
+        item.label.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -565,62 +752,459 @@ const AdminDashboard = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-3">
+          {sidebarOpen && (
+            <div className="relative mb-3">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Search className="w-4 h-4 text-slate-400" />
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search menu..."
+                className="w-full pl-9 pr-8 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] transition-all text-slate-800 placeholder-slate-400"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-450 hover:text-slate-700"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Collapsed */}
           {!sidebarOpen && (
-            <div className="space-y-1">
-              {navItems.slice(0, 8).map((item) => {
-                const isActive = item.path === '/homes/admin'
-                  ? location.pathname === '/homes/admin'
-                  : location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => { setSidebarOpen(true); setMobileSidebarOpen(false); }}
-                    className={`flex items-center justify-center p-3 rounded-lg transition-all duration-200
-                      ${isActive
-                        ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10'
-                        : 'text-gray-600 hover:bg-slate-100/80 hover:text-slate-800'}`}
-                  >
-                    <item.icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'text-white scale-110' : item.color}`} />
-                  </NavLink>
-                );
-              })}
+            <div className="space-y-2">
+              {/* Dashboard */}
+              <NavLink
+                to={dashboardItem.path}
+                onClick={() => { setSidebarOpen(true); setMobileSidebarOpen(false); }}
+                className={`flex items-center justify-center p-3 rounded-lg transition-all duration-200
+                  ${location.pathname === '/dashboard'
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10'
+                    : 'text-gray-600 hover:bg-slate-100/80 hover:text-slate-800'}`}
+                title="Dashboard"
+              >
+                <dashboardItem.icon className={`w-5 h-5 ${location.pathname === '/dashboard' ? 'text-white' : dashboardItem.color}`} />
+              </NavLink>
+
+              <div className="h-px bg-slate-200 my-2 mx-2" />
+
+              {/* CMS Dropdown trigger */}
+              <button
+                onClick={() => { setSidebarOpen(true); setIsCmsOpen(true); }}
+                className={`w-full flex items-center justify-center p-3 rounded-lg transition-all duration-200
+                  ${isCmsActive
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10'
+                    : 'text-gray-600 hover:bg-slate-100/80 hover:text-slate-800'}`}
+                title="CMS"
+              >
+                <Globe className={`w-5 h-5 ${isCmsActive ? 'text-white' : 'text-blue-500'}`} />
+              </button>
+
+              <div className="h-px bg-slate-200 my-2 mx-2" />
+
+              {/* Enquiries */}
+              <NavLink
+                to={enquiriesItem.path}
+                onClick={() => { setSidebarOpen(true); setMobileSidebarOpen(false); }}
+                className={({ isActive }) =>
+                  `flex items-center justify-center p-3 rounded-lg transition-all duration-200
+                  ${isActive
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10'
+                    : 'text-gray-600 hover:bg-slate-100/80 hover:text-slate-800'}`
+                }
+                title="Enquiries"
+              >
+                {({ isActive }) => (
+                  <enquiriesItem.icon className={`w-5 h-5 ${isActive ? 'text-white' : enquiriesItem.color}`} />
+                )}
+              </NavLink>
+
+              {/* Meeting Schedule */}
+              <NavLink
+                to={meetingsItem.path}
+                onClick={() => { setSidebarOpen(true); setMobileSidebarOpen(false); }}
+                className={({ isActive }) =>
+                  `flex items-center justify-center p-3 rounded-lg transition-all duration-200
+                  ${isActive
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10'
+                    : 'text-gray-600 hover:bg-slate-100/80 hover:text-slate-800'}`
+                }
+                title="Meeting Schedule"
+              >
+                {({ isActive }) => (
+                  <meetingsItem.icon className={`w-5 h-5 ${isActive ? 'text-white' : meetingsItem.color}`} />
+                )}
+              </NavLink>
+
+              {/* HRMS (Mini Sidebar Toggle) */}
+              <button
+                onClick={() => { setSidebarOpen(true); setIsHrmsOpen(true); }}
+                className={`flex items-center justify-center p-3 rounded-lg transition-all duration-200
+                  ${isHrmsActive
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10'
+                    : 'text-gray-600 hover:bg-slate-100/80 hover:text-slate-800'}`}
+                title="HRMS"
+              >
+                <User className={`w-5 h-5 ${isHrmsActive ? 'text-white' : 'text-blue-500'}`} />
+              </button>
+
+              {/* Settings (Mini Sidebar Toggle) */}
+              <button
+                onClick={() => { setSidebarOpen(true); setIsSettingsOpen(true); }}
+                className={`flex items-center justify-center p-3 rounded-lg transition-all duration-200
+                  ${isSettingsActive
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10'
+                    : 'text-gray-600 hover:bg-slate-100/80 hover:text-slate-800'}`}
+                title="Settings"
+              >
+                <Settings className={`w-5 h-5 ${isSettingsActive ? 'text-white' : 'text-slate-500'}`} />
+              </button>
+
+              {/* User (Mini) */}
+              <NavLink
+                to={usersItem.path}
+                onClick={() => { setSidebarOpen(true); setMobileSidebarOpen(false); }}
+                className={({ isActive }) =>
+                  `flex items-center justify-center p-3 rounded-lg transition-all duration-200
+                  ${isActive
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10'
+                    : 'text-gray-600 hover:bg-slate-100/80 hover:text-slate-800'}`
+                }
+                title="User"
+              >
+                {({ isActive }) => (
+                  <usersItem.icon className={`w-5 h-5 ${isActive ? 'text-white' : usersItem.color}`} />
+                )}
+              </NavLink>
+
+              {/* Report (Mini) */}
+              <NavLink
+                to={reportsItem.path}
+                onClick={() => { setSidebarOpen(true); setMobileSidebarOpen(false); }}
+                className={({ isActive }) =>
+                  `flex items-center justify-center p-3 rounded-lg transition-all duration-200
+                  ${isActive
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10'
+                    : 'text-gray-600 hover:bg-slate-100/80 hover:text-slate-800'}`
+                }
+                title="Reports"
+              >
+                {({ isActive }) => (
+                  <reportsItem.icon className={`w-5 h-5 ${isActive ? 'text-white' : reportsItem.color}`} />
+                )}
+              </NavLink>
             </div>
           )}
 
           {/* Expanded */}
           {sidebarOpen && (
-            <div className="mb-6">
-              <ul className="space-y-1">
-                {navItems.map((item) => {
-                  const isActive = item.path === '/homes/admin'
-                    ? location.pathname === '/homes/admin'
-                    : location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-                  return (
-                    <li key={item.path}>
+            searchQuery ? (
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-slate-400 px-3 uppercase tracking-wider mb-2">
+                  Search Results
+                </div>
+                {filteredSearchItems.length > 0 ? (
+                  filteredSearchItems.map((item) => {
+                    const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                    return (
                       <NavLink
+                        key={item.path}
                         to={item.path}
-                        onClick={() => setMobileSidebarOpen(false)}
+                        onClick={() => {
+                          setSearchQuery('');
+                          setMobileSidebarOpen(false);
+                        }}
                         className={`flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
                           ${isActive
                             ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
-                            : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`}
+                            : 'text-gray-700 hover:text-slate-900 hover:bg-slate-100/80'}`}
                       >
-                        <item.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 ${isActive ? 'text-white scale-110' : item.color}`} />
+                        <item.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white scale-110' : item.color}`} />
                         <span className="text-sm font-semibold tracking-wide">{item.label}</span>
                       </NavLink>
-                    </li>
-                  );
-                })}
-              </ul>
+                    );
+                  })
+                ) : (
+                  <div className="text-xs text-slate-400 px-3 py-2 italic">
+                    No matching items found
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Dashboard */}
+              <NavLink
+                to={dashboardItem.path}
+                onClick={() => setMobileSidebarOpen(false)}
+                className={`flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
+                  ${location.pathname === '/dashboard'
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                    : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`}
+              >
+                <dashboardItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${location.pathname === '/dashboard' ? 'text-white' : dashboardItem.color}`} />
+                <span className="text-sm font-semibold tracking-wide">Dashboard</span>
+              </NavLink>
+
+              {/* Website CMS Dropdown Card */}
+              <div className="space-y-1">
+                <button
+                  onClick={toggleCms}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group
+                    ${isCmsActive
+                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold border-transparent'
+                      : 'bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100'}`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Globe className={`w-4 h-4 group-hover:rotate-12 transition-transform duration-300 ${isCmsActive ? 'text-white' : 'text-[#0D47A1]'}`} />
+                    <span className={`text-xs sm:text-sm font-semibold tracking-wide ${isCmsActive ? 'text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>CMS</span>
+                  </div>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isCmsActive ? 'text-white/80' : 'text-slate-400'} ${isCmsOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Sub Menu with connecting vertical line */}
+                {isCmsOpen && (
+                  <div className="pl-4 ml-3.5 border-l border-slate-200/80 flex flex-col gap-0.5 mt-1">
+                    {cmsItems.map((item) => {
+                      const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                      return (
+                        <NavLink
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setMobileSidebarOpen(false)}
+                          className={`flex items-center rounded-lg transition-all duration-200 group px-3 py-2
+                            ${isActive
+                              ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                              : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                        >
+                          <item.icon className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : item.color}`} />
+                          <span className="text-xs font-semibold tracking-wide">{item.label}</span>
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Enquiries */}
+              <NavLink
+                to={enquiriesItem.path}
+                onClick={() => setMobileSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
+                  ${isActive
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                    : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <enquiriesItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : enquiriesItem.color}`} />
+                    <span className="text-sm font-semibold tracking-wide">Enquiries</span>
+                  </>
+                )}
+              </NavLink>
+
+              {/* Meeting Schedule */}
+              <NavLink
+                to={meetingsItem.path}
+                onClick={() => setMobileSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
+                  ${isActive
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                    : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <meetingsItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : meetingsItem.color}`} />
+                    <span className="text-sm font-semibold tracking-wide">Meeting Schedule</span>
+                  </>
+                )}
+              </NavLink>
+
+              {/* HRMS Dropdown Card */}
+              <div className="space-y-1">
+                <button
+                  onClick={toggleHrms}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group
+                    ${isHrmsActive
+                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold border-transparent'
+                      : 'bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100'}`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <User className={`w-4 h-4 group-hover:rotate-12 transition-transform duration-300 ${isHrmsActive ? 'text-white' : 'text-[#0D47A1]'}`} />
+                    <span className={`text-xs sm:text-sm font-semibold tracking-wide ${isHrmsActive ? 'text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>HRMS</span>
+                  </div>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isHrmsActive ? 'text-white/80' : 'text-slate-400'} ${isHrmsOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Sub Menu with connecting vertical line */}
+                {isHrmsOpen && (
+                  <div className="pl-4 ml-3.5 border-l border-slate-200/80 flex flex-col gap-0.5 mt-1">
+                    {hrmsItems.map((item) => {
+                      const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                      return (
+                        <NavLink
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setMobileSidebarOpen(false)}
+                          className={`flex items-center rounded-lg transition-all duration-200 group px-3 py-2
+                            ${isActive
+                              ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                              : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                        >
+                          <item.icon className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : item.color}`} />
+                          <span className="text-xs font-semibold tracking-wide">{item.label}</span>
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Settings Dropdown Card */}
+              <div className="space-y-1">
+                <button
+                  onClick={toggleSettings}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group
+                    ${isSettingsActive
+                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold border-transparent'
+                      : 'bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100'}`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Settings className={`w-4 h-4 group-hover:rotate-12 transition-transform duration-300 ${isSettingsActive ? 'text-white' : 'text-slate-500'}`} />
+                    <span className={`text-xs sm:text-sm font-semibold tracking-wide ${isSettingsActive ? 'text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>Settings</span>
+                  </div>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isSettingsActive ? 'text-white/80' : 'text-slate-400'} ${isSettingsOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {isSettingsOpen && (
+                  <div className="pl-4 ml-3.5 border-l border-slate-200/80 flex flex-col gap-0.5 mt-1">
+                    {/* General Setting */}
+                    <NavLink
+                      to={settingsItem.path}
+                      onClick={() => setMobileSidebarOpen(false)}
+                      className={({ isActive }) =>
+                        `flex items-center rounded-lg transition-all duration-200 group px-3 py-2
+                        ${isActive
+                          ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                          : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <Settings className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : 'text-slate-500'}`} />
+                          <span className="text-xs font-semibold tracking-wide">General Setting</span>
+                        </>
+                      )}
+                    </NavLink>
+
+                    {/* Integrations */}
+                    <NavLink
+                      to={integrationsItem.path}
+                      onClick={() => setMobileSidebarOpen(false)}
+                      className={({ isActive }) =>
+                        `flex items-center rounded-lg transition-all duration-200 group px-3 py-2
+                        ${isActive
+                          ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                          : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <Plug className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : 'text-violet-500'}`} />
+                          <span className="text-xs font-semibold tracking-wide">Integrations</span>
+                        </>
+                      )}
+                    </NavLink>
+
+                    {/* Master */}
+                    <NavLink
+                      to={masterItem.path}
+                      onClick={() => setMobileSidebarOpen(false)}
+                      className={({ isActive }) =>
+                        `flex items-center rounded-lg transition-all duration-200 group px-3 py-2
+                        ${isActive
+                          ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                          : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <Database className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : 'text-indigo-600'}`} />
+                          <span className="text-xs font-semibold tracking-wide">Master</span>
+                        </>
+                      )}
+                    </NavLink>
+
+                    {/* Permission */}
+                    <NavLink
+                      to={permissionsItem.path}
+                      onClick={() => setMobileSidebarOpen(false)}
+                      className={({ isActive }) =>
+                        `flex items-center rounded-lg transition-all duration-200 group px-3 py-2
+                        ${isActive
+                          ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                          : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <Shield className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : 'text-rose-500'}`} />
+                          <span className="text-xs font-semibold tracking-wide">Permission</span>
+                        </>
+                      )}
+                    </NavLink>
+                  </div>
+                )}
+              </div>
+
+              {/* User */}
+              <NavLink
+                to={usersItem.path}
+                onClick={() => setMobileSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
+                  ${isActive
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                    : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <usersItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : usersItem.color}`} />
+                    <span className="text-sm font-semibold tracking-wide">User</span>
+                  </>
+                )}
+              </NavLink>
+
+              {/* Reports */}
+              <NavLink
+                to={reportsItem.path}
+                onClick={() => setMobileSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
+                  ${isActive
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                    : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <reportsItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : reportsItem.color}`} />
+                    <span className="text-sm font-semibold tracking-wide">Reports</span>
+                  </>
+                )}
+              </NavLink>
             </div>
-          )}
+          ))}
         </nav>
 
         {/* Visit Website & Logout Buttons - Bottom of Sidebar */}
-        <div className={`px-3 pb-4 pt-2 border-t border-slate-100 flex flex-col gap-1`}>
+        <div className="px-3 pb-4 pt-2 border-t border-slate-100 flex flex-col gap-1">
           {/* Visit Website */}
           <button
             onClick={() => {
@@ -630,7 +1214,7 @@ const AdminDashboard = () => {
             className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-slate-100/80 hover:text-slate-900 transition-all duration-200 group cursor-pointer ${!sidebarOpen ? 'justify-center' : ''}`}
             title="Visit Website"
           >
-            <Home className="w-4 h-4 flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
+            <FiExternalLink className="w-4 h-4 flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
             {sidebarOpen && <span className="text-sm font-semibold tracking-wide">Visit Website</span>}
           </button>
 
@@ -640,7 +1224,7 @@ const AdminDashboard = () => {
               try {
                 await logout();
               } catch (err) {
-                // fallback: already handled inside logout()
+                // fallback
               }
             }}
             className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 group cursor-pointer ${!sidebarOpen ? 'justify-center' : ''}`}
@@ -765,13 +1349,13 @@ const AdminDashboard = () => {
                                     onClick={() => {
                                       if (isCareer) {
                                         markCareerNotificationAsRead(notification.id);
-                                        navigate('/homes/admin/career');
+                                        navigate('/dashboard/career');
                                       } else if (isMeeting) {
                                         markNotificationAsRead(notification.id);
-                                        navigate('/homes/admin/meetings');
+                                        navigate('/dashboard/meetings');
                                       } else {
                                         markNotificationAsRead(notification.id);
-                                        navigate('/homes/admin/enquiries');
+                                        navigate('/dashboard/enquiries');
                                       }
                                     }}
                                   >
@@ -815,7 +1399,7 @@ const AdminDashboard = () => {
                       <div className="p-3 border-t border-gray-200 bg-gray-50">
                         <div className="grid grid-cols-2 gap-2">
                           <button
-                            onClick={() => navigate('/homes/admin/enquiries')}
+                            onClick={() => navigate('/dashboard/enquiries')}
                             className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                           >
                             Go to Enquiries
@@ -1063,4 +1647,5 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
 

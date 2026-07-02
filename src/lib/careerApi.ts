@@ -304,8 +304,11 @@ getTimeline: (appId: number) =>
 updateInterviewStatus: (followupId: number, status: string) => 
   api.put(`/career/followups/${followupId}/status`, { status }),
 
-addInteraction: (appId: number, type: string, subject: string, notes: string) =>
-  api.post(`/career/applications/${appId}/interaction`, { type, subject, notes }),
+  addInteraction: (appId: number, type: string, subject: string, notes: string) =>
+    api.post(`/career/applications/${appId}/interaction`, { type, subject, notes }),
+  
+  importApplications: (applications: any[]): Promise<{ importedCount: number }> =>
+    unwrap(api.post<ApiResponse<{ importedCount: number }>>('/career/applications/import', { applications })),
 };
 
 
