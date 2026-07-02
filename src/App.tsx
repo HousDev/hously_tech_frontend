@@ -46,7 +46,7 @@
 
 // const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
 //   const { isAdmin, logout } = useAuth();
-  
+
 //   if (!isAdmin()) {
 //     logout();
 //     return (
@@ -71,7 +71,7 @@
 //   const [showWelcome, setShowWelcome] = useState(false);
 //   const [showAuthModal, setShowAuthModal] = useState(false);
 //   const [isChecking, setIsChecking] = useState(true);
-  
+
 //   // ✅ loading bhi lo taaki user load hone ka wait kar sake
 //   const { user, isAuthenticated, isAdmin, loading } = useAuth();
 //   const location = useLocation();
@@ -186,7 +186,7 @@
 //   return (
 //     <div className="relative min-h-screen flex flex-col">
 //       <VisitorTracker />
-      
+
 //       {!hideLayout && !isAdminRoute && (
 //        <Navbar 
 //   user={
@@ -318,7 +318,7 @@
 
 // const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
 //   const { isAdmin, logout } = useAuth();
-  
+
 //   if (!isAdmin()) {
 //     logout();
 //     return (
@@ -342,7 +342,7 @@
 // function AppContent() {
 //   const [showAuthModal, setShowAuthModal] = useState(false);
 //   const [isChecking, setIsChecking] = useState(true);
-  
+
 //   const { user, isAuthenticated, isAdmin, loading } = useAuth();
 //   const location = useLocation();
 //   const navigate = useNavigate();
@@ -364,7 +364,7 @@
 //   const handleAuthSuccess = () => {
 //     if (isAdmin()) {
 //       setTimeout(() => {
-//         window.location.href = '/homes/admin';
+//         window.location.href = '/dashboard';
 //       }, 1000);
 //     } else if (isAuthenticated) {
 //       toast.success('Welcome back!', {
@@ -396,19 +396,19 @@
 //     "/privacy-policy",
 //     "/terms-of-service",
 //     "/cookie-policy",
-//     "/homes/admin",
+//     "/dashboard",
 //   ];
 
 //   const hideLayout = hideLayoutRoutes.some(route => 
 //     location.pathname === route || location.pathname.startsWith(route)
 //   );
 
-//   const isAdminRoute = location.pathname.startsWith('/homes/admin');
+//   const isAdminRoute = location.pathname.startsWith('/dashboard');
 
 //   return (
 //     <div className="relative min-h-screen flex flex-col">
 //       <VisitorTracker />
-      
+
 //       {!hideLayout && !isAdminRoute && (
 //         <Navbar 
 //           user={
@@ -445,9 +445,9 @@
 //           <Route path="/terms-of-service" element={<TermsOfService />} />
 //           <Route path="/cookie-policy" element={<CookiePolicy />} />
 
-//           {/* ✅ Admin routes now under /homes/admin */}
+//           {/* ✅ Admin routes now under /dashboard */}
 //           <Route 
-//             path="/homes/admin" 
+//             path="/dashboard" 
 //             element={
 //               <ProtectedAdminRoute>
 //                 <AdminDashboard />
@@ -506,21 +506,21 @@ import BackToTop from "./components/BackToTop";
 import WelcomePage from "./components/welcome_page";
 
 // Main Pages
-import HomePage from "./pages/HomePage";
-import AboutPage from "./pages/About/page";
-import ServicesPage from "./pages/services/page";
-import ContactSection from "./pages/Contact/page";
-import TestimonialPage from "./pages/Testinomial/page";
+import HomePage from "./pages/Public/HomePage";
+import AboutPage from "./pages/Public/About/page";
+import ServicesPage from "./pages/Public/services/page";
+import ContactSection from "./pages/Public/Contact/page";
+import TestimonialPage from "./pages/Public/Testinomial/page";
 import { CaseStudiesPage, CaseStudyDetailsPage } from "./components/CaseStudy";
-import ScheduleMeetingPage from "./pages/ScheduleMeeting/page";
-import HouslyCareerPage from "./pages/Career/page";
-import CareersPage from "./pages/Career/job/page";
-import JobDetailsPage from "./pages/Career/job/[id]/page";
-import JobApplicationPage from "./pages/Career/job/[id]/apply/page";
+import ScheduleMeetingPage from "./pages/Public/ScheduleMeeting/page";
+import HouslyCareerPage from "./pages/Public/Career/page";
+import CareersPage from "./pages/Public/Career/job/page";
+import JobDetailsPage from "./pages/Public/Career/job/[id]/page";
+import JobApplicationPage from "./pages/Public/Career/job/[id]/apply/page";
 
 // Blog Pages
-import BlogPage from "./pages/Blog/page";
-import BlogDetailPage from "./pages/Blog/[id]/page";
+import BlogPage from "./pages/Public/Blog/page";
+import BlogDetailPage from "./pages/Public/Blog/[id]/page";
 
 // Policy Pages
 import PrivacyPolicy from "./components/PrivacyPolicy";
@@ -529,18 +529,34 @@ import CookiePolicy from "./components/CookiePolicy";
 
 // Admin Pages
 import AdminDashboard from "./pages/Admin/Dashboard";
-import HomeCMS from "./pages/Admin/HomeCMS";
-import ServicesCMS from "./pages/Admin/ServicesCMS";
-import BlogCMS from "./pages/Admin/BlogCMS";
-import CareerCMS from "./pages/Admin/CareerCMS";
-import SettingsCMS from "./pages/Admin/SettingsCMS";
+import HomeCMS from "./pages/Admin/CMS/HomeCMS";
+import ServicesCMS from "./pages/Admin/CMS/ServicesCMS";
+import BlogCMS from "./pages/Admin/CMS/BlogCMS";
+import CareerCMS from "./pages/Admin/CMS/CareerCMS";
+import SettingsCMS from "./pages/Admin/CMS/SettingsCMS";
 import Profile from "./pages/Admin/ProfilePage";
-import TestimonialsCMS from "./pages/Admin/TestimonialCMS";
-import EnquiriesCMS from "./pages/Admin/EnquiriesCMS";
-import TeamCMS from "./pages/Admin/TeamCMS";
+import TestimonialsCMS from "./pages/Admin/CMS/TestimonialCMS";
+import EnquiriesCMS from "./pages/CRM/Enquiries";
+import TeamCMS from "./pages/Admin/CMS/TeamCMS";
 import DashboardAnalytics from "./pages/Admin/DashboardAnalytics";
-import CaseStudyCMS from "./pages/Admin/CaseStudyCMS";
-import MeetingsCMS from "./pages/Admin/MeetingsCMS";
+import CaseStudyCMS from "./pages/Admin/CMS/CaseStudyCMS";
+import MeetingsCMS from "./pages/CRM/Meetings";
+import MasterDataPage from "./pages/master/MasterPage";
+import HRMSDashboard from "./pages/Admin/HRMS/Dashboard";
+import HRMSEmployees from "./pages/Admin/HRMS/Employees";
+import HRMSRecruitment from "./pages/Admin/HRMS/Recruitment";
+import HRMSAttendance from "./pages/Admin/HRMS/Attendance";
+import HRMSLeaves from "./pages/Admin/HRMS/Leaves";
+import HRMSPayroll from "./pages/Admin/HRMS/Payroll";
+import HRMSExpenses from "./pages/Admin/HRMS/Expenses";
+import HRMSTickets from "./pages/Admin/HRMS/Tickets";
+import HRMSDocuments from "./pages/Admin/HRMS/Documents";
+import HRMSReports from "./pages/Admin/HRMS/Reports";
+import HRMSSettings from "./pages/Admin/HRMS/Settings";
+import PermissionsPage from "./pages/Admin/Permissions";
+import UsersPage from "./pages/Admin/UsersPage";
+import IntegrationsPage from "./pages/Admin/IntegrationsPage";
+import ReportsPage from "./pages/Admin/ReportsPage";
 
 
 import VisitorTracker from "./components/VisitorTracker";
@@ -552,7 +568,7 @@ import HouslyChatBoot from "./components/HouslyChatbotWidget";
 
 const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAdmin, logout } = useAuth();
-  
+
   if (!isAdmin()) {
     logout();
     return (
@@ -576,7 +592,7 @@ const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
 function AppContent() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
-  
+
   const { user, isAuthenticated, isAdmin, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -598,7 +614,7 @@ function AppContent() {
   const handleAuthSuccess = () => {
     if (isAdmin()) {
       setTimeout(() => {
-        window.location.href = '/homes/admin';
+        window.location.href = '/dashboard';
       }, 1000);
     } else if (isAuthenticated) {
       toast.success('Welcome back!', {
@@ -632,27 +648,27 @@ function AppContent() {
     "/privacy-policy",
     "/terms-of-service",
     "/cookie-policy",
-    "/homes/admin",
+    "/dashboard",
   ];
 
-  const hideLayout = hideLayoutRoutes.some(route => 
+  const hideLayout = hideLayoutRoutes.some(route =>
     location.pathname === route || location.pathname.startsWith(route)
   );
 
-  const isAdminRoute = location.pathname.startsWith('/homes/admin');
+  const isAdminRoute = location.pathname.startsWith('/dashboard');
 
   return (
     <div className="relative min-h-screen flex flex-col">
       <VisitorTracker />
-      
+
       {!hideLayout && !isAdminRoute && (
-        <Navbar 
+        <Navbar
           user={
             user
               ? {
-                  ...user,
-                  role: user.role === "admin" ? "admin" : "user"
-                }
+                ...user,
+                role: user.role === "admin" ? "admin" : "user"
+              }
               : null
           }
           onLoginClick={() => setShowAuthModal(true)}
@@ -670,7 +686,7 @@ function AppContent() {
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/contact" element={<ContactSection />} />
           <Route path="/testimonial" element={<TestimonialPage />} />
-<Route path="/casestudy" element={<CaseStudiesPage />} />
+          <Route path="/casestudy" element={<CaseStudiesPage />} />
           <Route path="/caseStudyDetails" element={<CaseStudyDetailsPage />} />
           <Route path="/schedule-meeting" element={<ScheduleMeetingPage />} />
           <Route path="/homes/schedule-meeting" element={<ScheduleMeetingPage />} />
@@ -687,9 +703,9 @@ function AppContent() {
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/cookie-policy" element={<CookiePolicy />} />
 
-          {/* ✅ Admin routes under /homes/admin */}
-          <Route 
-            path="/homes/admin" 
+          {/* ✅ Admin routes under /dashboard */}
+          <Route
+            path="/dashboard"
             element={
               <ProtectedAdminRoute>
                 <AdminDashboard />
@@ -703,11 +719,29 @@ function AppContent() {
             <Route path="testimonials" element={<TestimonialsCMS />} />
             <Route path="enquiries" element={<EnquiriesCMS />} />
             <Route path="meetings" element={<MeetingsCMS />} />
+            <Route path="master" element={<MasterDataPage />} />
             <Route path="career" element={<CareerCMS />} />
             <Route path="settings" element={<SettingsCMS />} />
             <Route path="profile" element={<Profile />} />
             <Route path="team" element={<TeamCMS />} />
             <Route path="case-studies" element={<CaseStudyCMS />} />
+
+            {/* HRMS Routes */}
+            <Route path="hrms/dashboard" element={<HRMSDashboard />} />
+            <Route path="hrms/employees" element={<HRMSEmployees />} />
+            <Route path="hrms/recruitment" element={<HRMSRecruitment />} />
+            <Route path="hrms/attendance" element={<HRMSAttendance />} />
+            <Route path="hrms/leaves" element={<HRMSLeaves />} />
+            <Route path="hrms/payroll" element={<HRMSPayroll />} />
+            <Route path="hrms/expenses" element={<HRMSExpenses />} />
+            <Route path="hrms/tickets" element={<HRMSTickets />} />
+            <Route path="hrms/documents" element={<HRMSDocuments />} />
+            <Route path="hrms/reports" element={<HRMSReports />} />
+            <Route path="hrms/settings" element={<HRMSSettings />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="permissions" element={<PermissionsPage />} />
+            <Route path="integrations" element={<IntegrationsPage />} />
+            <Route path="reports" element={<ReportsPage />} />
           </Route>
         </Routes>
       </main>
@@ -717,7 +751,7 @@ function AppContent() {
       {!hideLayout && !isAdminRoute && <WhatsAppFAB />}
       {!hideLayout && !isAdminRoute && <HouslyChatBoot />}
 
-      <AuthModal 
+      <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         onSuccess={handleAuthSuccess}

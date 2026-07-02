@@ -44,7 +44,7 @@ api.interceptors.response.use(
       localStorage.removeItem("user");
 
       // Redirect if not admin route
-      if (!window.location.pathname.includes("/homes/admin")) {
+      if (!window.location.pathname.includes("/dashboard")) {
         window.location.href = "/homes";
       }
     }

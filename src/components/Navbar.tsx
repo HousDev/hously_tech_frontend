@@ -111,7 +111,7 @@
 
 //   const handleAdminClick = () => {
 //     if (isUserAdmin) {
-//       navigate("/homes/admin");
+//       navigate("/dashboard");
 //     } else {
 //       onLoginClick();
 //     }
@@ -270,7 +270,7 @@
 //                 {isUserAdmin ? (
 //                   <>
 //                     <Link
-//                       to="/homes/admin"
+//                       to="/dashboard"
 //                       onClick={() => setIsSidebarOpen(false)}
 //                       className="flex items-center space-x-3 px-4 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
 //                     >
@@ -457,7 +457,7 @@
 //                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-[50] border border-gray-100">
 //                         <button
 //                           onClick={() => {
-//                             navigate("/homes/admin");
+//                             navigate("/dashboard");
 //                             setIsProfileDropdownOpen(false);
 //                           }}
 //                           className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition flex items-center space-x-2"
@@ -595,7 +595,7 @@
 //                       <button
 //                         onClick={() => {
 //                           setIsOpen(false);
-//                           navigate("/homes/admin");
+//                           navigate("/dashboard");
 //                         }}
 //                         className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all transform hover:scale-105 ${
 //                           isScrolled || !isHomePage || isOpen
@@ -790,7 +790,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
 
   const handleAdminClick = () => {
     if (isUserAdmin) {
-      navigate("/homes/admin");
+      navigate("/dashboard");
     } else {
       onLoginClick();
     }
@@ -949,7 +949,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
                 {isUserAdmin ? (
                   <>
                     <Link
-                      to="/homes/admin"
+                      to="/dashboard"
                       onClick={() => setIsSidebarOpen(false)}
                       className="flex items-center space-x-3 px-4 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
                     >
@@ -1128,7 +1128,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-[50] border border-gray-100">
                         <button
                           onClick={() => {
-                            navigate("/homes/admin");
+                            navigate("/dashboard");
                             setIsProfileDropdownOpen(false);
                           }}
                           className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition flex items-center space-x-2"
@@ -1238,7 +1238,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
                       <button
                         onClick={() => {
                           setIsOpen(false);
-                          navigate("/homes/admin");
+                          navigate("/dashboard");
                         }}
                         className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all transform hover:scale-105 bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg"
                       >
