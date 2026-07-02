@@ -557,6 +557,7 @@ import PermissionsPage from "./pages/Admin/Permissions";
 import UsersPage from "./pages/Admin/UsersPage";
 import IntegrationsPage from "./pages/Admin/IntegrationsPage";
 import ReportsPage from "./pages/Admin/ReportsPage";
+import TasksPage from "./pages/Admin/TaskManagement/TasksPage";
 
 
 import VisitorTracker from "./components/VisitorTracker";
@@ -742,6 +743,7 @@ function AppContent() {
             <Route path="permissions" element={<PermissionsPage />} />
             <Route path="integrations" element={<IntegrationsPage />} />
             <Route path="reports" element={<ReportsPage />} />
+            <Route path="tasks" element={<TasksPage />} />
           </Route>
         </Routes>
       </main>

@@ -40,6 +40,7 @@ import {
   Building2,
   BarChart2,
   Search,
+  ClipboardList,
 } from 'lucide-react';
 import { FiExternalLink } from "react-icons/fi";
 
@@ -185,8 +186,9 @@ const AdminDashboard = () => {
     { path: '/dashboard/integrations', icon: Plug, label: 'Integrations', section: 'integrations', color: 'text-violet-500' },
     { path: '/dashboard/master', icon: Database, label: 'Master', section: 'master', color: 'text-indigo-600' },
     { path: '/dashboard/permissions', icon: Shield, label: 'Permission', section: 'permissions', color: 'text-rose-500' },
-    { path: '/dashboard/users', icon: User, label: 'User', section: 'users', color: 'text-cyan-500' },
+    { path: '/dashboard/users', icon: User, label: 'Users', section: 'users', color: 'text-cyan-500' },
     { path: '/dashboard/reports', icon: BarChart2, label: 'Reports', section: 'reports', color: 'text-orange-500' },
+    { path: '/dashboard/tasks', icon: ClipboardList, label: 'Task Management', section: 'tasks', color: 'text-violet-600' },
   ];
 
   // Messages data
@@ -587,7 +589,7 @@ const AdminDashboard = () => {
 
     // Collapse dropdowns when navigating away from their sections
     const path = location.pathname;
-    
+
     // Check CMS
     const isCmsPath = ['/dashboard/home', '/dashboard/services', '/dashboard/blog', '/dashboard/testimonials', '/dashboard/case-studies', '/dashboard/career', '/dashboard/team'].some(
       p => path === p || path.startsWith(p + '/')
@@ -635,6 +637,7 @@ const AdminDashboard = () => {
   const usersItem = navItems.find(item => item.section === 'users')!;
   const permissionsItem = navItems.find(item => item.section === 'permissions')!;
   const reportsItem = navItems.find(item => item.section === 'reports')!;
+  const tasksItem = navItems.find(item => item.section === 'tasks')!;
 
   // Settings sub-items
   const settingsSubItems = [settingsItem, integrationsItem, masterItem, permissionsItem];
@@ -683,7 +686,8 @@ const AdminDashboard = () => {
     { path: '/dashboard/permissions', icon: Shield, label: 'Permission', color: 'text-rose-500' },
     { path: '/dashboard/users', icon: User, label: 'User', color: 'text-cyan-500' },
     { path: '/dashboard/reports', icon: BarChart2, label: 'Reports', color: 'text-orange-500' },
-    
+    { path: '/dashboard/tasks', icon: ClipboardList, label: 'Task Management', color: 'text-violet-600' },
+
     // HRMS
     { path: '/dashboard/hrms/dashboard', icon: LayoutDashboard, label: 'HR Dashboard', color: 'text-blue-500' },
     { path: '/dashboard/hrms/employees', icon: Users, label: 'Employees (HRMS)', color: 'text-indigo-500' },
@@ -700,8 +704,8 @@ const AdminDashboard = () => {
 
   const filteredSearchItems = searchQuery
     ? allSearchableItems.filter(item =>
-        item.label.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      item.label.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : [];
 
   // ─── Render ──────────────────────────────────────────────────────────────────
@@ -939,269 +943,287 @@ const AdminDashboard = () => {
             ) : (
               <div className="space-y-4">
                 {/* Dashboard */}
-              <NavLink
-                to={dashboardItem.path}
-                onClick={() => setMobileSidebarOpen(false)}
-                className={`flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
+                <NavLink
+                  to={dashboardItem.path}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className={`flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
                   ${location.pathname === '/dashboard'
-                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
-                    : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`}
-              >
-                <dashboardItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${location.pathname === '/dashboard' ? 'text-white' : dashboardItem.color}`} />
-                <span className="text-sm font-semibold tracking-wide">Dashboard</span>
-              </NavLink>
+                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                      : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`}
+                >
+                  <dashboardItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${location.pathname === '/dashboard' ? 'text-white' : dashboardItem.color}`} />
+                  <span className="text-sm font-semibold tracking-wide">Dashboard</span>
+                </NavLink>
 
-              {/* Website CMS Dropdown Card */}
-              <div className="space-y-1">
-                <button
-                  onClick={toggleCms}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group
+                {/* Website CMS Dropdown Card */}
+                <div className="space-y-1">
+                  <button
+                    onClick={toggleCms}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group
                     ${isCmsActive
-                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold border-transparent'
-                      : 'bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100'}`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Globe className={`w-4 h-4 group-hover:rotate-12 transition-transform duration-300 ${isCmsActive ? 'text-white' : 'text-[#0D47A1]'}`} />
-                    <span className={`text-xs sm:text-sm font-semibold tracking-wide ${isCmsActive ? 'text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>CMS</span>
-                  </div>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isCmsActive ? 'text-white/80' : 'text-slate-400'} ${isCmsOpen ? 'rotate-180' : ''}`} />
-                </button>
+                        ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold border-transparent'
+                        : 'bg-slate-50 text-slate-800 hover:bg-slate-100'}`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Globe className={`w-4 h-4 group-hover:rotate-12 transition-transform duration-300 ${isCmsActive ? 'text-white' : 'text-[#0D47A1]'}`} />
+                      <span className={`text-xs sm:text-sm font-semibold tracking-wide ${isCmsActive ? 'text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>CMS</span>
+                    </div>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isCmsActive ? 'text-white/80' : 'text-slate-400'} ${isCmsOpen ? 'rotate-180' : ''}`} />
+                  </button>
 
-                {/* Sub Menu with connecting vertical line */}
-                {isCmsOpen && (
-                  <div className="pl-4 ml-3.5 border-l border-slate-200/80 flex flex-col gap-0.5 mt-1">
-                    {cmsItems.map((item) => {
-                      const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-                      return (
-                        <NavLink
-                          key={item.path}
-                          to={item.path}
-                          onClick={() => setMobileSidebarOpen(false)}
-                          className={`flex items-center rounded-lg transition-all duration-200 group px-3 py-2
+                  {/* Sub Menu with connecting vertical line */}
+                  {isCmsOpen && (
+                    <div className="pl-4 ml-3.5 border-l border-slate-200/80 flex flex-col gap-0.5 mt-1">
+                      {cmsItems.map((item) => {
+                        const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                        return (
+                          <NavLink
+                            key={item.path}
+                            to={item.path}
+                            onClick={() => setMobileSidebarOpen(false)}
+                            className={`flex items-center rounded-lg transition-all duration-200 group px-3 py-2
                             ${isActive
-                              ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
-                              : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
-                        >
-                          <item.icon className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : item.color}`} />
-                          <span className="text-xs font-semibold tracking-wide">{item.label}</span>
-                        </NavLink>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                                ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                                : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                          >
+                            <item.icon className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : item.color}`} />
+                            <span className="text-xs font-semibold tracking-wide">{item.label}</span>
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
 
-              {/* Enquiries */}
-              <NavLink
-                to={enquiriesItem.path}
-                onClick={() => setMobileSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
+                {/* Enquiries */}
+                <NavLink
+                  to={enquiriesItem.path}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
                   ${isActive
-                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
-                    : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <enquiriesItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : enquiriesItem.color}`} />
-                    <span className="text-sm font-semibold tracking-wide">Enquiries</span>
-                  </>
-                )}
-              </NavLink>
+                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                      : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <enquiriesItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : enquiriesItem.color}`} />
+                      <span className="text-sm font-semibold tracking-wide">Enquiries</span>
+                    </>
+                  )}
+                </NavLink>
 
-              {/* Meeting Schedule */}
-              <NavLink
-                to={meetingsItem.path}
-                onClick={() => setMobileSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
+                {/* Meeting Schedule */}
+                <NavLink
+                  to={meetingsItem.path}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
                   ${isActive
-                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
-                    : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <meetingsItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : meetingsItem.color}`} />
-                    <span className="text-sm font-semibold tracking-wide">Meeting Schedule</span>
-                  </>
-                )}
-              </NavLink>
+                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                      : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <meetingsItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : meetingsItem.color}`} />
+                      <span className="text-sm font-semibold tracking-wide">Meeting Schedule</span>
+                    </>
+                  )}
+                </NavLink>
 
-              {/* HRMS Dropdown Card */}
-              <div className="space-y-1">
-                <button
-                  onClick={toggleHrms}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group
+                {/* HRMS Dropdown Card */}
+                <div className="space-y-1">
+                  <button
+                    onClick={toggleHrms}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group
                     ${isHrmsActive
-                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold border-transparent'
-                      : 'bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100'}`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <User className={`w-4 h-4 group-hover:rotate-12 transition-transform duration-300 ${isHrmsActive ? 'text-white' : 'text-[#0D47A1]'}`} />
-                    <span className={`text-xs sm:text-sm font-semibold tracking-wide ${isHrmsActive ? 'text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>HRMS</span>
-                  </div>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isHrmsActive ? 'text-white/80' : 'text-slate-400'} ${isHrmsOpen ? 'rotate-180' : ''}`} />
-                </button>
+                        ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold border-transparent'
+                        : 'bg-slate-50 text-slate-800 hover:bg-slate-100'}`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <User className={`w-4 h-4 group-hover:rotate-12 transition-transform duration-300 ${isHrmsActive ? 'text-white' : 'text-[#0D47A1]'}`} />
+                      <span className={`text-xs sm:text-sm font-semibold tracking-wide ${isHrmsActive ? 'text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>HRMS</span>
+                    </div>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isHrmsActive ? 'text-white/80' : 'text-slate-400'} ${isHrmsOpen ? 'rotate-180' : ''}`} />
+                  </button>
 
-                {/* Sub Menu with connecting vertical line */}
-                {isHrmsOpen && (
-                  <div className="pl-4 ml-3.5 border-l border-slate-200/80 flex flex-col gap-0.5 mt-1">
-                    {hrmsItems.map((item) => {
-                      const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-                      return (
-                        <NavLink
-                          key={item.path}
-                          to={item.path}
-                          onClick={() => setMobileSidebarOpen(false)}
-                          className={`flex items-center rounded-lg transition-all duration-200 group px-3 py-2
+                  {/* Sub Menu with connecting vertical line */}
+                  {isHrmsOpen && (
+                    <div className="pl-4 ml-3.5 border-l border-slate-200/80 flex flex-col gap-0.5 mt-1">
+                      {hrmsItems.map((item) => {
+                        const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                        return (
+                          <NavLink
+                            key={item.path}
+                            to={item.path}
+                            onClick={() => setMobileSidebarOpen(false)}
+                            className={`flex items-center rounded-lg transition-all duration-200 group px-3 py-2
                             ${isActive
-                              ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
-                              : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
-                        >
-                          <item.icon className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : item.color}`} />
-                          <span className="text-xs font-semibold tracking-wide">{item.label}</span>
-                        </NavLink>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                                ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                                : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                          >
+                            <item.icon className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : item.color}`} />
+                            <span className="text-xs font-semibold tracking-wide">{item.label}</span>
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
 
-              {/* Settings Dropdown Card */}
-              <div className="space-y-1">
-                <button
-                  onClick={toggleSettings}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group
+                {/* Settings Dropdown Card */}
+                <div className="space-y-1">
+                  <button
+                    onClick={toggleSettings}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group
                     ${isSettingsActive
-                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold border-transparent'
-                      : 'bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100'}`}
+                        ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold border-transparent'
+                        : 'bg-slate-50 text-slate-800 hover:bg-slate-100'}`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Settings className={`w-4 h-4 group-hover:rotate-12 transition-transform duration-300 ${isSettingsActive ? 'text-white' : 'text-slate-500'}`} />
+                      <span className={`text-xs sm:text-sm font-semibold tracking-wide ${isSettingsActive ? 'text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>Settings</span>
+                    </div>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isSettingsActive ? 'text-white/80' : 'text-slate-400'} ${isSettingsOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isSettingsOpen && (
+                    <div className="pl-4 ml-3.5 border-l border-slate-200/80 flex flex-col gap-0.5 mt-1">
+                      {/* General Setting */}
+                      <NavLink
+                        to={settingsItem.path}
+                        onClick={() => setMobileSidebarOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center rounded-lg transition-all duration-200 group px-3 py-2
+                        ${isActive
+                            ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                            : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <Settings className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : 'text-slate-500'}`} />
+                            <span className="text-xs font-semibold tracking-wide">General Setting</span>
+                          </>
+                        )}
+                      </NavLink>
+
+                      {/* Integrations */}
+                      <NavLink
+                        to={integrationsItem.path}
+                        onClick={() => setMobileSidebarOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center rounded-lg transition-all duration-200 group px-3 py-2
+                        ${isActive
+                            ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                            : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <Plug className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : 'text-violet-500'}`} />
+                            <span className="text-xs font-semibold tracking-wide">Integrations</span>
+                          </>
+                        )}
+                      </NavLink>
+
+                      {/* Master */}
+                      <NavLink
+                        to={masterItem.path}
+                        onClick={() => setMobileSidebarOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center rounded-lg transition-all duration-200 group px-3 py-2
+                        ${isActive
+                            ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                            : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <Database className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : 'text-indigo-600'}`} />
+                            <span className="text-xs font-semibold tracking-wide">Master</span>
+                          </>
+                        )}
+                      </NavLink>
+
+                      {/* Permission */}
+                      <NavLink
+                        to={permissionsItem.path}
+                        onClick={() => setMobileSidebarOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center rounded-lg transition-all duration-200 group px-3 py-2
+                        ${isActive
+                            ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                            : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <Shield className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : 'text-rose-500'}`} />
+                            <span className="text-xs font-semibold tracking-wide">Permission</span>
+                          </>
+                        )}
+                      </NavLink>
+                    </div>
+                  )}
+                </div>
+
+                {/* User */}
+                <NavLink
+                  to={usersItem.path}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
+                  ${isActive
+                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                      : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
+                  }
                 >
-                  <div className="flex items-center gap-2.5">
-                    <Settings className={`w-4 h-4 group-hover:rotate-12 transition-transform duration-300 ${isSettingsActive ? 'text-white' : 'text-slate-500'}`} />
-                    <span className={`text-xs sm:text-sm font-semibold tracking-wide ${isSettingsActive ? 'text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>Settings</span>
-                  </div>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isSettingsActive ? 'text-white/80' : 'text-slate-400'} ${isSettingsOpen ? 'rotate-180' : ''}`} />
-                </button>
+                  {({ isActive }) => (
+                    <>
+                      <usersItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : usersItem.color}`} />
+                      <span className="text-sm font-semibold tracking-wide">Users</span>
+                    </>
+                  )}
+                </NavLink>
 
-                {isSettingsOpen && (
-                  <div className="pl-4 ml-3.5 border-l border-slate-200/80 flex flex-col gap-0.5 mt-1">
-                    {/* General Setting */}
-                    <NavLink
-                      to={settingsItem.path}
-                      onClick={() => setMobileSidebarOpen(false)}
-                      className={({ isActive }) =>
-                        `flex items-center rounded-lg transition-all duration-200 group px-3 py-2
-                        ${isActive
-                          ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
-                          : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <Settings className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : 'text-slate-500'}`} />
-                          <span className="text-xs font-semibold tracking-wide">General Setting</span>
-                        </>
-                      )}
-                    </NavLink>
+                {/* Reports */}
+                <NavLink
+                  to={reportsItem.path}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
+                  ${isActive
+                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                      : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <reportsItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : reportsItem.color}`} />
+                      <span className="text-sm font-semibold tracking-wide">Reports</span>
+                    </>
+                  )}
+                </NavLink>
 
-                    {/* Integrations */}
-                    <NavLink
-                      to={integrationsItem.path}
-                      onClick={() => setMobileSidebarOpen(false)}
-                      className={({ isActive }) =>
-                        `flex items-center rounded-lg transition-all duration-200 group px-3 py-2
-                        ${isActive
-                          ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
-                          : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <Plug className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : 'text-violet-500'}`} />
-                          <span className="text-xs font-semibold tracking-wide">Integrations</span>
-                        </>
-                      )}
-                    </NavLink>
-
-                    {/* Master */}
-                    <NavLink
-                      to={masterItem.path}
-                      onClick={() => setMobileSidebarOpen(false)}
-                      className={({ isActive }) =>
-                        `flex items-center rounded-lg transition-all duration-200 group px-3 py-2
-                        ${isActive
-                          ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
-                          : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <Database className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : 'text-indigo-600'}`} />
-                          <span className="text-xs font-semibold tracking-wide">Master</span>
-                        </>
-                      )}
-                    </NavLink>
-
-                    {/* Permission */}
-                    <NavLink
-                      to={permissionsItem.path}
-                      onClick={() => setMobileSidebarOpen(false)}
-                      className={({ isActive }) =>
-                        `flex items-center rounded-lg transition-all duration-200 group px-3 py-2
-                        ${isActive
-                          ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
-                          : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <Shield className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-[#0D47A1] scale-110' : 'text-rose-500'}`} />
-                          <span className="text-xs font-semibold tracking-wide">Permission</span>
-                        </>
-                      )}
-                    </NavLink>
-                  </div>
-                )}
+                {/* Task Management */}
+                <NavLink
+                  to={tasksItem.path}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
+                  ${isActive
+                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                      : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <tasksItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : tasksItem.color}`} />
+                      <span className="text-sm font-semibold tracking-wide">Task Management</span>
+                    </>
+                  )}
+                </NavLink>
               </div>
-
-              {/* User */}
-              <NavLink
-                to={usersItem.path}
-                onClick={() => setMobileSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
-                  ${isActive
-                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
-                    : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <usersItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : usersItem.color}`} />
-                    <span className="text-sm font-semibold tracking-wide">User</span>
-                  </>
-                )}
-              </NavLink>
-
-              {/* Reports */}
-              <NavLink
-                to={reportsItem.path}
-                onClick={() => setMobileSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
-                  ${isActive
-                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
-                    : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <reportsItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : reportsItem.color}`} />
-                    <span className="text-sm font-semibold tracking-wide">Reports</span>
-                  </>
-                )}
-              </NavLink>
-            </div>
-          ))}
-        </nav>
+            ))}        </nav>
 
         {/* Visit Website & Logout Buttons - Bottom of Sidebar */}
         <div className="px-3 pb-4 pt-2 border-t border-slate-100 flex flex-col gap-1">

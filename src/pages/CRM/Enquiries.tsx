@@ -8,10 +8,10 @@ import {
   ThumbsUp, ThumbsDown, CalendarCheck,
   Meh,
   Check,
-
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  Plus
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useOutletContext } from 'react-router-dom';
@@ -74,7 +74,35 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
     priority: 'all',
     search: '',
     dateRange: 'all',
-    hasFollowUp: 'all'
+    hasFollowUp: 'all',
+    ignoreDate: false,
+    startDate: '',
+    endDate: ''
+  });
+  const [columnFilters, setColumnFilters] = useState({
+    id: '',
+    name: '',
+    phone: '',
+    email: '',
+    property: '',
+    moveIn: '',
+    status: '',
+    created: '',
+    assignedTo: ''
+  });
+  const [isSideFilterOpen, setIsSideFilterOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createPayload, setCreatePayload] = useState({
+    fullName: '',
+    companyName: '',
+    email: '',
+    phoneNumber: '',
+    inquiryType: '',
+    serviceType: '',
+    projectBudget: '',
+    message: '',
+    priority: 'medium',
+    status: 'new'
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(10);
@@ -99,19 +127,90 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
     fetchStats();
   }, [filters]);
 
-
-
-  // REPLACE with:
   const fetchEnquiries = async () => {
     try {
       setLoading(true);
-      const data = await enquiryApi.getAll(filters);
+      const apiFilters = {
+        ...filters,
+        dateRange: 'all',
+        startDate: !filters.ignoreDate ? (filters.startDate || undefined) : undefined,
+        endDate: !filters.ignoreDate ? (filters.endDate || undefined) : undefined
+      };
+      const data = await enquiryApi.getAll(apiFilters);
       setEnquiries(data);
     } catch (error: any) {
       console.error('Failed to fetch enquiries:', error);
       toast.error(error.message || 'Failed to load enquiries');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateEnquiry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createPayload.fullName.trim()) {
+      toast.error('Full name is required');
+      return;
+    }
+    if (!createPayload.email.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+    if (!createPayload.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    if (!createPayload.inquiryType) {
+      toast.error('Please select inquiry type');
+      return;
+    }
+    if (!createPayload.serviceType) {
+      toast.error('Please select a service');
+      return;
+    }
+    if (!createPayload.message.trim()) {
+      toast.error('Message is required');
+      return;
+    }
+    if (createPayload.message.trim().length < 10) {
+      toast.error('Message must be at least 10 characters');
+      return;
+    }
+
+    try {
+      const enquiryData = {
+        full_name: createPayload.fullName,
+        company_name: createPayload.companyName || undefined,
+        email: createPayload.email,
+        phone_number: createPayload.phoneNumber || undefined,
+        inquiry_type: createPayload.inquiryType,
+        service_type: createPayload.serviceType || undefined,
+        project_budget: createPayload.projectBudget || undefined,
+        message: createPayload.message,
+        priority: createPayload.priority,
+        status: createPayload.status
+      };
+
+      await enquiryApi.create(enquiryData);
+      toast.success('Enquiry created successfully');
+      setIsCreateModalOpen(false);
+      setCreatePayload({
+        fullName: '',
+        companyName: '',
+        email: '',
+        phoneNumber: '',
+        inquiryType: '',
+        serviceType: '',
+        projectBudget: '',
+        message: '',
+        priority: 'medium',
+        status: 'new'
+      });
+      fetchEnquiries();
+      fetchStats();
+    } catch (error: any) {
+      console.error('Failed to create enquiry:', error);
+      toast.error(error.message || 'Failed to create enquiry');
     }
   };
 
@@ -642,6 +741,20 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
   // Filter enquiries
   const filteredEnquiries = enquiries
     .filter(e => {
+      // Column Filters
+      const matchColId = !columnFilters.id || String(e.id).toLowerCase().includes(columnFilters.id.toLowerCase());
+      const matchColName = !columnFilters.name || e.full_name.toLowerCase().includes(columnFilters.name.toLowerCase());
+      const matchColPhone = !columnFilters.phone || (e.phone_number || '').toLowerCase().includes(columnFilters.phone.toLowerCase());
+      const matchColEmail = !columnFilters.email || e.email.toLowerCase().includes(columnFilters.email.toLowerCase());
+      const matchColProperty = !columnFilters.property || 
+        e.inquiry_type.toLowerCase().includes(columnFilters.property.toLowerCase()) || 
+        (e.service_type || '').toLowerCase().includes(columnFilters.property.toLowerCase());
+      const matchColMoveIn = !columnFilters.moveIn || e.priority.toLowerCase().includes(columnFilters.moveIn.toLowerCase());
+      const matchColStatus = !columnFilters.status || e.status.toLowerCase().includes(columnFilters.status.toLowerCase());
+      const matchColCreated = !columnFilters.created || new Date(e.created_at).toLocaleDateString().toLowerCase().includes(columnFilters.created.toLowerCase());
+      const matchColAssignedTo = !columnFilters.assignedTo || 
+        (e.assigned_to ? `admin id: ${e.assigned_to}` : 'unassigned').toLowerCase().includes(columnFilters.assignedTo.toLowerCase());
+
       const matchSearch = e.full_name.toLowerCase().includes(filters.search.toLowerCase()) ||
         e.email.toLowerCase().includes(filters.search.toLowerCase()) ||
         e.message.toLowerCase().includes(filters.search.toLowerCase());
@@ -650,7 +763,8 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
       const matchFollowUp = filters.hasFollowUp === 'all' ? true :
         filters.hasFollowUp === 'yes' ? (e.follow_up_actions && e.follow_up_actions.length > 0) :
           (e.follow_up_actions && e.follow_up_actions.length === 0);
-      return matchSearch && matchStatus && matchPriority && matchFollowUp;
+
+      return matchColId && matchColName && matchColPhone && matchColEmail && matchColProperty && matchColMoveIn && matchColStatus && matchColCreated && matchColAssignedTo && matchSearch && matchStatus && matchPriority && matchFollowUp;
     })
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -742,12 +856,19 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
           from { opacity: 0; transform: scale(0.92) translateY(16px); }
           to   { opacity: 1; transform: scale(1)   translateY(0px); }
         }
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to   { transform: translateX(0); }
+        }
         .animate-modal-backdrop {
           animation: modalBackdropIn 0.22s cubic-bezier(0.34,1.56,0.64,1) both;
           background: rgba(0,0,0,0.45);
         }
         .animate-modal-content {
           animation: modalContentIn 0.28s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        .animate-slide-in {
+          animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
       `}</style>
       {/* Main Container */}
@@ -790,101 +911,104 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
           </div>
         </div>
 
-        {/* Actions Row */}
-        <div className="flex justify-end gap-2 mb-6">
-          <label className="cursor-pointer">
-            <input type="file" accept=".csv" onChange={handleImportCSV} className="hidden" />
-            <div className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg items-center gap-1.5 transition-all shadow-sm text-xs font-semibold flex cursor-pointer">
-              <Upload size={14} />
-              <span>Import Data</span>
+        {/* Actions and Filters Bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6 bg-white/40 backdrop-blur-md border border-white/20 rounded-xl p-3 shadow-xs">
+          {/* Left side: filter selectors */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Status selector */}
+            <select
+              value={filters.status}
+              onChange={(e) => {
+                setFilters({ ...filters, status: e.target.value });
+                setCurrentPage(1);
+              }}
+              className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg bg-white cursor-pointer outline-none font-semibold text-slate-700 focus:ring-1 focus:ring-blue-500 transition-all"
+            >
+              <option value="all">All Status</option>
+              <option value="new">New</option>
+              <option value="in_progress">In Progress</option>
+              <option value="contacted">Contacted</option>
+              <option value="closed">Closed</option>
+              <option value="converted">Converted</option>
+            </select>
+
+            {/* Priority selector */}
+            <select
+              value={filters.priority}
+              onChange={(e) => {
+                setFilters({ ...filters, priority: e.target.value });
+                setCurrentPage(1);
+              }}
+              className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg bg-white cursor-pointer outline-none font-semibold text-slate-700 focus:ring-1 focus:ring-blue-500 transition-all"
+            >
+              <option value="all">All Priority</option>
+              <option value="urgent">Urgent</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+
+            {/* Show / pg selector */}
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+              <span>Show:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setItemsPerPage(val === 'all' ? 'all' : Number(val));
+                  setCurrentPage(1);
+                }}
+                className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white cursor-pointer outline-none font-semibold text-slate-700 focus:ring-1 focus:ring-blue-500 transition-all"
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="all">All</option>
+              </select>
+              <span>/pg</span>
             </div>
-          </label>
-          <button
-            onClick={handleExportCSV}
-            className="bg-[#0D47A1] hover:bg-[#1976D2] text-white px-3 py-1.5 rounded-lg items-center gap-1.5 transition-all shadow-sm text-xs font-semibold flex cursor-pointer"
-          >
-            <Download size={14} />
-            <span>Export Data</span>
-          </button>
-        </div>
+          </div>
 
-        {/* Compact Search and Filter Bar */}
-        <div className="bg-white/40 backdrop-blur-md border border-white/20 rounded-xl p-3 mb-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-3">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search enquiries..."
-                  value={filters.search}
-                  onChange={(e) => {
-                    setFilters({ ...filters, search: e.target.value });
-                    setCurrentPage(1);
-                  }}
-                  className="w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm border border-slate-200/60 rounded-lg bg-white/60 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none"
-                />
-              </div>
-            </div>
+          {/* Right side: Action buttons & Filter toggle button */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Create Enquiry Button */}
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg items-center gap-1.5 transition-all shadow-xs text-xs font-semibold flex cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>Create Enquiry</span>
+            </button>
 
-            <div className="flex items-center justify-between sm:justify-start gap-2">
-              <div className="flex items-center gap-1">
-                <Filter className="w-3.5 h-3.5 text-gray-400 hidden sm:block" />
-                <select
-                  value={filters.status}
-                  onChange={(e) => {
-                    setFilters({ ...filters, status: e.target.value });
-                    setCurrentPage(1);
-                  }}
-                  className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all outline-none"
-                >
-                  <option value="all">All Status</option>
-                  <option value="new">New</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="contacted">Contacted</option>
-                  <option value="closed">Closed</option>
-                  <option value="converted">Converted</option>
-                </select>
+            {/* Import Data */}
+            <label className="cursor-pointer">
+              <input type="file" accept=".csv" onChange={handleImportCSV} className="hidden" />
+              <div className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg items-center gap-1.5 transition-all shadow-xs text-xs font-semibold flex cursor-pointer">
+                <Upload size={14} />
+                <span>Import Data</span>
               </div>
+            </label>
 
-              <div className="flex items-center gap-1">
-                <select
-                  value={filters.priority}
-                  onChange={(e) => {
-                    setFilters({ ...filters, priority: e.target.value });
-                    setCurrentPage(1);
-                  }}
-                  className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all outline-none"
-                >
-                  <option value="all">All Priority</option>
-                  <option value="urgent">Urgent</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
-              </div>
+            {/* Export Data */}
+            <button
+              onClick={handleExportCSV}
+              className="bg-[#0D47A1] hover:bg-[#1976D2] text-white px-3 py-1.5 rounded-lg items-center gap-1.5 transition-all shadow-xs text-xs font-semibold flex cursor-pointer"
+            >
+              <Download size={14} />
+              <span>Export Data</span>
+            </button>
 
-              <div className="flex items-center gap-1">
-                <span className="text-[9px] sm:text-xs text-slate-500 hidden sm:inline font-semibold">Show:</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setItemsPerPage(val === 'all' ? 'all' : Number(val));
-                    setCurrentPage(1);
-                  }}
-                  className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all outline-none"
-                >
-                  <option value="5">5</option>
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                  <option value="all">All</option>
-                </select>
-                <span className="text-[9px] sm:text-xs text-slate-500 hidden sm:inline font-semibold">/pg</span>
-              </div>
-            </div>
+            {/* Nice Filter Button */}
+            <button
+              onClick={() => setIsSideFilterOpen(true)}
+              className="px-3 py-1.5 border border-slate-200 hover:border-slate-300 bg-white rounded-lg items-center gap-1.5 transition-all shadow-xs text-xs font-semibold text-slate-700 hover:bg-slate-50 flex cursor-pointer"
+              title="Advanced Filters"
+            >
+              <Filter size={14} className="text-slate-600" />
+              <span>Filters</span>
+            </button>
           </div>
         </div>
 
@@ -1036,7 +1160,7 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
                   <table className="w-full table-fixed border-collapse border border-slate-300">
                     <thead className="bg-slate-200/50 backdrop-blur-md sticky top-0 z-20">
                       <tr>
-                        <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-8 border-r border-b border-slate-300">
+                        <th className="px-2 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-8 border-r border-b border-slate-300">
                           <div className="flex items-center">
                             <input
                               type="checkbox"
@@ -1046,23 +1170,133 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
                             />
                           </div>
                         </th>
-                        <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-10 border-r border-b border-slate-300">
-                          ID
+                        <th className="px-2 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-24 border-r border-b border-slate-300">
+                          Actions
                         </th>
-                        <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-36 border-r border-b border-slate-300">
-                          Customer
+                        <th className="px-2 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-36 border-r border-b border-slate-300">
+                          Name
                         </th>
-                        <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-28 border-r border-b border-slate-300">
-                          Inquiry Type
+                        <th className="px-2 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-28 border-r border-b border-slate-300">
+                          Phone
                         </th>
-                        <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-24 border-r border-b border-slate-300">
-                          Status
+                        <th className="px-2 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-44 border-r border-b border-slate-300">
+                          Email
                         </th>
-                        <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-20 border-r border-b border-slate-300">
+                        <th className="px-2 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-36 border-r border-b border-slate-300">
+                          Enquiry Type
+                        </th>
+                        <th className="px-2 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-28 border-r border-b border-slate-300">
                           Priority
                         </th>
-                        <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[68px] border-b border-slate-300">
-                          Actions
+                        <th className="px-2 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-28 border-r border-b border-slate-300">
+                          Status
+                        </th>
+                        <th className="px-2 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-28 border-r border-b border-slate-300">
+                          Created
+                        </th>
+                        <th className="px-2 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-28 border-b border-slate-300">
+                          Assigned To
+                        </th>
+                      </tr>
+                      {/* Search inputs row */}
+                      <tr className="bg-slate-50">
+                        <th className="px-2 py-1 border-r border-b border-slate-300 w-8"></th>
+                        <th className="px-2 py-1 border-r border-b border-slate-300 w-24"></th>
+                        <th className="px-2 py-1 border-r border-b border-slate-300 w-36">
+                          <input
+                            type="text"
+                            placeholder="Search..."
+                            value={columnFilters.name}
+                            onChange={(e) => {
+                              setColumnFilters({ ...columnFilters, name: e.target.value });
+                              setCurrentPage(1);
+                            }}
+                            className="w-full px-2 py-0.5 text-[10px] font-normal border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                          />
+                        </th>
+                        <th className="px-2 py-1 border-r border-b border-slate-300 w-28">
+                          <input
+                            type="text"
+                            placeholder="Search..."
+                            value={columnFilters.phone}
+                            onChange={(e) => {
+                              setColumnFilters({ ...columnFilters, phone: e.target.value });
+                              setCurrentPage(1);
+                            }}
+                            className="w-full px-2 py-0.5 text-[10px] font-normal border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                          />
+                        </th>
+                        <th className="px-2 py-1 border-r border-b border-slate-300 w-44">
+                          <input
+                            type="text"
+                            placeholder="Search..."
+                            value={columnFilters.email}
+                            onChange={(e) => {
+                              setColumnFilters({ ...columnFilters, email: e.target.value });
+                              setCurrentPage(1);
+                            }}
+                            className="w-full px-2 py-0.5 text-[10px] font-normal border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                          />
+                        </th>
+                        <th className="px-2 py-1 border-r border-b border-slate-300 w-36">
+                          <input
+                            type="text"
+                            placeholder="Search..."
+                            value={columnFilters.property}
+                            onChange={(e) => {
+                              setColumnFilters({ ...columnFilters, property: e.target.value });
+                              setCurrentPage(1);
+                            }}
+                            className="w-full px-2 py-0.5 text-[10px] font-normal border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                          />
+                        </th>
+                        <th className="px-2 py-1 border-r border-b border-slate-300 w-28">
+                          <input
+                            type="text"
+                            placeholder="Search..."
+                            value={columnFilters.moveIn}
+                            onChange={(e) => {
+                              setColumnFilters({ ...columnFilters, moveIn: e.target.value });
+                              setCurrentPage(1);
+                            }}
+                            className="w-full px-2 py-0.5 text-[10px] font-normal border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                          />
+                        </th>
+                        <th className="px-2 py-1 border-r border-b border-slate-300 w-28">
+                          <input
+                            type="text"
+                            placeholder="Search..."
+                            value={columnFilters.status}
+                            onChange={(e) => {
+                              setColumnFilters({ ...columnFilters, status: e.target.value });
+                              setCurrentPage(1);
+                            }}
+                            className="w-full px-2 py-0.5 text-[10px] font-normal border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                          />
+                        </th>
+                        <th className="px-2 py-1 border-r border-b border-slate-300 w-28">
+                          <input
+                            type="text"
+                            placeholder="Search..."
+                            value={columnFilters.created}
+                            onChange={(e) => {
+                              setColumnFilters({ ...columnFilters, created: e.target.value });
+                              setCurrentPage(1);
+                            }}
+                            className="w-full px-2 py-0.5 text-[10px] font-normal border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                          />
+                        </th>
+                        <th className="px-2 py-1 border-b border-slate-300 w-28">
+                          <input
+                            type="text"
+                            placeholder="Search..."
+                            value={columnFilters.assignedTo}
+                            onChange={(e) => {
+                              setColumnFilters({ ...columnFilters, assignedTo: e.target.value });
+                              setCurrentPage(1);
+                            }}
+                            className="w-full px-2 py-0.5 text-[10px] font-normal border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                          />
                         </th>
                       </tr>
                     </thead>
@@ -1079,47 +1313,7 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
                               />
                             </div>
                           </td>
-                          <td className="px-2 py-1 border-r border-b border-slate-200">
-                            <span className="text-[11px] font-bold text-indigo-600">{enquiry.id}</span>
-                          </td>
-                          <td className="px-2 py-1 border-r border-b border-slate-200">
-                            <div className="flex items-center space-x-2">
-                              <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-[#0D47A1] to-[#6daeee] rounded-full flex items-center justify-center text-white font-bold text-[9px]">
-                                {enquiry.full_name.charAt(0)}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="font-bold text-gray-800 text-[11px] truncate leading-tight">{enquiry.full_name}</p>
-                                <p className="text-[9px] text-gray-400 truncate leading-none mt-0.5">{enquiry.email}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-2 py-1 border-r border-b border-slate-200">
-                            <div>
-                              <span className="text-[11px] font-semibold text-gray-800 block">{enquiry.inquiry_type}</span>
-                              {enquiry.service_type && (
-                                <p className="text-[9px] text-gray-400 mt-0.5 truncate leading-none">{enquiry.service_type}</p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-2 py-1 border-r border-b border-slate-200">
-                            <select
-                              value={enquiry.status}
-                              onChange={(e) => handleUpdateStatus(enquiry.id, e.target.value)}
-                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${getStatusColor(enquiry.status)} cursor-pointer outline-none bg-white`}
-                            >
-                              <option value="new">New</option>
-                              <option value="in_progress">In Progress</option>
-                              <option value="contacted">Contacted</option>
-                              <option value="closed">Closed</option>
-                              <option value="converted">Converted</option>
-                            </select>
-                          </td>
-                          <td className="px-2 py-1 border-r border-b border-slate-200">
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${getPriorityColor(enquiry.priority)}`}>
-                              {enquiry.priority.toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="px-2 py-1 border-b border-slate-200 whitespace-nowrap">
+                          <td className="px-2 py-1 border-r border-b border-slate-200 whitespace-nowrap">
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => handleViewDetails(enquiry)}
@@ -1150,6 +1344,52 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
                                 <Trash2 size={11} />
                               </button>
                             </div>
+                          </td>
+                          <td className="px-2 py-1 border-r border-b border-slate-200">
+                            <div className="flex items-center space-x-2">
+                              <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-[#0D47A1] to-[#6daeee] rounded-full flex items-center justify-center text-white font-bold text-[9px]">
+                                {enquiry.full_name.charAt(0)}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-bold text-gray-800 text-[11px] truncate leading-tight">{enquiry.full_name}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-2 py-1 border-r border-b border-slate-200 text-slate-700 text-[11px] font-medium">
+                            {enquiry.phone_number || 'N/A'}
+                          </td>
+                          <td className="px-2 py-1 border-r border-b border-slate-200 text-slate-650 text-[11px] font-medium truncate">
+                            {enquiry.email}
+                          </td>
+                          <td className="px-2 py-1 border-r border-b border-slate-200 text-slate-800 text-[11px]">
+                            <span className="font-semibold block">{enquiry.inquiry_type}</span>
+                            {enquiry.service_type && (
+                              <p className="text-[9px] text-gray-400 mt-0.5 truncate leading-none">{enquiry.service_type}</p>
+                            )}
+                          </td>
+                          <td className="px-2 py-1 border-r border-b border-slate-200">
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${getPriorityColor(enquiry.priority)}`}>
+                              {enquiry.priority.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="px-2 py-1 border-r border-b border-slate-200">
+                            <select
+                              value={enquiry.status}
+                              onChange={(e) => handleUpdateStatus(enquiry.id, e.target.value)}
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${getStatusColor(enquiry.status)} cursor-pointer outline-none bg-white`}
+                            >
+                              <option value="new">New</option>
+                              <option value="in_progress">In Progress</option>
+                              <option value="contacted">Contacted</option>
+                              <option value="closed">Closed</option>
+                              <option value="converted">Converted</option>
+                            </select>
+                          </td>
+                          <td className="px-2 py-1 border-r border-b border-slate-200 text-gray-500 text-[11px] font-medium">
+                            {new Date(enquiry.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-2 py-1 border-b border-slate-200 text-gray-650 text-[11px] font-medium">
+                            {enquiry.assigned_to ? `Admin ID: ${enquiry.assigned_to}` : 'Unassigned'}
                           </td>
                         </tr>
                       ))}
@@ -2277,9 +2517,368 @@ const EnquiriesCMS = ({ isSidebarOpen = false }: EnquiriesCMSProps) => {
           </div>
         </div>
       )}
+
+      {/* Slide-out Side Filter Panel Container */}
+      <div className={`fixed inset-0 z-[9999] transition-all duration-300 ${isSideFilterOpen ? 'visible pointer-events-auto' : 'invisible pointer-events-none'}`}>
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-black/45 backdrop-blur-xs transition-opacity duration-300 ${isSideFilterOpen ? 'opacity-100' : 'opacity-0'}`}
+          onClick={() => setIsSideFilterOpen(false)}
+        />
+        {/* Panel */}
+        <div className={`absolute inset-y-0 right-0 w-80 bg-white/95 backdrop-blur-md shadow-2xl border-l border-slate-200 z-10 p-6 flex flex-col transition-transform duration-300 ease-in-out transform ${isSideFilterOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-[#0D47A1]" />
+              <h3 className="text-base font-bold text-slate-800">Advanced Filters</h3>
+            </div>
+            <button
+              onClick={() => setIsSideFilterOpen(false)}
+              className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-6 pr-1">
+            {/* Status Filter */}
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Status</label>
+              <select
+                value={filters.status}
+                onChange={(e) => {
+                  setFilters({ ...filters, status: e.target.value });
+                  setCurrentPage(1);
+                }}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none cursor-pointer"
+              >
+                <option value="all">All Statuses</option>
+                <option value="new">New</option>
+                <option value="in_progress">In Progress</option>
+                <option value="contacted">Contacted</option>
+                <option value="closed">Closed</option>
+                <option value="converted">Converted</option>
+              </select>
+            </div>
+
+            {/* Priority Filter */}
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Priority</label>
+              <select
+                value={filters.priority}
+                onChange={(e) => {
+                  setFilters({ ...filters, priority: e.target.value });
+                  setCurrentPage(1);
+                }}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none cursor-pointer"
+              >
+                <option value="all">All Priorities</option>
+                <option value="urgent">Urgent</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+
+            {/* Date Filter */}
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Date</label>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">From</label>
+                  <input
+                    type="date"
+                    disabled={filters.ignoreDate}
+                    value={filters.startDate}
+                    onChange={(e) => {
+                      setFilters({ ...filters, startDate: e.target.value });
+                      setCurrentPage(1);
+                    }}
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg bg-white outline-none disabled:opacity-50 disabled:bg-slate-50"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">To</label>
+                  <input
+                    type="date"
+                    disabled={filters.ignoreDate}
+                    value={filters.endDate}
+                    onChange={(e) => {
+                      setFilters({ ...filters, endDate: e.target.value });
+                      setCurrentPage(1);
+                    }}
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg bg-white outline-none disabled:opacity-50 disabled:bg-slate-50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Ignore Date Filter */}
+            <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block uppercase tracking-wider">Ignore Date Range</label>
+                <span className="text-[9px] text-slate-400 block font-semibold mt-0.5">Show enquiries from all time</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={filters.ignoreDate}
+                onChange={(e) => {
+                  setFilters({ ...filters, ignoreDate: e.target.checked });
+                  setCurrentPage(1);
+                }}
+                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 pt-4 mt-6 flex gap-2">
+            <button
+              onClick={() => {
+                setFilters({
+                  status: 'all',
+                  priority: 'all',
+                  search: '',
+                  dateRange: 'all',
+                  hasFollowUp: 'all',
+                  ignoreDate: false,
+                  startDate: '',
+                  endDate: ''
+                });
+                setColumnFilters({
+                  id: '',
+                  name: '',
+                  phone: '',
+                  email: '',
+                  property: '',
+                  moveIn: '',
+                  status: '',
+                  created: '',
+                  assignedTo: ''
+                });
+                setCurrentPage(1);
+              }}
+              className="flex-1 py-2 text-xs font-bold border border-slate-200 text-slate-500 hover:text-slate-700 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              Clear All
+            </button>
+            <button
+              onClick={() => setIsSideFilterOpen(false)}
+              className="flex-1 py-2 text-xs font-bold bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Create Enquiry Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 animate-modal-backdrop">
+          <div
+            className="fixed inset-0"
+            onClick={() => setIsCreateModalOpen(false)}
+          />
+          <form
+            onSubmit={handleCreateEnquiry}
+            className="relative bg-white rounded-2xl w-full max-w-xl max-h-[92vh] overflow-hidden shadow-2xl border border-slate-100 z-10 animate-modal-content flex flex-col"
+          >
+            {/* Header */}
+            <div className="border-b border-slate-100 px-5 py-4 bg-slate-50/60 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <Plus className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Create New Enquiry</h3>
+                  <p className="text-[10px] text-slate-400 font-semibold">Enter customer information to add manually</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 overflow-y-auto space-y-4 flex-1">
+              {/* Row 1: Full Name & Email */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={createPayload.fullName}
+                    onChange={(e) => setCreatePayload({ ...createPayload, fullName: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-800"
+                    placeholder="Enter full name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={createPayload.email}
+                    onChange={(e) => setCreatePayload({ ...createPayload, email: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-800"
+                    placeholder="your.email@company.com"
+                  />
+                </div>
+              </div>
+
+              {/* Row 2: Phone & Company Name */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Phone Number</label>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={createPayload.phoneNumber}
+                    onChange={(e) => setCreatePayload({ ...createPayload, phoneNumber: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-800"
+                    placeholder="+91 XXXXX XXXXX"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Company Name</label>
+                  <input
+                    type="text"
+                    value={createPayload.companyName}
+                    onChange={(e) => setCreatePayload({ ...createPayload, companyName: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-800"
+                    placeholder="Your company or organization"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Enquiry Type & Service Type */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Inquiry Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={createPayload.inquiryType}
+                    onChange={(e) => setCreatePayload({ ...createPayload, inquiryType: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-700 cursor-pointer bg-white"
+                  >
+                    <option value="">Select inquiry type</option>
+                    <option value="project">New Project</option>
+                    <option value="consultation">Free Consultation</option>
+                    <option value="support">Technical Support</option>
+                    <option value="partnership">Business Partnership</option>
+                    <option value="general">General Inquiry</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Service Required <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={createPayload.serviceType}
+                    onChange={(e) => setCreatePayload({ ...createPayload, serviceType: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-700 cursor-pointer bg-white"
+                  >
+                    <option value="">Select a service</option>
+                    <option value="web-development">Web Development</option>
+                    <option value="mobile-app">Mobile App Development</option>
+                    <option value="cloud">Cloud Solutions</option>
+                    <option value="ai-ml">AI & Machine Learning</option>
+                    <option value="cybersecurity">Cybersecurity</option>
+                    <option value="devops">DevOps & Automation</option>
+                    <option value="custom-software">Custom Software</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 4: Budget & Priority & Status */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Project Budget</label>
+                  <input
+                    type="text"
+                    value={createPayload.projectBudget}
+                    onChange={(e) => setCreatePayload({ ...createPayload, projectBudget: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-800"
+                    placeholder="e.g. ₹50,000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Priority</label>
+                  <select
+                    value={createPayload.priority}
+                    onChange={(e) => setCreatePayload({ ...createPayload, priority: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-700 cursor-pointer bg-white"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Status</label>
+                  <select
+                    value={createPayload.status}
+                    onChange={(e) => setCreatePayload({ ...createPayload, status: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-700 cursor-pointer bg-white"
+                  >
+                    <option value="new">New</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="closed">Closed</option>
+                    <option value="converted">Converted</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Message */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Message <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  required
+                  value={createPayload.message}
+                  onChange={(e) => setCreatePayload({ ...createPayload, message: e.target.value })}
+                  placeholder="Briefly describe your requirement or challenge..."
+                  rows={4}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-800 placeholder-slate-450 resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-slate-100 px-5 py-3 bg-slate-50/60 flex justify-end gap-2 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="px-4 py-1.5 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-100 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition cursor-pointer flex items-center gap-1.5"
+              >
+                <Plus size={13} />
+                <span>Create Enquiry</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };
 
 export default EnquiriesCMS;
-

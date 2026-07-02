@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useOutletContext } from 'react-router-dom';
 import {
   Plus, Edit, Trash2, Eye, EyeOff, MapPin, Briefcase,
-  Users, DollarSign, Clock, Search,
+  Users, DollarSign, Clock, Search, Filter,
   Save, X, Mail, FileText, Linkedin,
   ChevronLeft, ChevronRight, BarChart3,
   Building, Headphones, Code, Server,
@@ -12,7 +12,7 @@ import {
   RefreshCw,
   Users as UsersIcon, Target as TargetIcon,
   Zap as ZapIcon, Check, XCircle,
-    IndianRupee, CheckCircle,
+  IndianRupee, CheckCircle,
   Download,
   Upload,
   Calendar,
@@ -629,6 +629,20 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   const [positionFilter, setPositionFilter] = useState('all');
   const [experienceFilter, setExperienceFilter] = useState('all');
 
+  // Custom Date Filters & Side drawer states
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [ignoreDate, setIgnoreDate] = useState(false);
+  const [isSideFilterOpen, setIsSideFilterOpen] = useState(false);
+
+  // Column search filters
+  const [columnFilters, setColumnFilters] = useState({
+    applicant: '',
+    position: '',
+    experience: '',
+    status: ''
+  });
+
 
   // Calendar search popup state
   const [showCalendarPopup, setShowCalendarPopup] = useState(false);
@@ -729,7 +743,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     fetchAllData();
     fetchAppStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, currentPage, itemsPerPage, statusFilter, departmentFilter, locationFilter, jobTypeFilter, statusViewFilter, sortField, sortDirection, searchTerm, positionFilter, experienceFilter]); // ✅ ADD experienceFilter
+  }, [activeTab, currentPage, itemsPerPage, statusFilter, departmentFilter, locationFilter, jobTypeFilter, statusViewFilter, sortField, sortDirection, searchTerm, positionFilter, experienceFilter, startDate, endDate, ignoreDate]); // ✅ ADD experienceFilter and date filters
 
   const fetchAllData = async () => {
     try {
@@ -789,6 +803,8 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
         search: searchTerm || undefined,
         job_title: positionFilter !== 'all' ? positionFilter : undefined,
         experience_level: experienceFilter !== 'all' ? experienceFilter : undefined, // ✅ ADD THIS
+        startDate: !ignoreDate ? (startDate || undefined) : undefined,
+        endDate: !ignoreDate ? (endDate || undefined) : undefined,
         page: currentPage,
         limit: itemsPerPage,
         sort: sortField || undefined,
@@ -1548,6 +1564,21 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
 
   // Filter and sort logic
   const filteredApplications = applications.filter(app => {
+    // 1. Column filters
+    if (columnFilters.applicant && !app.applicant_name?.toLowerCase().includes(columnFilters.applicant.toLowerCase()) && !app.email?.toLowerCase().includes(columnFilters.applicant.toLowerCase())) {
+      return false;
+    }
+    if (columnFilters.position && columnFilters.position !== 'all' && !app.job_title?.toLowerCase().includes(columnFilters.position.toLowerCase())) {
+      return false;
+    }
+    if (columnFilters.experience && columnFilters.experience !== 'all' && !app.experience_level?.toLowerCase().includes(columnFilters.experience.toLowerCase())) {
+      return false;
+    }
+    if (columnFilters.status && columnFilters.status !== 'all' && app.status !== columnFilters.status) {
+      return false;
+    }
+
+    // 2. Global search
     const search = searchTerm.toLowerCase();
     if (!search) return true;
     return (
@@ -1840,50 +1871,26 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                     <Plus size={14} />
                     <span>Add Job</span>
                   </button>
-                ) : (
-                  <div className="flex items-center gap-2 self-end sm:self-auto">
-                    <button
-                      onClick={handleExportApplications}
-                      className="bg-[#10B981] hover:bg-[#059669] text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm text-xs font-semibold cursor-pointer"
-                    >
-                      <Download size={14} />
-                      <span>Export Data</span>
-                    </button>
-                    <button
-                      onClick={() => document.getElementById('csv-import-input')?.click()}
-                      className="bg-[#0D47A1] hover:bg-[#1976D2] text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm text-xs font-semibold cursor-pointer"
-                    >
-                      <Upload size={14} />
-                      <span>Import Data</span>
-                    </button>
-                    <input
-                      id="csv-import-input"
-                      type="file"
-                      accept=".csv"
-                      onChange={handleImportApplications}
-                      className="hidden"
-                    />
-                  </div>
-                )}
+                ) : null}
               </div>
 
               {/* Filters Bar */}
               <div className="bg-white/40 backdrop-blur-md border border-white/20 rounded-xl p-3 mb-4">
-                <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-                  <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder={activeTab === 'jobs' ? "Search jobs..." : "Search applications..."}
-                      value={searchTerm}
-                      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                      className="pl-8 pr-3 py-1.5 w-full bg-white/60 focus:bg-white border border-slate-200/60 rounded-lg text-[11px] font-semibold text-slate-800 placeholder-slate-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
-                    />
-                  </div>
+                <div className="flex flex-col md:flex-row gap-3 items-slate-stretch md:items-center justify-between">
+                  {activeTab === 'jobs' ? (
+                    <>
+                      <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Search jobs..."
+                          value={searchTerm}
+                          onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                          className="pl-8 pr-3 py-1.5 w-full bg-white/60 focus:bg-white border border-slate-200/60 rounded-lg text-[11px] font-semibold text-slate-800 placeholder-slate-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                        />
+                      </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    {activeTab === 'jobs' && (
-                      <>
+                      <div className="flex flex-wrap items-center gap-2">
                         <div className="flex items-center bg-white/60 border border-slate-200/60 p-0.5 rounded-lg shrink-0">
                           <button onClick={() => setViewMode('grid')} className={`p-1 rounded ${viewMode === 'grid' ? 'bg-[#0D47A1] text-white shadow-sm' : 'text-gray-600'} cursor-pointer transition-all`}>
                             <Grid size={12} />
@@ -1925,64 +1932,67 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                           <option value="12">Show 12</option>
                           <option value="24">Show 24</option>
                         </select>
-                      </>
-                    )}
-
-                    {activeTab === 'applications' && (
-                      <>
-                        <select
-                          value={positionFilter}
-                          onChange={(e) => { setPositionFilter(e.target.value); setCurrentPage(1); }}
-                          className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none font-semibold text-slate-700 outline-none"
-                        >
-                          <option value="all">All Positions</option>
-                          {Array.from(new Set(applications.map(app => app.job_title).filter((t): t is string => !!t))).map(title => (
-                            <option key={title} value={title}>{title}</option>
-                          ))}
-                        </select>
-
-                        <select
-                          value={experienceFilter}
-                          onChange={(e) => { setExperienceFilter(e.target.value); setCurrentPage(1); }}
-                          className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none"
-                        >
-                          {experienceFilterOptions.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
-
-                        <select
-                          value={statusFilter}
-                          onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                          className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none"
-                        >
-                          <option value="all">All Status</option>
-                          <option value="pending">Pending</option>
-                          <option value="reviewed">Reviewed</option>
-                          <option value="shortlisted">Shortlisted</option>
-                          <option value="rejected">Rejected</option>
-                          <option value="hired">Hired</option>
-                        </select>
-
+                      </div>
+                    </>
+                  ) : (
+                    // Applications Filter Bar Layout
+                    <div className="flex items-center justify-between w-full">
+                      {/* Left: Show Dropdown */}
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Show</label>
                         <select
                           value={itemsPerPage}
                           onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                          className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none"
+                          className="px-2.5 py-1 text-[11px] font-bold border border-slate-200 rounded-lg bg-white focus:ring-1 focus:ring-[#0D47A1] outline-none text-slate-700 cursor-pointer"
                         >
-                          <option value="10">Show 10</option>
-                          <option value="25">Show 25</option>
-                          <option value="50">Show 50</option>
-                          <option value="9999">Show All</option>
+                          <option value="10">10</option>
+                          <option value="25">25</option>
+                          <option value="50">50</option>
+                          <option value="9999">All</option>
                         </select>
-                      </>
-                    )}
-                  </div>
+                      </div>
+
+                      {/* Right: Export, Import, Filters Toggle */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleExportApplications}
+                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-xs font-bold cursor-pointer"
+                        >
+                          <Download size={13} />
+                          <span>Export Data</span>
+                        </button>
+                        <button
+                          onClick={() => document.getElementById('csv-import-input')?.click()}
+                          className="bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-xs font-bold cursor-pointer"
+                        >
+                          <Upload size={13} />
+                          <span>Import Data</span>
+                        </button>
+                        <input
+                          id="csv-import-input"
+                          type="file"
+                          accept=".csv"
+                          onChange={handleImportApplications}
+                          className="hidden"
+                        />
+                        <button
+                          onClick={() => setIsSideFilterOpen(true)}
+                          className="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-xs font-bold cursor-pointer"
+                        >
+                          <Filter size={13} className="text-[#0D47A1]" />
+                          <span>Filters</span>
+                          {(statusFilter !== 'all' || positionFilter !== 'all' || experienceFilter !== 'all' || startDate || endDate) && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         )}
-
         {/* Bulk Actions Bar - Hide when sidebar is open on mobile */}
         {((activeTab === 'jobs' && selectedJobs.length > 0) ||
           (activeTab === 'applications' && selectedApplications.length > 0)) &&
@@ -2279,6 +2289,57 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                       <th className="px-2 py-1 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider w-36 border-b border-slate-300">
                         Actions
                       </th>
+                    </tr>
+                    {/* Column Search Bar Row */}
+                    <tr className="bg-slate-100/50">
+                      <th className="px-2 py-1 border-r border-b border-slate-300"></th>
+                      <th className="px-2 py-1 border-r border-b border-slate-300">
+                        <input
+                          type="text"
+                          placeholder="Search applicant..."
+                          value={columnFilters.applicant}
+                          onChange={(e) => setColumnFilters({ ...columnFilters, applicant: e.target.value })}
+                          className="w-full px-2 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none"
+                        />
+                      </th>
+                      <th className="px-2 py-1 border-r border-b border-slate-300">
+                        <select
+                          value={columnFilters.position}
+                          onChange={(e) => setColumnFilters({ ...columnFilters, position: e.target.value })}
+                          className="w-full px-1 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-semibold text-slate-700 outline-none cursor-pointer"
+                        >
+                          <option value="all">All Positions</option>
+                          {Array.from(new Set(applications.map(app => app.job_title).filter((t): t is string => !!t))).map(title => (
+                            <option key={title} value={title}>{title}</option>
+                          ))}
+                        </select>
+                      </th>
+                      <th className="px-2 py-1 border-r border-b border-slate-300">
+                        <select
+                          value={columnFilters.experience}
+                          onChange={(e) => setColumnFilters({ ...columnFilters, experience: e.target.value })}
+                          className="w-full px-1 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-semibold text-slate-700 outline-none cursor-pointer"
+                        >
+                          {experienceFilterOptions.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </th>
+                      <th className="px-2 py-1 border-r border-b border-slate-300">
+                        <select
+                          value={columnFilters.status}
+                          onChange={(e) => setColumnFilters({ ...columnFilters, status: e.target.value })}
+                          className="w-full px-1 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-semibold text-slate-700 outline-none cursor-pointer"
+                        >
+                          <option value="all">All Status</option>
+                          <option value="pending">Pending</option>
+                          <option value="reviewed">Reviewed</option>
+                          <option value="shortlisted">Shortlisted</option>
+                          <option value="rejected">Rejected</option>
+                          <option value="hired">Hired</option>
+                        </select>
+                      </th>
+                      <th className="px-2 py-1 border-b border-slate-300"></th>
                     </tr>
                   </thead>
                   <tbody className="bg-transparent">
@@ -3488,6 +3549,159 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
           </div>
         </div>
       )}
+
+      {/* ========== SIDE FILTER DRAWER ========== */}
+      <div 
+        className={`fixed inset-0 z-50 overflow-hidden transition-all duration-300 ${
+          isSideFilterOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        {/* Backdrop overlay */}
+        <div 
+          className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300"
+          onClick={() => setIsSideFilterOpen(false)}
+        />
+
+        <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+          <div 
+            className={`w-80 bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out border-l border-slate-100 ${
+              isSideFilterOpen ? 'translate-x-0' : 'translate-x-full'
+            }`}
+          >
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Filter size={16} className="text-[#0D47A1]" />
+                <h2 className="text-base font-extrabold text-[#0D1B3E]">Filters</h2>
+              </div>
+              <button 
+                onClick={() => setIsSideFilterOpen(false)}
+                className="text-slate-400 hover:text-slate-600 transition p-1 hover:bg-slate-50 rounded-lg cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Content / Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+              {/* Status Filter */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Status</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer transition-all"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="reviewed">Reviewed</option>
+                  <option value="shortlisted">Shortlisted</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="hired">Hired</option>
+                </select>
+              </div>
+
+              {/* Position Filter */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Position</label>
+                <select
+                  value={positionFilter}
+                  onChange={(e) => { setPositionFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer transition-all"
+                >
+                  <option value="all">All Positions</option>
+                  {Array.from(new Set(applications.map(app => app.job_title).filter((t): t is string => !!t))).map(title => (
+                    <option key={title} value={title}>{title}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Experience Filter */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Experience Level</label>
+                <select
+                  value={experienceFilter}
+                  onChange={(e) => { setExperienceFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer transition-all"
+                >
+                  {experienceFilterOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date Filters */}
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Date Applied</label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      id="ignoreDate"
+                      checked={ignoreDate}
+                      onChange={(e) => setIgnoreDate(e.target.checked)}
+                      className="h-3.5 w-3.5 text-[#0D47A1] focus:ring-[#0D47A1] rounded cursor-pointer"
+                    />
+                    <label htmlFor="ignoreDate" className="text-[10px] font-bold text-slate-600 cursor-pointer uppercase select-none">
+                      Ignore Date
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-extrabold text-slate-400 uppercase">From</label>
+                    <input
+                      type="date"
+                      disabled={ignoreDate}
+                      value={startDate}
+                      onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
+                      className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-semibold text-slate-700 outline-none disabled:opacity-50 disabled:bg-slate-50"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-extrabold text-slate-400 uppercase">To</label>
+                    <input
+                      type="date"
+                      disabled={ignoreDate}
+                      value={endDate}
+                      onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
+                      className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-semibold text-slate-700 outline-none disabled:opacity-50 disabled:bg-slate-50"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-5 border-t border-slate-100 flex items-center justify-between gap-3 bg-slate-50/50">
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter('all');
+                  setPositionFilter('all');
+                  setExperienceFilter('all');
+                  setStartDate('');
+                  setEndDate('');
+                  setIgnoreDate(false);
+                  setCurrentPage(1);
+                  setColumnFilters({ applicant: '', position: 'all', experience: 'all', status: 'all' });
+                }}
+                className="flex-1 py-2 text-xs font-bold border border-slate-200 hover:border-slate-300 text-slate-600 bg-white rounded-xl hover:bg-slate-50 transition cursor-pointer"
+              >
+                Clear All
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSideFilterOpen(false)}
+                className="flex-1 py-2 text-xs font-bold bg-[#0D47A1] hover:bg-[#1976D2] text-white rounded-xl transition shadow-sm cursor-pointer"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
