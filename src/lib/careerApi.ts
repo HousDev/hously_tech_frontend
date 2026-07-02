@@ -81,6 +81,8 @@ export interface ApplicationFilters {
   limit?: number;
   sort?: string;
   order?: 'asc' | 'desc';
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface JobPayload {
@@ -221,6 +223,8 @@ export const careerApi = {
     if (filters?.sort) params.append('sort', filters.sort);
     if (filters?.order) params.append('order', filters.order);
     if (filters?.search) params.append('search', filters.search);
+    if (filters?.startDate) params.append('startDate', filters.startDate);
+    if (filters?.endDate) params.append('endDate', filters.endDate);
     return unwrap(api.get<ApiResponse<{ applications: Application[]; total: number; totalPages: number }>>(
       `/career/applications${params.toString() ? `?${params}` : ''}`
     ));
