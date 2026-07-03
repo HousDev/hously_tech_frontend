@@ -105,5 +105,25 @@ export const masterDataAPI = {
         });
         console.log("first", response)
         return response.data;
+    },
+
+    // Get States from Master Location API
+    getStates: async (): Promise<LocationItem[]> => {
+        const response = await api.get('/masters/states');
+        return response.data.success ? response.data.data : [];
+    },
+
+    // Get Cities from Master Location API
+    getCities: async (stateName?: string): Promise<LocationItem[]> => {
+        const url = stateName
+            ? `/masters/cities?stateName=${encodeURIComponent(stateName)}`
+            : `/masters/cities`;
+        const response = await api.get(url);
+        return response.data.success ? response.data.data : [];
     }
 };
+
+export interface LocationItem {
+    id: number;
+    name: string;
+}

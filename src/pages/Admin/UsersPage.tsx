@@ -9,33 +9,13 @@ import {
   Briefcase, Hash, Clock, Globe, Key, FolderOpen
 } from "lucide-react";
 import { masterDataAPI } from "../../lib/masterApi";
+import { settingsApi } from "../../lib/settingsApi";
+import type { Company, Branch } from "../../lib/settingsApi";
+import { userApi, type UserRecord, type UserStatus, type UserGender, type UserRole } from "../../lib/userApi";
+import toast, { Toaster } from "react-hot-toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type UserStatus = "active" | "inactive" | "blocked";
-type UserRole = string;
-type UserGender = "male" | "female" | "other";
-
-interface UserRecord {
-  id: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  department: string;
-  role: UserRole;
-  status: UserStatus;
-  isEmployee: boolean;
-  isActive: boolean;
-  avatarUrl?: string;
-  companyName?: string;
-  attendanceLocation?: string;
-  dateOfJoining?: string;
-  gender?: UserGender;
-  allottedProjects?: string;
-  createdAt: string;
-}
 
 interface MasterItem {
   id: string;
@@ -615,6 +595,7 @@ interface UserFormModalProps {
   departments: string[];
   roles: string[];
   projects: string[];
+  companies: Company[];
   mode?: "add" | "edit";
   initialUser?: UserRecord | null;
 }
@@ -625,6 +606,7 @@ const UserFormModal = ({
   departments,
   roles,
   projects,
+  companies,
   mode = "add",
   initialUser,
 }: UserFormModalProps) => {
@@ -666,18 +648,23 @@ const UserFormModal = ({
     setTimeout(onClose, 250);
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert("Image must be under 5MB");
+      toast.error("Image must be under 5MB");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
-    reader.readAsDataURL(file);
+    try {
+      toast.loading("Uploading avatar...", { id: "avatar-upload" });
+      const imageUrl = await userApi.uploadAvatar(file);
+      setAvatarPreview(imageUrl);
+      toast.success("Avatar uploaded successfully!", { id: "avatar-upload" });
+    } catch (err: any) {
+      toast.error(err.message || "Avatar upload failed", { id: "avatar-upload" });
+    }
   };
 
   const validate = () => {
@@ -1095,25 +1082,49 @@ const UserFormModal = ({
                   <div className="grid grid-cols-4 gap-2.5 pt-1">
                     <div>
                       <Label text="Company Name" />
-                      <input
-                        value={form.companyName}
-                        onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
-                        placeholder="Hously Tech"
-                        className={inp()}
-                      />
+                      <div className="relative">
+                        <select
+                          value={form.companyName}
+                          onChange={(e) => {
+                            const newComp = e.target.value;
+                            setForm((f) => ({ ...f, companyName: newComp, attendanceLocation: "" }));
+                          }}
+                          className={`${selCls()} appearance-none`}
+                        >
+                          <option value="">Select Company</option>
+                          {companies.map((c) => (
+                            <option key={c.id} value={c.name}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
                     </div>
                     <div>
                       <Label text="Branch" />
                       <div className="relative">
-                        <MapPin size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
+                        <MapPin size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
+                        <select
                           value={form.attendanceLocation}
                           onChange={(e) =>
                             setForm((f) => ({ ...f, attendanceLocation: e.target.value }))
                           }
-                          placeholder="Noida HQ"
-                          className={`${inp()} pl-6`}
-                        />
+                          disabled={!form.companyName}
+                          className={`${selCls()} pl-6 appearance-none disabled:opacity-50`}
+                        >
+                          <option value="">
+                            {!form.companyName ? "Select Company first" : "Select Branch"}
+                          </option>
+                          {companies
+                            .find((c) => c.name === form.companyName)
+                            ?.branches.map((b) => (
+                              <option key={b.id} value={b.name}>
+                                {b.name}
+                              </option>
+                            ))}
+                        </select>
+                        <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                       </div>
                     </div>
                     <div>
@@ -1531,7 +1542,37 @@ export default function UsersPage() {
     ctx.setHeaderSubtitle?.("Manage system logins, roles, and employee records");
   }, [ctx]);
 
-  const [users, setUsers] = useState<UserRecord[]>(STATIC_USERS);
+  const [users, setUsers] = useState<UserRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [companies, setCompanies] = useState<Company[]>([]);
+
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const list = await settingsApi.getCompanies();
+        setCompanies(list);
+      } catch (err) {
+        console.error("Failed to load companies in UsersPage", err);
+      }
+    };
+    fetchCompanies();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const data = await userApi.getAll();
+      setUsers(data);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [showModal, setShowModal] = useState(false);
@@ -1682,15 +1723,21 @@ export default function UsersPage() {
   };
 
   // Handle delete selected
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     if (selectedUsers.size === 0) {
-      alert("Please select users to delete");
+      toast.error("Please select users to delete");
       return;
     }
     if (window.confirm(`Are you sure you want to delete ${selectedUsers.size} selected users?`)) {
-      setUsers(prev => prev.filter(u => !selectedUsers.has(u.id)));
-      setSelectedUsers(new Set());
-      setSelectAll(false);
+      try {
+        await userApi.bulkDelete(Array.from(selectedUsers));
+        toast.success(`${selectedUsers.size} users deleted successfully!`);
+        setSelectedUsers(new Set());
+        setSelectAll(false);
+        fetchUsers();
+      } catch (err: any) {
+        toast.error(err.message || "Failed to delete selected users");
+      }
     }
   };
 
@@ -1700,59 +1747,51 @@ export default function UsersPage() {
     setPage(1);
   };
 
-  const handleAddUser = (newUser: Omit<UserRecord, "id" | "createdAt">) => {
-    const id = `USR-${String(users.length + 1).padStart(3, "0")}`;
-    setUsers((prev) => [
-      {
-        ...newUser,
-        id,
-        createdAt: new Date().toISOString().split("T")[0],
-      },
-      ...prev,
-    ]);
+  const handleAddUser = async (newUser: Omit<UserRecord, "id" | "createdAt">) => {
+    try {
+      await userApi.create(newUser);
+      toast.success("User created successfully!");
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create user");
+    }
   };
 
-  const handleUpdateUser = (updatedUser: Omit<UserRecord, "id" | "createdAt">) => {
+  const handleUpdateUser = async (updatedUser: Omit<UserRecord, "id" | "createdAt">) => {
     if (!editingUser) return;
-
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === editingUser.id
-          ? {
-            ...u,
-            ...updatedUser,
-          }
-          : u
-      )
-    );
-
-    setEditingUser(null);
+    try {
+      await userApi.update(editingUser.id, updatedUser);
+      toast.success("User updated successfully!");
+      setEditingUser(null);
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update user");
+    }
   };
 
-  const handleStatusConfirm = () => {
+  const handleStatusConfirm = async () => {
     if (!statusUser) return;
-
-    const nextStatus: UserStatus = statusUser.status === "active" ? "inactive" : "active";
-
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === statusUser.id
-          ? {
-            ...u,
-            status: nextStatus,
-            isActive: nextStatus === "active",
-          }
-          : u
-      )
-    );
-
-    setStatusUser(null);
+    try {
+      const nextStatus: UserStatus = statusUser.status === "active" ? "inactive" : "active";
+      await userApi.toggleStatus(statusUser.id, nextStatus, nextStatus === "active");
+      toast.success("User status updated successfully!");
+      setStatusUser(null);
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update user status");
+    }
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deleteUser) return;
-    setUsers((prev) => prev.filter((u) => u.id !== deleteUser.id));
-    setDeleteUser(null);
+    try {
+      await userApi.delete(deleteUser.id);
+      toast.success("User deleted successfully!");
+      setDeleteUser(null);
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete user");
+    }
   };
 
   const colInp =
@@ -1887,7 +1926,19 @@ export default function UsersPage() {
               </thead>
 
               <tbody>
-                {paginated.length === 0 && (
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="py-16 text-center text-slate-400 text-sm font-semibold border-b border-slate-100"
+                    >
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <div className="w-6 h-6 border-2 border-[#0D47A1] border-t-transparent rounded-full animate-spin" />
+                        <span>Loading users...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : paginated.length === 0 ? (
                   <tr>
                     <td
                       colSpan={7}
@@ -1896,7 +1947,7 @@ export default function UsersPage() {
                       No users found.
                     </td>
                   </tr>
-                )}
+                ) : null}
 
                 {paginated.map((user, idx) => {
                   const statusCfg = STATUS_CONFIG[user.status];
@@ -2074,6 +2125,7 @@ export default function UsersPage() {
           departments={departments}
           roles={roles}
           projects={projects}
+          companies={companies}
         />
       )}
 
@@ -2086,6 +2138,7 @@ export default function UsersPage() {
           departments={departments}
           roles={roles}
           projects={projects}
+          companies={companies}
         />
       )}
 
@@ -2123,6 +2176,7 @@ export default function UsersPage() {
         departments={departments}
         roles={roles}
       />
+      <Toaster position="top-right" />
     </>
   );
 }
