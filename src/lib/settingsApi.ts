@@ -149,4 +149,60 @@ uploadFavicon: async (file: File): Promise<{ url: string; fullUrl: string; filen
   /** UPDATE all settings */
   updateAll: (data: Partial<AllSettings>): Promise<void> =>
     unwrap(api.put<ApiResponse<void>>('/settings/all', data)),
+
+  // ─── Companies & Branches ──────────────────────────────────────────
+
+  getCompanies: (): Promise<Company[]> =>
+    unwrap(api.get<ApiResponse<Company[]>>('/companies')),
+
+  createCompany: (data: Omit<Company, 'id' | 'createdAt' | 'branches'>): Promise<Company> =>
+    unwrap(api.post<ApiResponse<Company>>('/companies', data)),
+
+  updateCompany: (id: string, data: Partial<Omit<Company, 'id' | 'createdAt' | 'branches'>>): Promise<Company> =>
+    unwrap(api.put<ApiResponse<Company>>(`/companies/${id}`, data)),
+
+  deleteCompany: (id: string): Promise<boolean> =>
+    unwrap(api.delete<ApiResponse<boolean>>(`/companies/${id}`)),
+
+  createBranch: (companyId: string, data: Omit<Branch, 'id' | 'createdAt'>): Promise<Branch> =>
+    unwrap(api.post<ApiResponse<Branch>>('/companies/branches', { companyId, ...data })),
+
+  updateBranch: (id: string, data: Partial<Omit<Branch, 'id' | 'createdAt'>>): Promise<Branch> =>
+    unwrap(api.put<ApiResponse<Branch>>(`/companies/branches/${id}`, data)),
+
+  deleteBranch: (id: string): Promise<boolean> =>
+    unwrap(api.delete<ApiResponse<boolean>>(`/companies/branches/${id}`)),
 };
+
+export interface Branch {
+  id: string;
+  name: string;
+  code: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  status: 'active' | 'inactive';
+  createdAt: string;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  code: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  status: 'active' | 'inactive';
+  createdAt: string;
+  branches: Branch[];
+}
