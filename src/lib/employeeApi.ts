@@ -108,3 +108,46 @@ export const employeeApi = {
     return res.data.data!.fullUrl;
   }
 };
+
+// ── Face Enrollment API ──────────────────────────────────────────────────────
+
+export interface FaceEnrollmentRecord {
+  id: number;
+  employeeId: string;
+  name: string;
+  email: string;
+  avatarUrl?: string;
+  department?: string;
+  role?: string;
+  status?: string;
+  isEnrolled: boolean;
+  enrolledAt?: string | null;
+  enrolledBy?: string | null;
+  descriptor?: number[] | null;
+}
+
+export const faceEnrollApi = {
+  /** List all employees with their face enrollment status */
+  getList: (params?: { search?: string; status?: "enrolled" | "not_enrolled" }): Promise<FaceEnrollmentRecord[]> => {
+    const query = new URLSearchParams();
+    if (params?.search) query.append("search", params.search);
+    if (params?.status) query.append("status", params.status);
+    return unwrap(api.get<ApiResponse<FaceEnrollmentRecord[]>>(`/face-enrollment?${query.toString()}`));
+  },
+
+  /** Get face descriptor for a specific employee */
+  getDescriptor: (employeeId: string): Promise<FaceEnrollmentRecord> =>
+    unwrap(api.get<ApiResponse<FaceEnrollmentRecord>>(`/face-enrollment/${employeeId}`)),
+
+  /** Enroll or re-enroll face descriptor */
+  enroll: (employeeId: string, descriptor: number[], enrolledBy?: string): Promise<{ employeeId: string; name: string; enrolledAt: string }> =>
+    unwrap(api.post<ApiResponse<{ employeeId: string; name: string; enrolledAt: string }>>(
+      `/face-enrollment/${employeeId}`,
+      { descriptor, enrolledBy }
+    )),
+
+  /** Delete face enrollment for an employee */
+  deleteEnrollment: (employeeId: string): Promise<void> =>
+    unwrap(api.delete<ApiResponse<void>>(`/face-enrollment/${employeeId}`)),
+};
+

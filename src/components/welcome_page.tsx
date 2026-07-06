@@ -15,6 +15,8 @@ import {
   ChevronUp,
   X,
   ArrowDown,
+  Briefcase,
+  LogIn,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import logo from "../assets/images/hously-logo.png";
@@ -24,7 +26,9 @@ import TimelineDot from "./TimelineDot";
 
 interface WelcomePageProps {
   onSectorClick: (sectorId: string) => void;
+  onLoginClick: () => void;
 }
+
 
 // Move StatItem component outside to fix React Hook error
 const StatItem = ({
@@ -105,7 +109,7 @@ const StatItem = ({
     </div>
   );
 };
-function WelcomePage({ onSectorClick }: WelcomePageProps) {
+function WelcomePage({ onSectorClick, onLoginClick }: WelcomePageProps) {
   const [showNewBrand, setShowNewBrand] = useState(false);
   const [parallaxOffset, setParallaxOffset] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -290,6 +294,40 @@ function WelcomePage({ onSectorClick }: WelcomePageProps) {
           <img src={logo} alt="Hously Logo" className="h-12 sm:h-16 md:h-20 w-auto object-contain drop-shadow-2xl" />
         </div>
 
+        {/* Top Right Navigation Actions */}
+        <div className="fixed top-2 right-2 sm:top-4 sm:right-4 md:top-6 md:right-6 z-40 flex items-center gap-3 sm:gap-4 animate-fade-in select-none">
+          {/* Careers Button with Floating Blinking Hiring Badge */}
+          <div className="relative">
+            {/* Blinking Hiring Badge */}
+            <span className="absolute -top-2.5 -right-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500 text-white font-extrabold text-[8px] sm:text-[9px] uppercase tracking-wider animate-pulse shadow-md shadow-emerald-500/30 border border-emerald-400 select-none pointer-events-none">
+              <span className="relative flex h-1 w-1">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1 w-1 bg-white"></span>
+              </span>
+              Hiring
+            </span>
+
+            {/* Careers Button */}
+            <Link
+              to="/career"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/95 backdrop-blur-md border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-slate-700 rounded-full shadow-sm hover:shadow-md transition-all duration-300 font-semibold text-[10px] sm:text-xs group"
+            >
+              <Briefcase className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-slate-500 group-hover:scale-110 transition-transform" />
+              <span>Careers</span>
+            </Link>
+          </div>
+
+          {/* Login Button */}
+          <button
+            onClick={onLoginClick}
+            className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 bg-[#0076d8] hover:bg-[#0066c0] text-white rounded-full shadow-md shadow-[#0076d8]/10 hover:shadow-lg hover:shadow-[#0076d8]/20 transition-all duration-300 font-semibold text-[10px] sm:text-xs group"
+          >
+            <LogIn className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-white/90 group-hover:translate-x-0.5 transition-transform" />
+            <span>Login</span>
+          </button>
+        </div>
+
+
         {/* Background Elements */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMDAwMDAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-10 sm:opacity-20 md:opacity-40"></div>
 
@@ -462,9 +500,9 @@ function WelcomePage({ onSectorClick }: WelcomePageProps) {
                     {/* Pillars */}
                     <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 mt-4 sm:mt-5 px-4">
                       {[
-                        { label: "Real Estate", icon: Building2, color: "indigo" },
-                        { label: "Finance", icon: TrendingUp, color: "emerald" },
-                        { label: "Technology", icon: Cpu, color: "blue" },
+                        { id: "real-estate", label: "Real Estate", icon: Building2, color: "indigo" },
+                        { id: "finance", label: "Finance", icon: TrendingUp, color: "emerald" },
+                        { id: "it-tech", label: "Technology", icon: Cpu, color: "blue" },
                       ].map((pillar, i) => {
                         const Icon = pillar.icon;
                         const colorMap: any = {
@@ -492,9 +530,11 @@ function WelcomePage({ onSectorClick }: WelcomePageProps) {
                         return (
                           <div
                             key={i}
-                            className="group relative opacity-0 animate-fade-in-up"
+                            onClick={() => pillar.id === "real-estate" || pillar.id === "finance" ? setActiveModal(pillar.id as any) : onSectorClick(pillar.id)}
+                            className="group relative opacity-0 animate-fade-in-up cursor-pointer active:scale-95 transition-transform"
                             style={{ animationDelay: `${900 + i * 120}ms` }}
                           >
+
                             {/* Glow effect on hover */}
                             <div className={`absolute inset-0 ${colors.highlight} rounded-2xl blur-xl opacity-0 
                                 group-hover:opacity-100 transition-opacity duration-500`} />
