@@ -31,8 +31,8 @@ export interface Application {
   applicant_name: string;
   email: string;
   phone: string | null;
-  experience_level?: string | null; 
-  cover_letter: string | null;
+  experience_level?: string | null;
+
   resume_path: string | null;
   status: 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired';
   notes: string | null;
@@ -40,6 +40,47 @@ export interface Application {
   updated_at: string;
   linkedin?: string | null;
   portfolio?: string | null;
+
+  // Custom Detail Fields
+  branch?: string | null;
+  education_list?: string | null;
+  cover_letter?: string | null;
+  gender?: string | null;
+  current_city?: string | null;
+  state?: string | null;
+  whatsapp?: string | null;
+  dob?: string | null;
+  country?: string | null;
+  current_address?: string | null;
+  candidate_type?: string | null;
+  fresher_studying?: string | null;
+  current_company?: string | null;
+  designation?: string | null;
+  employment_status?: string | null;
+  industry?: string | null;
+  total_experience?: string | null;
+  relevant_experience?: string | null;
+  current_ctc?: string | null;
+  expected_ctc?: string | null;
+  notice_period?: string | null;
+  college?: string | null;
+  university?: string | null;
+  degree?: string | null;
+  semester?: string | null;
+  expected_grad_year?: string | null;
+  duration?: string | null;
+  available_from?: string | null;
+  stipend_pref?: string | null;
+  prev_companies?: string | null;
+  primary_skills?: string | null;
+  secondary_skills?: string | null;
+  skill_level?: string | null;
+  languages?: string | null;
+  earliest_joining_date?: string | null;
+  preferred_work_mode?: string | null;
+  willing_to_relocate?: string | null;
+  preferred_interview_time?: string | null;
+  why_consider?: string | null;
 }
 
 export interface JobStats {
@@ -74,8 +115,8 @@ export interface JobFilters {
 export interface ApplicationFilters {
   job_id?: number;
   status?: string;
-  experience_level?: string; 
-  job_title?: string; 
+  experience_level?: string;
+  job_title?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -83,6 +124,9 @@ export interface ApplicationFilters {
   order?: 'asc' | 'desc';
   startDate?: string;
   endDate?: string;
+  gender?: string;
+  city?: string;
+  state?: string;
 }
 
 export interface JobPayload {
@@ -118,12 +162,12 @@ export const careerApi = {
   /** GET all jobs with filters */
   getJobs: async (filters?: JobFilters): Promise<{ jobs: Job[]; total: number; totalPages: number }> => {
     const params = new URLSearchParams();
-    
+
     if (filters?.search) params.append('search', filters.search);
     if (filters?.department && filters.department !== 'all') params.append('department', filters.department);
     if (filters?.location && filters.location !== 'all') params.append('location', filters.location);
     if (filters?.job_type && filters.job_type !== 'all') params.append('job_type', filters.job_type);
-    
+
     // FIX: Handle active filter correctly
     if (filters?.active === 'true') {
       params.append('active', 'true');
@@ -131,22 +175,22 @@ export const careerApi = {
       params.append('active', 'false');
     }
     // If 'all' or undefined, don't send the parameter at all
-    
+
     if (filters?.page) params.append('page', filters.page.toString());
     if (filters?.limit) params.append('limit', filters.limit.toString());
     if (filters?.sort) params.append('sort', filters.sort);
     if (filters?.order) params.append('order', filters.order);
-    
-    const res:any = await api.get<ApiResponse<{ jobs: Job[]; total: number; totalPages: number }>>(
+
+    const res: any = await api.get<ApiResponse<{ jobs: Job[]; total: number; totalPages: number }>>(
       `/career/jobs${params.toString() ? `?${params}` : ''}`
     );
-    
+
     // Parse JSON fields if they're strings
     if (res.data.data?.jobs) {
-      res.data.data.jobs = res.data.data.jobs.map((job:any) => ({
+      res.data.data.jobs = res.data.data.jobs.map((job: any) => ({
         ...job,
-        requirements: typeof job.requirements === 'string' 
-          ? job.requirements 
+        requirements: typeof job.requirements === 'string'
+          ? job.requirements
           : Array.isArray(job.requirements) ? job.requirements.join('\n') : '',
         responsibilities: typeof job.responsibilities === 'string'
           ? job.responsibilities
@@ -156,7 +200,7 @@ export const careerApi = {
           : Array.isArray(job.benefits) ? job.benefits.join('\n') : '',
       }));
     }
-    
+
     return unwrap(res);
   },
 
@@ -225,13 +269,16 @@ export const careerApi = {
     if (filters?.search) params.append('search', filters.search);
     if (filters?.startDate) params.append('startDate', filters.startDate);
     if (filters?.endDate) params.append('endDate', filters.endDate);
+    if (filters?.gender && filters.gender !== 'all') params.append('gender', filters.gender);
+    if (filters?.city && filters.city !== 'all') params.append('city', filters.city);
+    if (filters?.state && filters.state !== 'all') params.append('state', filters.state);
     return unwrap(api.get<ApiResponse<{ applications: Application[]; total: number; totalPages: number }>>(
       `/career/applications${params.toString() ? `?${params}` : ''}`
     ));
   },
 
   deleteApplication: (id: number): Promise<void> =>
-  unwrap(api.delete<ApiResponse<void>>(`/career/applications/${id}`)),
+    unwrap(api.delete<ApiResponse<void>>(`/career/applications/${id}`)),
 
   /** SUBMIT application (public - with file upload) */
   submitApplication: async (payload: ApplicationPayload): Promise<{ id: number }> => {
@@ -240,13 +287,13 @@ export const careerApi = {
     formData.append('applicant_name', payload.applicant_name);
     formData.append('email', payload.email);
     if (payload.phone) formData.append('phone', payload.phone);
-    if (payload.cover_letter) formData.append('cover_letter', payload.cover_letter);
+
     if (payload.resume) formData.append('resume', payload.resume);
-    
+
     const res = await api.post<ApiResponse<{ id: number }>>('/career/applications', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
-    
+
     if (!res.data.success) {
       throw new Error(res.data.message || 'Failed to submit application');
     }
@@ -263,10 +310,10 @@ export const careerApi = {
   getJobStats: async (): Promise<JobStats> => {
     const res = await careerApi.getJobs({ limit: 1000 });
     const allJobs = res.jobs;
-    
+
     const deptSet = new Set(allJobs.map(job => job.department).filter(Boolean));
     const locSet = new Set(allJobs.map(job => job.location).filter(Boolean));
-    
+
     return {
       total: allJobs.length,
       active: allJobs.filter(job => job.is_active).length,
@@ -299,18 +346,18 @@ export const careerApi = {
     unwrap(api.get<ApiResponse<Application[]>>(`/career/applications/recent?limit=${limit}`)),
 
 
-  scheduleInterview: (appId: number, data: any) => 
-  api.post(`/career/applications/${appId}/interview`, data),
-addFollowUp: (appId: number, message: string) => 
-  api.post(`/career/applications/${appId}/followup`, { message }),
-getTimeline: (appId: number) => 
-  api.get(`/career/applications/${appId}/timeline`),
-updateInterviewStatus: (followupId: number, status: string) => 
-  api.put(`/career/followups/${followupId}/status`, { status }),
+  scheduleInterview: (appId: number, data: any) =>
+    api.post(`/career/applications/${appId}/interview`, data),
+  addFollowUp: (appId: number, message: string) =>
+    api.post(`/career/applications/${appId}/followup`, { message }),
+  getTimeline: (appId: number) =>
+    api.get(`/career/applications/${appId}/timeline`),
+  updateInterviewStatus: (followupId: number, status: string) =>
+    api.put(`/career/followups/${followupId}/status`, { status }),
 
   addInteraction: (appId: number, type: string, subject: string, notes: string) =>
     api.post(`/career/applications/${appId}/interaction`, { type, subject, notes }),
-  
+
   importApplications: (applications: any[]): Promise<{ importedCount: number }> =>
     unwrap(api.post<ApiResponse<{ importedCount: number }>>('/career/applications/import', { applications })),
 };

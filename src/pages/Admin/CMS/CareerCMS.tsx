@@ -18,7 +18,10 @@ import {
   Calendar,
   MessageSquare,
   Phone,
-  Video
+  Video,
+  User,
+  GraduationCap,
+  HelpCircle
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { careerApi, type Job, type Application, type JobStats, type ApplicationStats } from '../../../lib/careerApi';
@@ -484,6 +487,19 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     { value: "9+ years", label: "9+ years" },
   ];
 
+  const SPECIALIZATION_MAP: Record<string, string[]> = {
+    'B.TECH': ['CSE', 'IT', 'AI & ML', 'DS', 'Cyber Security', 'ECE', 'EE', 'ME', 'CE', 'other'],
+    'M.Tech': ['CSE', 'AI', 'ML', 'DS', 'Cyber Security', 'SE', 'Power Systems', 'Structural', 'other'],
+    'Diploma': ['CE', 'ME', 'EE', 'ECE', 'IT', 'Auto', 'Civil', 'other'],
+    'B.COM': ['Accounting', 'Finance', 'Banking', 'Taxation', 'Marketing', 'HR', 'Economics', 'IB', 'other'],
+    'MBA': ['Marketing', 'Finance', 'HR', 'Operations', 'Business Analytics', 'IT', 'IB', 'SCM', 'Digital Marketing', 'other'],
+    'BSC': ['CS', 'IT', 'DS', 'AI', 'Maths', 'Physics', 'Chemistry', 'Biology', 'Biotechnology', 'Microbiology', 'Agriculture', 'Nursing', 'other'],
+    'DCA': ['Computer Apps', 'Web Design', 'Programming', 'DBMS', 'Networking', 'Tally', 'MS Office', 'other'],
+    'BBA': ['Marketing', 'Finance', 'HR', 'Business Analytics', 'Digital Marketing', 'Sales', 'Retail', 'IB', 'SCM', 'Entrepreneurship', 'other'],
+    'CA': ['Audit', 'Taxation', 'GST', 'Finance', 'Risk', 'Forensic', 'Consulting', 'Investment Banking', 'other'],
+    'OTHER': ['other']
+  };
+
   // States
   const [jobs, setJobs] = useState<Job[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -628,6 +644,11 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [positionFilter, setPositionFilter] = useState('all');
   const [experienceFilter, setExperienceFilter] = useState('all');
+  const [genderFilter, setGenderFilter] = useState('all');
+  const [cityFilter, setCityFilter] = useState('all');
+  const [stateFilter, setStateFilter] = useState('all');
+  const [eduBranchFilter, setEduBranchFilter] = useState('all');
+  const [eduSpecFilter, setEduSpecFilter] = useState('all');
 
   // Custom Date Filters & Side drawer states
   const [startDate, setStartDate] = useState('');
@@ -640,7 +661,9 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     applicant: '',
     position: '',
     experience: '',
-    status: ''
+    status: '',
+    mobile: '',
+    branch: ''
   });
 
 
@@ -650,7 +673,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
 
   // Candidate Details Popup State
   const [viewingCandidateApp, setViewingCandidateApp] = useState<Application | null>(null);
-  const [candidatePopupTab, setCandidatePopupTab] = useState<'basic' | 'profiles' | 'experience' | 'resume'>('basic');
+  const [candidatePopupTab, setCandidatePopupTab] = useState<'overview' | 'personal' | 'candidate' | 'education' | 'statement'>('overview');
 
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
@@ -743,7 +766,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     fetchAllData();
     fetchAppStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, currentPage, itemsPerPage, statusFilter, departmentFilter, locationFilter, jobTypeFilter, statusViewFilter, sortField, sortDirection, searchTerm, positionFilter, experienceFilter, startDate, endDate, ignoreDate]); // ✅ ADD experienceFilter and date filters
+  }, [activeTab, currentPage, itemsPerPage, statusFilter, departmentFilter, locationFilter, jobTypeFilter, statusViewFilter, sortField, sortDirection, searchTerm, positionFilter, experienceFilter, startDate, endDate, ignoreDate, genderFilter, cityFilter, stateFilter]); // ✅ ADD experienceFilter, date filters, gender, city, state
 
   const fetchAllData = async () => {
     try {
@@ -805,6 +828,9 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
         experience_level: experienceFilter !== 'all' ? experienceFilter : undefined, // ✅ ADD THIS
         startDate: !ignoreDate ? (startDate || undefined) : undefined,
         endDate: !ignoreDate ? (endDate || undefined) : undefined,
+        gender: genderFilter !== 'all' ? genderFilter : undefined,
+        city: cityFilter !== 'all' ? cityFilter : undefined,
+        state: stateFilter !== 'all' ? stateFilter : undefined,
         page: currentPage,
         limit: itemsPerPage,
         sort: sortField || undefined,
@@ -846,13 +872,227 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
           const found = res.applications.find(a => a.id === appId);
           if (found) {
             setViewingCandidateApp(found);
-            setCandidatePopupTab('basic');
+            setCandidatePopupTab('overview');
           }
         }).catch(console.error);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location, hasOpenedApp]);
+
+  const getBranchVal = (app: Application) => {
+    if (app.branch) return app.branch;
+    if (!app.education_list) return '';
+    try {
+      const edu = typeof app.education_list === 'string' ? JSON.parse(app.education_list) : app.education_list;
+      if (Array.isArray(edu) && edu.length > 0) {
+        for (const item of edu) {
+          if (item.branch) return item.branch;
+          if (item.specialization) return item.specialization;
+          if (item.stream) return item.stream;
+        }
+      }
+    } catch (e) {}
+    return '';
+  };
+
+  const getBranchSpecVal = (app: Application) => {
+    let branch = app.branch || '';
+    let spec = '';
+    if (!branch && app.education_list) {
+      try {
+        const edu = typeof app.education_list === 'string' ? JSON.parse(app.education_list) : app.education_list;
+        if (Array.isArray(edu) && edu.length > 0) {
+          for (const item of edu) {
+            if (item.branch) {
+              branch = item.branch;
+            }
+            if (item.specialization) {
+              spec = item.specialization;
+            }
+            if (item.stream) {
+              spec = item.stream;
+            }
+            if (branch || spec) break;
+          }
+        }
+      } catch (e) {}
+    } else if (app.education_list) {
+      try {
+        const edu = typeof app.education_list === 'string' ? JSON.parse(app.education_list) : app.education_list;
+        if (Array.isArray(edu) && edu.length > 0) {
+          for (const item of edu) {
+            if (item.specialization) {
+              spec = item.specialization;
+              break;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (branch && spec) return `${branch} (${spec})`;
+    return branch || spec || '—';
+  };
+
+  const checkEducationBranch = (app: Application, selectedBranch: string) => {
+    if (!selectedBranch || selectedBranch === 'all') return true;
+    
+    const normalize = (s: string) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normSelected = normalize(selectedBranch);
+
+    if (app.branch && normalize(app.branch) === normSelected) return true;
+    if (!app.education_list) return false;
+
+    try {
+      const edu = typeof app.education_list === 'string' ? JSON.parse(app.education_list) : app.education_list;
+      if (Array.isArray(edu)) {
+        return edu.some(item => {
+          const val = item.branch || item.eduLevel || item.degree || '';
+          return normalize(val) === normSelected;
+        });
+      }
+    } catch {}
+    return false;
+  };
+
+  const checkEducationSpecialization = (app: Application, selectedSpec: string) => {
+    if (!selectedSpec || selectedSpec === 'all') return true;
+    
+    const normalize = (s: string) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normSelected = normalize(selectedSpec);
+
+    if (!app.education_list) return false;
+
+    try {
+      const edu = typeof app.education_list === 'string' ? JSON.parse(app.education_list) : app.education_list;
+      if (Array.isArray(edu)) {
+        return edu.some(item => {
+          const val = item.specialization || item.stream || '';
+          return normalize(val) === normSelected;
+        });
+      }
+    } catch {}
+    return false;
+  };
+
+  // Parse the dossier cover_letter markdown text
+  const parseDossier = (coverLetter: string) => {
+    const sections: { [key: string]: string } = {};
+    if (!coverLetter) return sections;
+
+    const parts = coverLetter.split(/(?=(?:###|##) )/);
+    parts.forEach(part => {
+      const lines = part.trim().split('\n');
+      const firstLine = lines[0] || '';
+      const headingMatch = firstLine.match(/^(?:###|##)\s+(.*)$/);
+
+      if (headingMatch) {
+        const heading = headingMatch[1].trim().toUpperCase();
+        const content = lines.slice(1).join('\n').trim();
+
+        if (heading.includes('PERSONAL DETAILS')) {
+          sections['PERSONAL'] = content;
+        } else if (heading.includes('CANDIDATE TYPE')) {
+          const typeMatch = heading.match(/CANDIDATE TYPE:\s*(.*)$/i);
+          sections['CANDIDATE_TYPE_NAME'] = typeMatch ? typeMatch[1].trim() : '';
+          sections['CANDIDATE_TYPE'] = content;
+        } else if (heading.includes('EDUCATION')) {
+          sections['EDUCATION'] = content;
+        } else if (heading.includes('SKILLS')) {
+          sections['SKILLS'] = content;
+        } else if (heading.includes('AVAILABILITY')) {
+          sections['AVAILABILITY'] = content;
+        } else if (heading.includes('CANDIDATE STATEMENT')) {
+          sections['STATEMENT'] = content;
+        }
+      }
+    });
+    return sections;
+  };
+
+  const getValueFromDossier = (coverLetter: string, keyName: string) => {
+    if (!coverLetter) return '';
+    const lines = coverLetter.split('\n');
+    for (const line of lines) {
+      const match = line.trim().match(/^-\s+\*\*(.*?)\*\*[:\s]+(.*)$/);
+      if (match && match[1].toLowerCase().replace(/\s/g, '').includes(keyName.toLowerCase().replace(/\s/g, ''))) {
+        return match[2].trim();
+      }
+    }
+    return '';
+  };
+
+  const renderSectionContent = (content: string) => {
+    if (!content) return null;
+
+    const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+
+    return (
+      <div className="space-y-2 select-text">
+        {lines.map((line, idx) => {
+          const bulletMatch = line.match(/^-\s+\*\*(.*?)\*\*[:\s]+(.*)$/);
+          if (bulletMatch) {
+            const val = bulletMatch[2].trim();
+            const cleanVal = (val === '—' || val === 'Same' || val === 'Not Provided' || val === 'undefined') ? '' : val;
+            return (
+              <div key={idx} className="flex flex-col sm:flex-row sm:justify-between py-1.5 border-b border-slate-100 last:border-0 text-xs bg-white hover:bg-slate-50/40 px-1 rounded transition-all">
+                <span className="font-extrabold text-slate-400 sm:w-1/3 text-left">{bulletMatch[1]}:</span>
+                <span className="font-extrabold text-slate-700 sm:w-2/3 text-left whitespace-pre-line leading-relaxed">{cleanVal}</span>
+              </div>
+            );
+          }
+
+          const numberMatch = line.match(/^(\d+)\.\s+(.*)$/);
+          if (numberMatch) {
+            let cleanText = numberMatch[2]
+              .replace(/\*\*/g, '')
+              .replace(/\*/g, '')
+              .replace(/_/g, '');
+            
+            cleanText = cleanText.replace(/:\s*(?:—|Same|Not Provided|undefined)/gi, ': ');
+            
+            return (
+              <div key={idx} className="flex gap-2.5 py-2 border-b border-slate-100 last:border-0 text-xs items-start">
+                <span className="w-5 h-5 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-bold text-[#0D47A1] shrink-0 text-[10px]">{numberMatch[1]}</span>
+                <span className="font-extrabold text-slate-700 select-text text-left leading-relaxed">{cleanText}</span>
+              </div>
+            );
+          }
+
+          if (line.startsWith('- ')) {
+            let cleanText = line.substring(2).replace(/\*\*/g, '').replace(/\*/g, '');
+            const colonIndex = cleanText.indexOf(':');
+            if (colonIndex !== -1) {
+              const key = cleanText.substring(0, colonIndex).trim();
+              const val = cleanText.substring(colonIndex + 1).trim();
+              const cleanVal = (val === '—' || val === 'Same' || val === 'Not Provided' || val === 'undefined') ? '' : val;
+              return (
+                <div key={idx} className="flex gap-2 py-1.5 border-b border-slate-100 last:border-0 text-xs items-start">
+                  <span className="text-[#0D47A1] font-bold shrink-0">•</span>
+                  <span className="font-extrabold text-slate-400 w-1/3 text-left">{key}:</span>
+                  <span className="font-extrabold text-slate-700 w-2/3 text-left leading-relaxed">{cleanVal}</span>
+                </div>
+              );
+            }
+
+            return (
+              <div key={idx} className="flex gap-2 py-1.5 border-b border-slate-100 last:border-0 text-xs items-start">
+                <span className="text-[#0D47A1] font-bold shrink-0">•</span>
+                <span className="font-extrabold text-slate-700 select-text text-left leading-relaxed">{cleanText}</span>
+              </div>
+            );
+          }
+
+          return (
+            <p key={idx} className="text-xs font-bold text-slate-700 leading-relaxed whitespace-pre-line text-left py-1">
+              {line.replace(/\*\*/g, '').replace(/\*/g, '').replace(/:\s*(?:—|Same|Not Provided|undefined)/gi, ': ')}
+            </p>
+          );
+        })}
+      </div>
+    );
+  };
 
   const fetchTimeline = async (appId: number) => {
     try {
@@ -1074,6 +1314,10 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       prev.map(app => app.id === id ? { ...app, status } : app)
     );
 
+    if (viewingCandidateApp && viewingCandidateApp.id === id) {
+      setViewingCandidateApp(prev => prev ? { ...prev, status } : null);
+    }
+
     setProcessingIds(prev => new Set(prev).add(id));
 
     try {
@@ -1086,6 +1330,9 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       setApplications(prev =>
         prev.map(app => app.id === id ? { ...app, status: currentApp?.status || 'pending' } : app)
       );
+      if (viewingCandidateApp && viewingCandidateApp.id === id) {
+        setViewingCandidateApp(prev => prev ? { ...prev, status: currentApp?.status || 'pending' } : null);
+      }
       console.error(err);
       toast.error('Failed to update application status');
     } finally {
@@ -1256,8 +1503,8 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       };
 
       const csvHeaders = [
-        'ID', 'Applicant Name', 'Email', 'Phone', 'Job Title', 
-        'Job ID', 'Experience Level', 'Status', 'Applied At', 
+        'ID', 'Applicant Name', 'Email', 'Phone', 'Job Title',
+        'Job ID', 'Experience Level', 'Status', 'Applied At',
         'LinkedIn', 'Portfolio', 'Cover Letter', 'Notes'
       ];
 
@@ -1320,11 +1567,11 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
           let row: string[] = [];
           let insideQuote = false;
           let entry = '';
-          
+
           for (let i = 0; i < csvText.length; i++) {
             const char = csvText[i];
             const nextChar = csvText[i + 1];
-            
+
             if (char === '"') {
               if (insideQuote && nextChar === '"') {
                 entry += '"';
@@ -1475,7 +1722,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
         toast.loading(`Importing ${applicationsList.length} application(s) to server...`, { id: importToast });
         const res = await careerApi.importApplications(applicationsList);
         toast.success(`Successfully imported ${res.importedCount} application(s)!`, { id: importToast });
-        
+
         // Refresh page data
         fetchAllData();
       } catch (err: any) {
@@ -1553,6 +1800,11 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     setStatusViewFilter('all');
     setPositionFilter('all');
     setExperienceFilter('all');  // ADD THIS
+    setGenderFilter('all');
+    setCityFilter('all');
+    setStateFilter('all');
+    setEduBranchFilter('all');
+    setEduSpecFilter('all');
 
     setCurrentPage(1);
     setSelectedJobs([]);
@@ -1574,7 +1826,29 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     if (columnFilters.experience && columnFilters.experience !== 'all' && !app.experience_level?.toLowerCase().includes(columnFilters.experience.toLowerCase())) {
       return false;
     }
+    if (columnFilters.mobile && !app.phone?.toLowerCase().includes(columnFilters.mobile.toLowerCase())) {
+      return false;
+    }
+    if (columnFilters.branch && !getBranchVal(app).toLowerCase().includes(columnFilters.branch.toLowerCase())) {
+      return false;
+    }
     if (columnFilters.status && columnFilters.status !== 'all' && app.status !== columnFilters.status) {
+      return false;
+    }
+    // 1b. Additional Side filters (client-side fallback filter logic)
+    if (genderFilter && genderFilter !== 'all' && app.gender !== genderFilter) {
+      return false;
+    }
+    if (cityFilter && cityFilter !== 'all' && app.current_city !== cityFilter) {
+      return false;
+    }
+    if (stateFilter && stateFilter !== 'all' && app.state !== stateFilter) {
+      return false;
+    }
+    if (eduBranchFilter && eduBranchFilter !== 'all' && !checkEducationBranch(app, eduBranchFilter)) {
+      return false;
+    }
+    if (eduSpecFilter && eduSpecFilter !== 'all' && !checkEducationSpecialization(app, eduSpecFilter)) {
       return false;
     }
 
@@ -1631,8 +1905,8 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
 
     return (
       <div className={`flex items-center justify-between gap-2 text-slate-700 ${hasBg
-          ? 'p-2 sm:p-2.5 bg-slate-50 border-t border-slate-200'
-          : 'pt-3 border-t border-slate-200'
+        ? 'p-2 sm:p-2.5 bg-slate-50 border-t border-slate-200'
+        : 'pt-3 border-t border-slate-200'
         }`}>
         {/* Left side - showing info compact */}
         <div className="text-[10px] sm:text-xs text-gray-600 whitespace-nowrap">
@@ -1726,8 +2000,441 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     );
   }
 
+  // Derived values for the candidate detail inline panel — computed here to avoid const inside JSX
+  const emailVal = viewingCandidateApp?.email || '';
+  const phoneVal = viewingCandidateApp?.phone || '';
+
+  const parseJsonArray = (val: any) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    try {
+      return JSON.parse(val);
+    } catch {
+      return [];
+    }
+  };
+
+  const ProfileField = ({ label, value, icon, isLink }: { label: string; value: any; icon?: React.ReactNode; isLink?: boolean }) => {
+    const cleanVal = (val: any) => {
+      if (val === null || val === undefined || val === '—' || val === 'Same' || val === 'Not Provided') {
+        return '';
+      }
+      return String(val).trim();
+    };
+    
+    const displayVal = cleanVal(value);
+
+    return (
+      <div className="flex flex-col space-y-0.5">
+        <span className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider">{label}</span>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50/30 border border-slate-200 rounded-lg min-h-[34px]">
+          {icon && <span className="text-slate-400 shrink-0">{icon}</span>}
+          {isLink && displayVal ? (
+            <a 
+              href={displayVal.startsWith('http') ? displayVal : `https://${displayVal}`}
+              target="_blank" 
+              rel="noreferrer" 
+              className="text-xs font-bold text-blue-600 hover:underline select-text truncate"
+            >
+              {displayVal}
+            </a>
+          ) : (
+            <span className="text-xs font-semibold text-slate-700 select-text truncate">{displayVal || '—'}</span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  if (viewingCandidateApp) {
+    const candidateTabs = [
+      { id: 'overview', label: 'Overview', icon: <FileText size={14} /> },
+      { id: 'personal', label: 'Personal Info', icon: <User size={14} /> },
+      { id: 'candidate', label: 'Work Profile', icon: <Briefcase size={14} /> },
+      { id: 'education', label: 'Education & Skills', icon: <GraduationCap size={14} /> },
+      { id: 'statement', label: 'Availability & Statement', icon: <HelpCircle size={14} /> }
+    ] as const;
+
+    return (
+      <div className="flex flex-col h-full p-4 bg-[#f8fafc] border border-slate-200/60 rounded-xl overflow-hidden select-text animate-modal-content space-y-4 outline-none focus:outline-none focus:ring-0">
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            success: {
+              duration: 3000,
+              style: {
+                background: '#10B981',
+              },
+            },
+            error: {
+              duration: 4000,
+              style: {
+                background: '#EF4444',
+              },
+            },
+            loading: {
+              duration: Infinity,
+            },
+          }}
+        />
+          {/* Block 1: Top Navigation Row (Sticky Card) */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <button
+              onClick={() => setViewingCandidateApp(null)}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-extrabold text-[#5b5f70] hover:text-[#0D47A1] hover:bg-slate-50 rounded-xl transition cursor-pointer outline-none focus:outline-none focus:ring-0"
+            >
+              <ChevronLeft size={16} /> Back to Applications
+            </button>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status:</span>
+              <select
+                value={viewingCandidateApp?.status || 'pending'}
+                onChange={(e) => viewingCandidateApp && handleUpdateApplicationStatus(viewingCandidateApp.id, e.target.value as any)}
+                className={`px-3 py-1 rounded-xl border text-xs font-extrabold focus:ring-1 focus:ring-blue-500 bg-white cursor-pointer transition-all outline-none ${getStatusColor(viewingCandidateApp?.status || 'pending')}`}
+              >
+                <option value="pending">Pending</option>
+                <option value="reviewed">Reviewed</option>
+                <option value="shortlisted">Shortlisted</option>
+                <option value="rejected">Rejected</option>
+                <option value="hired">Hired</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Block 2: Profile Summary Card Block */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col sm:flex-row items-center gap-4 flex-shrink-0">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-[#0D47A1] font-bold text-base shrink-0">
+                {viewingCandidateApp?.applicant_name?.split(' ').map((n: string) => n.charAt(0)).slice(0, 2).join('').toUpperCase()}
+              </div>
+            </div>
+            <div className="text-center sm:text-left flex-1 min-w-0">
+              <h1 className="text-base md:text-lg font-extrabold text-slate-800 leading-tight">{viewingCandidateApp?.applicant_name}</h1>
+              <div className="flex items-center gap-2 mt-1 flex-wrap justify-center sm:justify-start">
+                <span className="text-slate-400 text-[10px] font-semibold">APP-{String(viewingCandidateApp?.id).padStart(3, '0')}</span>
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold ${getStatusColor(viewingCandidateApp?.status || 'pending')}`}>
+                  <span className="w-1 h-1 rounded-full bg-current" />
+                  {viewingCandidateApp?.status}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-500 font-semibold">Applied Position -</span>
+              <span className="bg-[#0D47A1]/5 text-[#0D47A1] px-2.5 py-0.5 rounded-full font-bold border border-[#0D47A1]/20">
+                {viewingCandidateApp?.job_title || 'None'}
+              </span>
+            </div>
+          </div>
+
+          {/* Block 3: Tabs & Content Card Wrapper */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col flex-1 min-h-0 p-4 overflow-hidden">
+            {/* Sticky Tabs Navigation */}
+            <div className="border-b border-slate-200 bg-white mb-2 flex-shrink-0">
+              <div className="flex gap-1 overflow-x-auto">
+                {candidateTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setCandidatePopupTab(tab.id)}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold rounded-t-lg transition whitespace-nowrap cursor-pointer outline-none focus:outline-none focus:ring-0 ${
+                      candidatePopupTab === tab.id
+                        ? "text-[#0D47A1] border-b-2 border-[#0D47A1] bg-[#0D47A1]/5"
+                        : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    {tab.icon} <span>{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Scrollable Tab Content Container */}
+            <div className="flex-1 overflow-y-auto mt-1 pr-1 select-text">
+              
+              {/* Tab 1: Overview */}
+              {candidatePopupTab === 'overview' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fadeIn">
+                  {/* Basic Summary */}
+                  <div className="bg-slate-50/50 border border-slate-100 p-4 rounded-2xl space-y-3">
+                    <p className="text-[11px] font-extrabold text-[#0D47A1] uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
+                      <FileText size={13} />
+                      <span>Application Summary</span>
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <ProfileField label="Full Name" value={viewingCandidateApp?.applicant_name} icon={<User size={13} />} />
+                      <ProfileField label="Email" value={viewingCandidateApp?.email} icon={<Mail size={13} />} />
+                      <ProfileField label="Phone" value={viewingCandidateApp?.phone} icon={<Phone size={13} />} />
+                      <ProfileField label="Position Applied" value={viewingCandidateApp?.job_title} icon={<Briefcase size={13} />} />
+                      <ProfileField label="Experience Level" value={viewingCandidateApp?.experience_level} icon={<Award size={13} />} />
+                      <ProfileField label="Applied Date" value={viewingCandidateApp ? formatDate(viewingCandidateApp.applied_at) : ''} icon={<Calendar size={13} />} />
+                    </div>
+                  </div>
+
+                  {/* Documents & Resume */}
+                  <div className="bg-slate-50/50 border border-slate-100 p-4 rounded-2xl flex flex-col justify-between space-y-3">
+                    <div className="space-y-3">
+                      <p className="text-[11px] font-extrabold text-[#0D47A1] uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
+                        <FileText size={13} />
+                        <span>Candidate Documents</span>
+                      </p>
+                      <div className="flex items-center space-x-3 bg-white border border-slate-150 p-3 rounded-xl">
+                        <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-500 border border-red-100 shrink-0">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-700 truncate">Candidate_Resume.pdf</p>
+                          <p className="text-[10px] text-slate-400">PDF Document</p>
+                        </div>
+                      </div>
+                    </div>
+                    {viewingCandidateApp?.resume_path ? (
+                      <button 
+                        onClick={() => viewResume(viewingCandidateApp.resume_path!)} 
+                        className="w-full bg-[#0D47A1] hover:bg-[#1976D2] text-white py-2 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-sm shadow-blue-500/10 animate-pulse-subtle"
+                      >
+                        <Eye size={13} /><span>View Resume in New Tab</span>
+                      </button>
+                    ) : (
+                      <span className="text-xs text-slate-400 font-semibold italic text-center py-2">No resume uploaded.</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: Personal Info */}
+              {candidatePopupTab === 'personal' && (
+                <div className="bg-slate-50/50 border border-slate-100 p-4 rounded-2xl space-y-3 animate-fadeIn">
+                  <p className="text-[11px] font-extrabold text-[#0D47A1] uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
+                    <User size={13} />
+                    <span>Personal & Address Details</span>
+                  </p>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <ProfileField label="Full Name" value={viewingCandidateApp?.applicant_name} icon={<User size={13} />} />
+                    <ProfileField label="Email" value={viewingCandidateApp?.email} icon={<Mail size={13} />} />
+                    <ProfileField label="Phone / Mobile" value={viewingCandidateApp?.phone} icon={<Phone size={13} />} />
+                    <ProfileField label="WhatsApp Number" value={viewingCandidateApp?.whatsapp} icon={<Phone size={13} />} />
+                    <ProfileField label="Gender" value={viewingCandidateApp?.gender} icon={<Users size={13} />} />
+                    <ProfileField label="Date of Birth" value={viewingCandidateApp?.dob} icon={<Calendar size={13} />} />
+                    <ProfileField label="Current City" value={viewingCandidateApp?.current_city} icon={<MapPin size={13} />} />
+                    <ProfileField label="State / Province" value={viewingCandidateApp?.state} icon={<MapPin size={13} />} />
+                    <ProfileField label="Country" value={viewingCandidateApp?.country} icon={<Globe size={13} />} />
+                    <ProfileField label="LinkedIn Portfolio" value={viewingCandidateApp?.linkedin} icon={<Linkedin size={13} className="text-blue-600" />} isLink />
+                    <ProfileField label="Website / Portfolio" value={viewingCandidateApp?.portfolio} icon={<Globe size={13} className="text-emerald-600" />} isLink />
+                    <div className="col-span-2 lg:col-span-1">
+                      <ProfileField label="Current Address" value={viewingCandidateApp?.current_address} icon={<MapPin size={13} />} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 3: Work Profile */}
+              {candidatePopupTab === 'candidate' && (
+                <div className="bg-slate-50/50 border border-slate-100 p-4 rounded-2xl space-y-3 animate-fadeIn">
+                  <p className="text-[11px] font-extrabold text-[#0D47A1] uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
+                    <Briefcase size={13} />
+                    <span>Candidate Type & Experience</span>
+                  </p>
+
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <ProfileField label="Candidate Classification" value={viewingCandidateApp?.candidate_type} icon={<Briefcase size={13} />} />
+                    
+                    {viewingCandidateApp?.candidate_type === 'fresher' && (
+                      <ProfileField label="Currently Studying?" value={viewingCandidateApp?.fresher_studying} icon={<HelpCircle size={13} />} />
+                    )}
+                    
+                    {viewingCandidateApp?.candidate_type === 'experienced' && (
+                      <>
+                        <ProfileField label="Current Company" value={viewingCandidateApp?.current_company} icon={<Building size={13} />} />
+                        <ProfileField label="Designation" value={viewingCandidateApp?.designation} icon={<Briefcase size={13} />} />
+                        <ProfileField label="Employment Status" value={viewingCandidateApp?.employment_status} icon={<Award size={13} />} />
+                        <ProfileField label="Industry Sector" value={viewingCandidateApp?.industry} icon={<Building size={13} />} />
+                        <ProfileField label="Total Experience" value={viewingCandidateApp?.total_experience} icon={<Briefcase size={13} />} />
+                        <ProfileField label="Relevant Experience" value={viewingCandidateApp?.relevant_experience} icon={<Briefcase size={13} />} />
+                        <ProfileField label="Current CTC" value={viewingCandidateApp?.current_ctc} icon={<IndianRupee size={13} />} />
+                        <ProfileField label="Expected CTC" value={viewingCandidateApp?.expected_ctc} icon={<IndianRupee size={13} />} />
+                        <ProfileField label="Notice Period" value={viewingCandidateApp?.notice_period} icon={<Clock size={13} />} />
+                      </>
+                    )}
+
+                    {viewingCandidateApp?.candidate_type === 'internship' && (
+                      <>
+                        <ProfileField label="College/School" value={viewingCandidateApp?.college} icon={<Building size={13} />} />
+                        <ProfileField label="University Board" value={viewingCandidateApp?.university} icon={<Building size={13} />} />
+                        <ProfileField label="Degree / Course" value={viewingCandidateApp?.degree} icon={<GraduationCap size={13} />} />
+                        <ProfileField label="Branch / Specialization" value={viewingCandidateApp?.branch} icon={<Code size={13} />} />
+                        <ProfileField label="Current Semester" value={viewingCandidateApp?.semester} icon={<Clock size={13} />} />
+                        <ProfileField label="Expected Graduation Year" value={viewingCandidateApp?.expected_grad_year} icon={<Calendar size={13} />} />
+                        <ProfileField label="Internship Duration" value={viewingCandidateApp?.duration} icon={<Clock size={13} />} />
+                        <ProfileField label="Available From Date" value={viewingCandidateApp?.available_from} icon={<Calendar size={13} />} />
+                        <ProfileField label="Stipend Expectation" value={viewingCandidateApp?.stipend_pref} icon={<IndianRupee size={13} />} />
+                      </>
+                    )}
+                  </div>
+
+                  {viewingCandidateApp?.candidate_type === 'experienced' && (
+                    <div className="pt-2 border-t border-slate-100 space-y-2">
+                      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Employment History (Previous Companies)</p>
+                      {(() => {
+                        const list = parseJsonArray(viewingCandidateApp?.prev_companies);
+                        if (list.length === 0) {
+                          return <p className="text-xs text-slate-400 italic">No previous employment details provided.</p>;
+                        }
+                        return (
+                          <div className="border border-slate-150 rounded-xl overflow-hidden text-xs bg-white">
+                            <table className="min-w-full divide-y divide-slate-150">
+                              <thead className="bg-slate-50">
+                                <tr>
+                                  <th className="px-3 py-1.5 text-left font-bold text-slate-500 uppercase tracking-wider">Company</th>
+                                  <th className="px-3 py-1.5 text-left font-bold text-slate-500 uppercase tracking-wider">Role</th>
+                                  <th className="px-3 py-1.5 text-left font-bold text-slate-500 uppercase tracking-wider">Duration</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-slate-100">
+                                {list.map((c: any, index: number) => (
+                                  <tr key={index}>
+                                    <td className="px-3 py-1.5 font-semibold text-slate-700">{c.company || ''}</td>
+                                    <td className="px-3 py-1.5 text-slate-600">{c.designation || ''}</td>
+                                    <td className="px-3 py-1.5 text-slate-500">{c.duration || ''}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 4: Education & Skills */}
+              {candidatePopupTab === 'education' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fadeIn">
+                  {/* Academic History */}
+                  <div className="bg-slate-50/50 border border-slate-100 p-4 rounded-2xl space-y-3">
+                    <p className="text-[11px] font-extrabold text-[#0D47A1] uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
+                      <GraduationCap size={13} />
+                      <span>Academic Qualifications</span>
+                    </p>
+                    {(() => {
+                      const list = parseJsonArray(viewingCandidateApp?.education_list);
+                      if (list.length === 0) {
+                        return <p className="text-xs text-slate-400 italic">No academic history provided.</p>;
+                      }
+                      return (
+                        <div className="border border-slate-150 rounded-xl overflow-hidden text-xs bg-white">
+                          <table className="min-w-full divide-y divide-slate-150">
+                            <thead className="bg-slate-50">
+                              <tr>
+                                <th className="px-3 py-1.5 text-left font-bold text-slate-500 uppercase tracking-wider">Level</th>
+                                <th className="px-3 py-1.5 text-left font-bold text-slate-500 uppercase tracking-wider">Institute</th>
+                                <th className="px-3 py-1.5 text-left font-bold text-slate-500 uppercase tracking-wider">Branch</th>
+                                <th className="px-3 py-1.5 text-left font-bold text-slate-500 uppercase tracking-wider">Year</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-slate-100">
+                              {list.map((edu: any, index: number) => (
+                                <tr key={index}>
+                                  <td className="px-3 py-1.5 font-semibold text-slate-700">{edu.eduLevel || ''}</td>
+                                  <td className="px-3 py-1.5 text-slate-600">{edu.institute || ''}</td>
+                                  <td className="px-3 py-1.5 text-slate-500">{edu.branch || ''}</td>
+                                  <td className="px-3 py-1.5 text-slate-500">{edu.passoutYear || ''}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Skills Portfolio */}
+                  <div className="bg-slate-50/50 border border-slate-100 p-4 rounded-2xl space-y-3">
+                    <p className="text-[11px] font-extrabold text-[#0D47A1] uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
+                      <Briefcase size={13} />
+                      <span>Skills & Competencies</span>
+                    </p>
+                    
+                    <div className="space-y-3">
+                      {/* Primary Skills Tags */}
+                      <div className="flex flex-col border-b border-slate-100 pb-1.5">
+                        <span className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider mb-1">Primary Skills</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {parseJsonArray(viewingCandidateApp?.primary_skills).map((skill: string, i: number) => (
+                            <span key={i} className="bg-blue-50 text-[#0D47A1] border border-blue-100/50 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Secondary Skills Tags */}
+                      <div className="flex flex-col border-b border-slate-100 pb-1.5">
+                        <span className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider mb-1">Secondary Skills</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {parseJsonArray(viewingCandidateApp?.secondary_skills).map((skill: string, i: number) => (
+                            <span key={i} className="bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <ProfileField label="Skill Level" value={viewingCandidateApp?.skill_level} icon={<Award size={13} />} />
+                        <ProfileField label="Languages Known" value={viewingCandidateApp?.languages} icon={<Globe size={13} />} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 5: Availability & Statement */}
+              {candidatePopupTab === 'statement' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fadeIn">
+                  {/* Availability Summary */}
+                  <div className="bg-slate-50/50 border border-slate-100 p-4 rounded-2xl space-y-3">
+                    <p className="text-[11px] font-extrabold text-[#0D47A1] uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
+                      <HelpCircle size={13} />
+                      <span>Availability & Preferences</span>
+                    </p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <ProfileField label="Earliest Joining Date" value={viewingCandidateApp?.earliest_joining_date} icon={<Calendar size={13} />} />
+                      <ProfileField label="Preferred Work Mode" value={viewingCandidateApp?.preferred_work_mode} icon={<Globe size={13} />} />
+                      <ProfileField label="Willing to Relocate?" value={viewingCandidateApp?.willing_to_relocate} icon={<MapPin size={13} />} />
+                      <ProfileField label="Preferred Interview Time" value={viewingCandidateApp?.preferred_interview_time} icon={<Clock size={13} />} />
+                    </div>
+                  </div>
+
+                  {/* Statement Summary */}
+                  <div className="bg-slate-50/50 border border-slate-100 p-4 rounded-2xl space-y-3 flex flex-col justify-between">
+                    <div>
+                      <p className="text-[11px] font-extrabold text-[#0D47A1] uppercase tracking-wider border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-1.5">
+                        <FileText size={13} />
+                        <span>Why should we consider you?</span>
+                      </p>
+                      <div className="bg-white border border-slate-150 rounded-xl p-3 text-xs text-slate-700 leading-relaxed font-semibold italic max-h-[140px] overflow-y-auto whitespace-pre-line text-left shadow-sm select-text">
+                        {viewingCandidateApp?.why_consider || ''}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      );
+    }
+
   return (
-    <div className="flex flex-col h-full px-6 pt-6">
+    <div className="flex flex-col h-full px-6 pt-6 outline-none focus:outline-none focus:ring-0">
       <Toaster
         position="top-right"
         toastOptions={{
@@ -1755,9 +2462,15 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       />
 
       {/* Main Container */}
-      <div className={`bg-transparent font-sans flex flex-col flex-1 min-h-0 transition-all duration-300 ${isSidebarOpen ? 'ml-0 sm:ml-0' : ''
+      <div className={`bg-transparent font-sans flex flex-col flex-1 min-h-0 transition-all duration-300 outline-none focus:outline-none focus:ring-0 ${isSidebarOpen ? 'ml-0 sm:ml-0' : ''
         }`}>
         <style>{`
+          /* Globally disable outlines on focus to prevent black borders from browser focus reset */
+          *:focus, *:focus-visible, *:focus-within {
+            outline: none !important;
+            outline-width: 0 !important;
+            box-shadow: none !important;
+          }
           @keyframes modalFadeIn {
             from { opacity: 0; backdrop-filter: blur(0px); background-color: rgba(15, 23, 42, 0); }
             to { opacity: 1; backdrop-filter: blur(8px); background-color: rgba(15, 23, 42, 0.4); }
@@ -2254,14 +2967,14 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                     </tbody>
                   </table>
                 </div>
-                {renderPagination(true)}
+                {renderPagination(false)}
               </div>
             )
           ) : (
             // Applications Table
-            <div className="flex flex-col flex-1 min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
-              <div className="flex-1 overflow-y-auto min-h-0">
-                <table className="min-w-full border-collapse border border-slate-300">
+            <div className="flex flex-col flex-1 min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-slate-200/60 shadow-sm overflow-hidden outline-none focus:outline-none focus:ring-0">
+              <div className="flex-1 overflow-y-auto min-h-0 outline-none focus:outline-none focus:ring-0">
+                <table className="min-w-full border-collapse border border-slate-300 outline-none focus:outline-none focus:ring-0">
                   <thead className="bg-slate-200/50 backdrop-blur-md sticky top-0 z-20">
                     <tr>
                       <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-8 border-r border-b border-slate-300">
@@ -2277,11 +2990,17 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                       <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-40 border-r border-b border-slate-300">
                         Applicant
                       </th>
+                      <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-28 border-r border-b border-slate-300">
+                        mobile no.
+                      </th>
                       <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-32 border-r border-b border-slate-300">
                         Position
                       </th>
                       <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-24 border-r border-b border-slate-300">
                         Experience
+                      </th>
+                      <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-48 border-r border-b border-slate-300">
+                        Branch / Specialization
                       </th>
                       <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-24 border-r border-b border-slate-300">
                         Status
@@ -2290,7 +3009,6 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                         Actions
                       </th>
                     </tr>
-                    {/* Column Search Bar Row */}
                     <tr className="bg-slate-100/50">
                       <th className="px-2 py-1 border-r border-b border-slate-300"></th>
                       <th className="px-2 py-1 border-r border-b border-slate-300">
@@ -2299,6 +3017,15 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                           placeholder="Search applicant..."
                           value={columnFilters.applicant}
                           onChange={(e) => setColumnFilters({ ...columnFilters, applicant: e.target.value })}
+                          className="w-full px-2 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none"
+                        />
+                      </th>
+                      <th className="px-2 py-1 border-r border-b border-slate-300">
+                        <input
+                          type="text"
+                          placeholder="Search mobile..."
+                          value={columnFilters.mobile}
+                          onChange={(e) => setColumnFilters({ ...columnFilters, mobile: e.target.value })}
                           className="w-full px-2 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none"
                         />
                       </th>
@@ -2324,6 +3051,15 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                           ))}
                         </select>
+                      </th>
+                      <th className="px-2 py-1 border-r border-b border-slate-300">
+                        <input
+                          type="text"
+                          placeholder="Search branch..."
+                          value={columnFilters.branch}
+                          onChange={(e) => setColumnFilters({ ...columnFilters, branch: e.target.value })}
+                          className="w-full px-2 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none"
+                        />
                       </th>
                       <th className="px-2 py-1 border-r border-b border-slate-300">
                         <select
@@ -2367,7 +3103,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                             </div>
                             <div>
                               <div className="text-[11px] font-bold text-slate-800 leading-tight">{app.applicant_name}</div>
-                              <div 
+                              <div
                                 onClick={() => {
                                   const subject = `Interview Schedule: ${app.job_title || 'Position'} - Hously`;
                                   const body = `Dear ${app.applicant_name},\n\nThank you for applying for the ${app.job_title || 'Position'} role at Hously.\n\nWe have reviewed your application and would like to invite you for an interview. Here are the details:\n\n- Date: [Enter Date, e.g., July 6]\n- Time: [Enter Time, e.g., 3:00 PM]\n- Mode: [Online (Google Meet) / In-person]\n- Link/Address: [Meeting Link or Address]\n\nPlease let us know if this works for you.\n\nBest regards,\nHously HR Team`;
@@ -2382,11 +3118,19 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                           </div>
                         </td>
                         <td className="px-2 py-1 border-r border-b border-slate-200">
+                          <div className="text-[11px] text-slate-600 font-bold">{app.phone || '—'}</div>
+                        </td>
+                        <td className="px-2 py-1 border-r border-b border-slate-200">
                           <div className="text-[11px] font-semibold text-slate-700 leading-tight">{app.job_title || 'N/A'}</div>
                           <div className="text-[9px] text-slate-400 mt-0.5 leading-none">{formatDate(app.applied_at)}</div>
                         </td>
                         <td className="px-2 py-1 border-r border-b border-slate-200">
                           <div className="text-[11px] text-slate-500 font-semibold">{app.experience_level || '—'}</div>
+                        </td>
+                        <td className="px-2 py-1 border-r border-b border-slate-200">
+                          <div className="text-[11px] text-slate-600 font-bold truncate max-w-[150px]" title={getBranchSpecVal(app) || ''}>
+                            {getBranchSpecVal(app)}
+                          </div>
                         </td>
                         <td className="px-2 py-1 border-r border-b border-slate-200">
                           <select
@@ -2403,26 +3147,25 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                         </td>
                         <td className="px-2 py-1 border-b border-slate-200 text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => {
+                                setViewingCandidateApp(app);
+                                setCandidatePopupTab('overview');
+                              }}
+                              className="p-0.5 text-indigo-600 hover:bg-indigo-50 border border-indigo-100 rounded cursor-pointer transition-all"
+                              title="View Candidate Details"
+                            >
+                              <Eye size={11} />
+                            </button>
+
                             {app.resume_path && (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setViewingCandidateApp(app);
-                                    setCandidatePopupTab('basic');
-                                  }}
-                                  className="p-0.5 text-indigo-600 hover:bg-indigo-50 border border-indigo-100 rounded cursor-pointer transition-all"
-                                  title="View Candidate Details"
-                                >
-                                  <Eye size={11} />
-                                </button>
-                                <button
-                                  onClick={() => downloadResume(app.resume_path!)}
-                                  className="p-0.5 text-purple-600 hover:bg-purple-50 border border-purple-100 rounded cursor-pointer transition-all"
-                                  title="Download Resume"
-                                >
-                                  <Download size={11} />
-                                </button>
-                              </>
+                              <button
+                                onClick={() => downloadResume(app.resume_path!)}
+                                className="p-0.5 text-purple-600 hover:bg-purple-50 border border-purple-100 rounded cursor-pointer transition-all"
+                                title="Download Resume"
+                              >
+                                <Download size={11} />
+                              </button>
                             )}
 
                             <button
@@ -2516,175 +3259,6 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
         />
       )}
 
-      {/* ========== CANDIDATE DETAILS POPUP ========== */}
-      {viewingCandidateApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-modal-backdrop bg-slate-900/60 backdrop-blur-sm">
-          <div className="fixed inset-0 cursor-default" onClick={() => setViewingCandidateApp(null)} />
-          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 animate-modal-content overflow-hidden flex flex-col justify-between">
-            {/* Header */}
-            <div className="flex justify-between items-center px-5 py-3.5 border-b border-slate-100 bg-white flex-shrink-0">
-              <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-[#0D47A1] font-bold text-xs">
-                  {viewingCandidateApp.applicant_name
-                    ?.split(" ")
-                    .map((n: string) => n.charAt(0))
-                    .slice(0, 2)
-                    .join("")
-                    .toUpperCase()}
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-slate-800 text-xs sm:text-sm leading-tight">
-                    {viewingCandidateApp.applicant_name}
-                  </h3>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                    {viewingCandidateApp.job_title || 'Candidate'}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setViewingCandidateApp(null)}
-                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-lg transition-all cursor-pointer z-20"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Content Area - Two Columns, No tabs, No next, all in one view! */}
-            <div className="flex-1 p-5 flex flex-col sm:flex-row gap-5 overflow-hidden min-h-0 select-text bg-white">
-
-              {/* Left Column: Personal details + Resume */}
-              <div className="flex-1 flex flex-col justify-between space-y-4">
-                <div className="bg-white border border-slate-200/60 p-3.5 rounded-xl space-y-2.5 text-[11px] text-slate-600 shadow-sm">
-                  <p className="text-[10px] font-extrabold text-blue-600 uppercase tracking-wider mb-1">Basic Details</p>
-
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="font-semibold text-slate-400">Email:</span>
-                    <span 
-                      onClick={() => {
-                        const subject = `Interview Schedule: ${viewingCandidateApp.job_title || 'Position'} - Hously`;
-                        const body = `Dear ${viewingCandidateApp.applicant_name},\n\nThank you for applying for the ${viewingCandidateApp.job_title || 'Position'} role at Hously.\n\nWe have reviewed your application and would like to invite you for an interview. Here are the details:\n\n- Date: [Enter Date, e.g., July 6]\n- Time: [Enter Time, e.g., 3:00 PM]\n- Mode: [Online (Google Meet) / In-person]\n- Link/Address: [Meeting Link or Address]\n\nPlease let us know if this works for you.\n\nBest regards,\nHously HR Team`;
-                        window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${viewingCandidateApp.email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
-                      }}
-                      className="font-bold text-slate-700 select-text truncate max-w-[170px] cursor-pointer hover:text-blue-600 hover:underline" 
-                      title="Email candidate with template"
-                    >
-                      {viewingCandidateApp.email}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="font-semibold text-slate-400">Phone:</span>
-                    <span className="font-bold text-slate-700 select-text">{viewingCandidateApp.phone || '—'}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="font-semibold text-slate-400">Applied:</span>
-                    <span className="font-bold text-slate-700">{formatDate(viewingCandidateApp.applied_at)}</span>
-                  </div>
-                  <div className="flex justify-between py-1 items-center">
-                    <span className="font-semibold text-slate-400">Status:</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${getStatusColor(viewingCandidateApp.status)}`}>
-                      {viewingCandidateApp.status.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Resume Card & Button */}
-                <div className="bg-white border border-slate-200/60 p-3 rounded-xl flex flex-col justify-center space-y-2 shadow-sm">
-                  <div className="flex items-center space-x-2 bg-slate-50 border border-slate-100 p-2 rounded-lg">
-                    <div className="w-7 h-7 rounded bg-red-50 flex items-center justify-center text-red-500 border border-red-100 shrink-0">
-                      <FileText className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-bold text-slate-700 truncate">Candidate_Resume.pdf</p>
-                      <p className="text-[9px] text-slate-400">PDF Document</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => viewResume(viewingCandidateApp.resume_path!)}
-                    className="w-full bg-[#0D47A1] hover:bg-[#1976D2] text-white py-1.5 rounded-lg text-[10px] font-bold transition shadow-sm shadow-blue-500/20 flex items-center justify-center space-x-1.5 cursor-pointer"
-                  >
-                    <Eye size={11} />
-                    <span>View Resume in New Tab</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Right Column: Profiles, Experience & Message */}
-              <div className="flex-1 flex flex-col justify-between space-y-4">
-                <div className="bg-white border border-slate-200/60 p-3.5 rounded-xl space-y-2.5 text-[11px] text-slate-600 shadow-sm">
-                  <p className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider mb-1">Profiles & Experience</p>
-
-                  <div className="flex items-center justify-between py-1 border-b border-slate-100">
-                    <span className="font-semibold text-slate-400 flex items-center gap-1.5">
-                      <Linkedin size={12} className="text-blue-600" />
-                      LinkedIn:
-                    </span>
-                    {viewingCandidateApp.linkedin ? (
-                      <a
-                        href={viewingCandidateApp.linkedin}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-bold text-blue-600 hover:underline select-text truncate max-w-[150px]"
-                      >
-                        {viewingCandidateApp.linkedin.replace(/^https?:\/\/(www\.)?/, '')}
-                      </a>
-                    ) : (
-                      <span className="text-slate-400 font-medium">Not Provided</span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between py-1 border-b border-slate-100">
-                    <span className="font-semibold text-slate-400 flex items-center gap-1.5">
-                      <Globe size={12} className="text-emerald-600" />
-                      Portfolio:
-                    </span>
-                    {viewingCandidateApp.portfolio ? (
-                      <a
-                        href={viewingCandidateApp.portfolio}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-bold text-emerald-600 hover:underline select-text truncate max-w-[150px]"
-                      >
-                        {viewingCandidateApp.portfolio.replace(/^https?:\/\/(www\.)?/, '')}
-                      </a>
-                    ) : (
-                      <span className="text-slate-400 font-medium">Not Provided</span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between py-1">
-                    <span className="font-semibold text-slate-400 flex items-center gap-1.5">
-                      <Briefcase size={12} className="text-indigo-600" />
-                      Experience:
-                    </span>
-                    <span className="font-bold text-slate-700 capitalize">
-                      {viewingCandidateApp.experience_level || 'Not Specified'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Cover Letter Block */}
-                <div className="bg-white border border-slate-200/60 p-3 rounded-xl flex-1 flex flex-col min-h-0 shadow-sm">
-                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Cover Letter / Message:</span>
-                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5 text-[10px] text-slate-500 leading-relaxed italic overflow-y-auto flex-1 max-h-[85px]">
-                    {viewingCandidateApp.cover_letter ? `"${viewingCandidateApp.cover_letter}"` : 'No cover letter provided.'}
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Footer Buttons */}
-            <div className="px-5 py-3 border-t border-slate-100 bg-white flex justify-end items-center text-[10px] sm:text-xs font-bold flex-shrink-0">
-              <button
-                onClick={() => setViewingCandidateApp(null)}
-                className="px-4 py-1.5 rounded-lg bg-[#0D47A1] hover:bg-[#1976D2] text-white transition-all cursor-pointer font-bold"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
 
       {/* ========== TABBED INTERVIEW & FOLLOW‑UP MODAL ========== */}
@@ -3551,22 +4125,20 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       )}
 
       {/* ========== SIDE FILTER DRAWER ========== */}
-      <div 
-        className={`fixed inset-0 z-50 overflow-hidden transition-all duration-300 ${
-          isSideFilterOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
+      <div
+        className={`fixed inset-0 z-50 overflow-hidden transition-all duration-300 ${isSideFilterOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
       >
         {/* Backdrop overlay */}
-        <div 
+        <div
           className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300"
           onClick={() => setIsSideFilterOpen(false)}
         />
 
         <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-          <div 
-            className={`w-80 bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out border-l border-slate-100 ${
-              isSideFilterOpen ? 'translate-x-0' : 'translate-x-full'
-            }`}
+          <div
+            className={`w-80 bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out border-l border-slate-100 ${isSideFilterOpen ? 'translate-x-0' : 'translate-x-full'
+              }`}
           >
             {/* Header */}
             <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
@@ -3574,7 +4146,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                 <Filter size={16} className="text-[#0D47A1]" />
                 <h2 className="text-base font-extrabold text-[#0D1B3E]">Filters</h2>
               </div>
-              <button 
+              <button
                 onClick={() => setIsSideFilterOpen(false)}
                 className="text-slate-400 hover:text-slate-600 transition p-1 hover:bg-slate-50 rounded-lg cursor-pointer"
               >
@@ -3630,6 +4202,80 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                 </select>
               </div>
 
+              {/* Gender Filter */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Gender</label>
+                <select
+                  value={genderFilter}
+                  onChange={(e) => { setGenderFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer transition-all"
+                >
+                  <option value="all">All Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              {/* City Filter */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">City / Location</label>
+                <select
+                  value={cityFilter}
+                  onChange={(e) => { setCityFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer transition-all"
+                >
+                  <option value="all">All Cities</option>
+                  {(Array.from(new Set(applications.map(app => app.current_city).filter((c): c is string => !!c))) as string[]).map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              </div>
+
+
+
+              {/* Education Branch Filter */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Education Branch</label>
+                <select
+                  value={eduBranchFilter}
+                  onChange={(e) => { 
+                    setEduBranchFilter(e.target.value); 
+                    setEduSpecFilter('all');
+                    setCurrentPage(1); 
+                  }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer transition-all"
+                >
+                  <option value="all">All Branches</option>
+                  <option value="B.TECH">B.Tech</option>
+                  <option value="M.Tech">M.Tech</option>
+                  <option value="Diploma">Diploma</option>
+                  <option value="B.COM">B.Com</option>
+                  <option value="MBA">MBA</option>
+                  <option value="BSC">B.Sc</option>
+                  <option value="DCA">DCA</option>
+                  <option value="BBA">BBA</option>
+                  <option value="CA">CA</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+
+              {/* Specialization Filter */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Specialization</label>
+                <select
+                  disabled={eduBranchFilter === 'all'}
+                  value={eduSpecFilter}
+                  onChange={(e) => { setEduSpecFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer transition-all disabled:opacity-50 disabled:bg-slate-50"
+                >
+                  <option value="all">All Specializations</option>
+                  {(SPECIALIZATION_MAP[eduBranchFilter] || []).map(spec => (
+                    <option key={spec} value={spec}>{spec}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Date Filters */}
               <div className="space-y-3 pt-2 border-t border-slate-100">
                 <div className="flex items-center justify-between">
@@ -3681,11 +4327,16 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                   setStatusFilter('all');
                   setPositionFilter('all');
                   setExperienceFilter('all');
+                  setGenderFilter('all');
+                  setCityFilter('all');
+                  setStateFilter('all');
+                  setEduBranchFilter('all');
+                  setEduSpecFilter('all');
                   setStartDate('');
                   setEndDate('');
                   setIgnoreDate(false);
                   setCurrentPage(1);
-                  setColumnFilters({ applicant: '', position: 'all', experience: 'all', status: 'all' });
+                  setColumnFilters({ applicant: '', position: 'all', experience: 'all', status: 'all', mobile: '', branch: '' });
                 }}
                 className="flex-1 py-2 text-xs font-bold border border-slate-200 hover:border-slate-300 text-slate-600 bg-white rounded-xl hover:bg-slate-50 transition cursor-pointer"
               >
@@ -3707,4 +4358,5 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
 };
 
 export default CareerCMS;
+
 

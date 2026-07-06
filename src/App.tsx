@@ -638,9 +638,14 @@ function AppContent() {
     return (
       <>
         <VisitorTracker />
-        <WelcomePage onSectorClick={handleSectorClick} />
+        <WelcomePage onSectorClick={handleSectorClick} onLoginClick={() => setShowAuthModal(true)} />
         <WhatsAppFAB />
         <HouslyChatBoot />
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={handleAuthSuccess}
+        />
       </>
     );
   }
@@ -679,7 +684,8 @@ function AppContent() {
       <main className="flex-grow">
         <Routes>
           {/* ✅ Root "/" — Welcome page fallback */}
-          <Route path="/" element={<WelcomePage onSectorClick={handleSectorClick} />} />
+          <Route path="/" element={<WelcomePage onSectorClick={handleSectorClick} onLoginClick={() => setShowAuthModal(true)} />} />
+
 
           {/* ✅ Main IT Tech website under /homes */}
           <Route path="/homes" element={<HomePage />} />
