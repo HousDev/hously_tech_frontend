@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import careerService, { type Job, type ApplicationFormData } from "../../../../../../services/career.service";
 import { settingsApi } from "../../../../../../lib/settingsApi";
+import { masterDataAPI } from "../../../../../../lib/masterApi";
 import defaultLogo from "../../../../../../assets/images/hously-logo.png";
 import {
   ArrowLeft,
@@ -106,6 +107,20 @@ export default function JobApplicationPage() {
     linkedin: "",
     portfolio: "",
   });
+
+  // Location dropdown data states
+  const [countriesList, setCountriesList] = useState<string[]>([]);
+  const [statesList, setStatesList] = useState<string[]>([]);
+  const [citiesList, setCitiesList] = useState<string[]>([]);
+
+  // Max DOB allowed (18 years ago from today)
+  const maxDob = (() => {
+    const today = new Date();
+    const year = today.getFullYear() - 18;
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  })();
 
   const [sameAsMobile, setSameAsMobile] = useState(false);
 
@@ -272,14 +287,82 @@ export default function JobApplicationPage() {
     fetchSettings();
   }, [id]);
 
+  // Load Country, State, and City from common master values using masterDataAPI
+  useEffect(() => {
+    const loadMasterLocations = async () => {
+      try {
+        const types = await masterDataAPI.getAllMasterTypes("common");
+
+        // 1. Load Country
+        const countryType = types.find(
+          (t: any) => t.name.toLowerCase() === "country" || t.name.toLowerCase() === "countries"
+        );
+        let countriesData: string[] = [];
+        if (countryType) {
+          const vals = await masterDataAPI.getMasterValues(countryType.id);
+          countriesData = vals
+            .filter((v: any) => v.status === "Active" || v.status === "active")
+            .map((v: any) => v.value);
+        }
+        if (countriesData.length === 0) {
+          countriesData = ["India", "United States", "United Kingdom", "Canada", "Australia", "United Arab Emirates", "Singapore"];
+        }
+        setCountriesList(countriesData);
+
+        // 2. Load State
+        const stateType = types.find(
+          (t: any) => t.name.toLowerCase() === "state" || t.name.toLowerCase() === "states"
+        );
+        let statesData: string[] = [];
+        if (stateType) {
+          const vals = await masterDataAPI.getMasterValues(stateType.id);
+          statesData = vals
+            .filter((v: any) => v.status === "Active" || v.status === "active")
+            .map((v: any) => v.value);
+        }
+        setStatesList(statesData);
+
+        // 3. Load City
+        const cityType = types.find(
+          (t: any) => t.name.toLowerCase() === "city" || t.name.toLowerCase() === "cities"
+        );
+        let citiesData: string[] = [];
+        if (cityType) {
+          const vals = await masterDataAPI.getMasterValues(cityType.id);
+          citiesData = vals
+            .filter((v: any) => v.status === "Active" || v.status === "active")
+            .map((v: any) => v.value);
+        }
+        setCitiesList(citiesData);
+      } catch (err) {
+        console.error("Error loading location master data:", err);
+      }
+    };
+    loadMasterLocations();
+  }, []);
+
   // Validation functions per step
   const validateStep = (step: number): boolean => {
     const errors: Record<string, string> = {};
     let isValid = true;
 
     if (step === 1) {
-      if (!personalInfo.firstName.trim()) { errors.firstName = "First name is required"; isValid = false; }
-      if (!personalInfo.lastName.trim()) { errors.lastName = "Last name is required"; isValid = false; }
+      if (!personalInfo.firstName.trim()) {
+        errors.firstName = "First name is required";
+        isValid = false;
+      } else if (!/^[A-Za-z\s]+$/.test(personalInfo.firstName)) {
+        errors.firstName = "First name must contain only letters";
+        isValid = false;
+      }
+
+      if (!personalInfo.lastName.trim()) {
+        errors.lastName = "Last name is required";
+        isValid = false;
+      } else if (!/^[A-Za-z\s]+$/.test(personalInfo.lastName)) {
+        errors.lastName = "Last name must contain only letters";
+        isValid = false;
+      }
+
       if (!personalInfo.email.trim()) {
         errors.email = "Email is required";
         isValid = false;
@@ -287,21 +370,57 @@ export default function JobApplicationPage() {
         errors.email = "Enter a valid email address";
         isValid = false;
       }
+
       if (!personalInfo.mobile.trim()) {
         errors.mobile = "Mobile number is required";
         isValid = false;
-      } else if (!/^\+?[0-9\s\-()]{10,20}$/.test(personalInfo.mobile)) {
-        errors.mobile = "Enter a valid mobile number";
+      } else if (!/^\d{10}$/.test(personalInfo.mobile)) {
+        errors.mobile = "Mobile number must be exactly 10 digits";
         isValid = false;
       }
-      if (!personalInfo.gender) { errors.gender = "Please select gender"; isValid = false; }
+
+      if (personalInfo.whatsapp && !/^\d{10}$/.test(personalInfo.whatsapp)) {
+        errors.whatsapp = "WhatsApp number must be exactly 10 digits";
+        isValid = false;
+      }
+
+      if (!personalInfo.gender) {
+        errors.gender = "Please select gender";
+        isValid = false;
+      }
       if (personalInfo.gender === "self" && !personalInfo.selfGender.trim()) {
         errors.selfGender = "Please enter description";
         isValid = false;
       }
-      if (!personalInfo.country.trim()) { errors.country = "Country is required"; isValid = false; }
-      if (!personalInfo.state.trim()) { errors.state = "State is required"; isValid = false; }
-      if (!personalInfo.currentCity.trim()) { errors.currentCity = "City is required"; isValid = false; }
+
+      if (!personalInfo.dob) {
+        errors.dob = "Date of Birth is required";
+        isValid = false;
+      } else {
+        const birthDate = new Date(personalInfo.dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        if (age < 18) {
+          errors.dob = "You must be 18 years or older";
+          isValid = false;
+        }
+      }
+
+      if (!personalInfo.country) { errors.country = "Country is required"; isValid = false; }
+      if (!personalInfo.state) { errors.state = "State is required"; isValid = false; }
+      if (!personalInfo.currentCity) { errors.currentCity = "City is required"; isValid = false; }
+
+      if (!personalInfo.linkedin.trim()) {
+        errors.linkedin = "LinkedIn Profile Link is required";
+        isValid = false;
+      } else if (!/^(https?:\/\/)?(www\.)?linkedin\.com\/.*$/.test(personalInfo.linkedin)) {
+        errors.linkedin = "Enter a valid LinkedIn profile URL";
+        isValid = false;
+      }
     }
 
     if (step === 2) {
@@ -985,7 +1104,7 @@ export default function JobApplicationPage() {
                             type="text"
                             required
                             value={personalInfo.firstName}
-                            onChange={e => setPersonalInfo({ ...personalInfo, firstName: e.target.value })}
+                            onChange={e => setPersonalInfo({ ...personalInfo, firstName: e.target.value.replace(/[^A-Za-z\s]/g, '') })}
                             placeholder="Jane"
                             className="px-3 py-2 border border-[#e3e5ee] rounded-lg text-xs sm:text-sm bg-white"
                           />
@@ -998,7 +1117,7 @@ export default function JobApplicationPage() {
                             type="text"
                             required
                             value={personalInfo.lastName}
-                            onChange={e => setPersonalInfo({ ...personalInfo, lastName: e.target.value })}
+                            onChange={e => setPersonalInfo({ ...personalInfo, lastName: e.target.value.replace(/[^A-Za-z\s]/g, '') })}
                             placeholder="Doe"
                             className="px-3 py-2 border border-[#e3e5ee] rounded-lg text-xs sm:text-sm bg-white"
                           />
@@ -1024,8 +1143,8 @@ export default function JobApplicationPage() {
                             type="tel"
                             required
                             value={personalInfo.mobile}
-                            onChange={e => setPersonalInfo({ ...personalInfo, mobile: e.target.value })}
-                            placeholder="+91 98765 43210"
+                            onChange={e => setPersonalInfo({ ...personalInfo, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                            placeholder="9876543210"
                             className="px-3 py-2 border border-[#e3e5ee] rounded-lg text-xs sm:text-sm bg-white"
                           />
                           {stepErrors.mobile && <span className="text-red-500 text-[10px] mt-1">{stepErrors.mobile}</span>}
@@ -1048,10 +1167,11 @@ export default function JobApplicationPage() {
                             type="tel"
                             disabled={sameAsMobile}
                             value={personalInfo.whatsapp}
-                            onChange={e => setPersonalInfo({ ...personalInfo, whatsapp: e.target.value })}
-                            placeholder="+91 98765 43210"
+                            onChange={e => setPersonalInfo({ ...personalInfo, whatsapp: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                            placeholder="9876543210"
                             className="px-3 py-2 border border-[#e3e5ee] rounded-lg text-xs sm:text-sm bg-white disabled:opacity-75 disabled:bg-slate-50"
                           />
+                          {stepErrors.whatsapp && <span className="text-red-500 text-[10px] mt-1">{stepErrors.whatsapp}</span>}
                         </div>
 
                         <div className="flex flex-col">
@@ -1077,7 +1197,7 @@ export default function JobApplicationPage() {
                             <input
                               type="text"
                               value={personalInfo.selfGender}
-                              onChange={e => setPersonalInfo({ ...personalInfo, selfGender: e.target.value })}
+                              onChange={e => setPersonalInfo({ ...personalInfo, selfGender: e.target.value.replace(/[^A-Za-z\s]/g, '') })}
                               placeholder="Enter how you identify"
                               className="px-3 py-1.5 border border-[#e3e5ee] rounded-lg text-xs sm:text-sm bg-white"
                             />
@@ -1088,61 +1208,73 @@ export default function JobApplicationPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                         <div className="flex flex-col">
-                          <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Date of Birth <span className="text-[#5b5f70] font-normal">(optional)</span></label>
+                          <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Date of Birth <span className="text-red-500">*</span></label>
                           <input
                             type="date"
+                            required
+                            max={maxDob}
                             value={personalInfo.dob}
                             onChange={e => setPersonalInfo({ ...personalInfo, dob: e.target.value })}
                             className="px-3 py-2 border border-[#e3e5ee] rounded-lg text-xs sm:text-sm bg-white"
                           />
+                          {stepErrors.dob && <span className="text-red-500 text-[10px] mt-1">{stepErrors.dob}</span>}
                         </div>
                       </div>
 
                       <div className="text-[11px] font-bold uppercase tracking-wider text-[#0076d8] mt-6 mb-3 flex items-center gap-2">
-                        <span>Current Location (Manual Enter Fields)</span>
+                        <span>Current Location</span>
                         <div className="flex-1 h-[1px] bg-[#e3e5ee]" />
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {/* Country Input */}
+                        {/* Country Select */}
                         <div className="flex flex-col">
                           <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Country <span className="text-red-500">*</span></label>
-                          <input
-                            type="text"
+                          <select
                             required
                             value={personalInfo.country}
                             onChange={e => setPersonalInfo({ ...personalInfo, country: e.target.value })}
-                            placeholder="e.g. India"
                             className="px-3 py-2 border border-[#e3e5ee] rounded-lg text-xs sm:text-sm bg-white"
-                          />
+                          >
+                            <option value="">Select Country</option>
+                            {countriesList.map(c => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
                           {stepErrors.country && <span className="text-red-500 text-[10px] mt-1">{stepErrors.country}</span>}
                         </div>
 
-                        {/* State Input */}
+                        {/* State Select */}
                         <div className="flex flex-col">
                           <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">State <span className="text-red-500">*</span></label>
-                          <input
-                            type="text"
+                          <select
                             required
                             value={personalInfo.state}
                             onChange={e => setPersonalInfo({ ...personalInfo, state: e.target.value })}
-                            placeholder="e.g. Maharashtra"
                             className="px-3 py-2 border border-[#e3e5ee] rounded-lg text-xs sm:text-sm bg-white"
-                          />
+                          >
+                            <option value="">Select State</option>
+                            {statesList.map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
                           {stepErrors.state && <span className="text-red-500 text-[10px] mt-1">{stepErrors.state}</span>}
                         </div>
 
-                        {/* City Input */}
+                        {/* City Select */}
                         <div className="flex flex-col">
                           <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">City <span className="text-red-500">*</span></label>
-                          <input
-                            type="text"
+                          <select
                             required
                             value={personalInfo.currentCity}
                             onChange={e => setPersonalInfo({ ...personalInfo, currentCity: e.target.value })}
-                            placeholder="e.g. Pune"
                             className="px-3 py-2 border border-[#e3e5ee] rounded-lg text-xs sm:text-sm bg-white"
-                          />
+                          >
+                            <option value="">Select City</option>
+                            {citiesList.map(c => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
                           {stepErrors.currentCity && <span className="text-red-500 text-[10px] mt-1">{stepErrors.currentCity}</span>}
                         </div>
                       </div>
@@ -1164,14 +1296,16 @@ export default function JobApplicationPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex flex-col">
-                          <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">LinkedIn Profile Link <span className="text-[#5b5f70] font-normal">(optional)</span></label>
+                          <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">LinkedIn Profile Link <span className="text-red-500">*</span></label>
                           <input
                             type="url"
+                            required
                             value={personalInfo.linkedin}
                             onChange={e => setPersonalInfo({ ...personalInfo, linkedin: e.target.value })}
                             placeholder="https://linkedin.com/in/username"
                             className="px-3 py-2 border border-[#e3e5ee] rounded-lg text-xs sm:text-sm bg-white"
                           />
+                          {stepErrors.linkedin && <span className="text-red-500 text-[10px] mt-1">{stepErrors.linkedin}</span>}
                         </div>
 
                         <div className="flex flex-col">

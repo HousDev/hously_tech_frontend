@@ -529,6 +529,7 @@ import CookiePolicy from "./components/CookiePolicy";
 
 // Admin Pages
 import AdminDashboard from "./pages/Admin/Dashboard";
+import EmployeeDashboard from "./pages/Employee/EmployeeDashboard";
 import HomeCMS from "./pages/Admin/CMS/HomeCMS";
 import ServicesCMS from "./pages/Admin/CMS/ServicesCMS";
 import BlogCMS from "./pages/Admin/CMS/BlogCMS";
@@ -590,6 +591,29 @@ const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const ProtectedEmployeeRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, logout } = useAuth();
+
+  if (!isAuthenticated) {
+    logout();
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
+          <p className="text-gray-600">You need to log in to access this page.</p>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Return to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return <>{children}</>;
+};
+
 function AppContent() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -613,15 +637,27 @@ function AppContent() {
   };
 
   const handleAuthSuccess = () => {
-    if (isAdmin()) {
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 1000);
-    } else if (isAuthenticated) {
-      toast.success('Welcome back!', {
+    const storedUser = localStorage.getItem('user');
+    const userObj = storedUser ? JSON.parse(storedUser) : null;
+    const role = userObj?.role?.toLowerCase() || '';
+    const isUserAdmin = role === 'admin' || role === 'super admin' || role === 'supper admin';
+
+    if (isUserAdmin) {
+      toast.success('Welcome Back, Admin!', {
         position: "top-right",
         autoClose: 2000,
       });
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1000);
+    } else {
+      toast.success('Welcome Back!', {
+        position: "top-right",
+        autoClose: 2000,
+      });
+      setTimeout(() => {
+        window.location.href = '/employee';
+      }, 1000);
     }
   };
 
@@ -655,13 +691,14 @@ function AppContent() {
     "/terms-of-service",
     "/cookie-policy",
     "/dashboard",
+    "/employee",
   ];
 
   const hideLayout = hideLayoutRoutes.some(route =>
     location.pathname === route || location.pathname.startsWith(route)
   );
 
-  const isAdminRoute = location.pathname.startsWith('/dashboard');
+  const isAdminRoute = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/employee');
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -751,6 +788,16 @@ function AppContent() {
             <Route path="reports" element={<ReportsPage />} />
             <Route path="tasks" element={<TasksPage />} />
           </Route>
+
+          {/* ✅ Employee routes under /employee */}
+          <Route
+            path="/employee"
+            element={
+              <ProtectedEmployeeRoute>
+                <EmployeeDashboard />
+              </ProtectedEmployeeRoute>
+            }
+          />
         </Routes>
       </main>
 

@@ -87,6 +87,11 @@ export default function HouslyChatbotWidget() {
     phone: '',
     enquiryType: 'Custom Website'
   });
+  const [formErrors, setFormErrors] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -240,6 +245,41 @@ export default function HouslyChatbotWidget() {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Perform form validation
+    const errors = { name: '', email: '', phone: '' };
+    let hasError = false;
+
+    if (!formData.name.trim()) {
+      errors.name = 'Name is required';
+      hasError = true;
+    } else if (!/^[A-Za-z\s]+$/.test(formData.name)) {
+      errors.name = 'Name must contain only letters';
+      hasError = true;
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required';
+      hasError = true;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Enter a valid email address';
+      hasError = true;
+    }
+
+    if (!formData.phone.trim()) {
+      errors.phone = 'Phone number is required';
+      hasError = true;
+    } else if (!/^\d{10}$/.test(formData.phone)) {
+      errors.phone = 'Phone number must be exactly 10 digits';
+      hasError = true;
+    }
+
+    if (hasError) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setFormErrors({ name: '', email: '', phone: '' });
     setShowEnquiryForm(false);
 
     try {
@@ -271,6 +311,7 @@ export default function HouslyChatbotWidget() {
       phone: '',
       enquiryType: 'Custom Website'
     });
+    setFormErrors({ name: '', email: '', phone: '' });
   };
 
   return (
@@ -393,44 +434,78 @@ export default function HouslyChatbotWidget() {
                   <div style={{ fontWeight: 650, marginBottom: 8, fontSize: 12, color: '#0f172a' }}>
                     📋 Enter Enquiry Details:
                   </div>
-                  <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <input
-                      type="text"
-                      placeholder="Name"
-                      required
-                      value={formData.name}
-                      onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      style={styles.formInput}
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      required
-                      value={formData.email}
-                      onChange={e => setFormData({ ...formData, email: e.target.value })}
-                      style={styles.formInput}
-                    />
-                    <input
-                      type="tel"
-                      placeholder="Phone Number"
-                      required
-                      value={formData.phone}
-                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                      style={styles.formInput}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Enquiry Type (e.g. Custom Website)"
-                      required
-                      value={formData.enquiryType}
-                      onChange={e => setFormData({ ...formData, enquiryType: e.target.value })}
-                      style={styles.formInput}
-                    />
+                  <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Name"
+                        required
+                        value={formData.name}
+                        onChange={e => {
+                          const sanitized = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                          setFormData({ ...formData, name: sanitized });
+                          setFormErrors(prev => ({ ...prev, name: '' }));
+                        }}
+                        style={styles.formInput}
+                      />
+                      {formErrors.name && (
+                        <div style={{ color: '#ef4444', fontSize: 10, marginTop: 2, paddingLeft: 2 }}>{formErrors.name}</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        required
+                        value={formData.email}
+                        onChange={e => {
+                          setFormData({ ...formData, email: e.target.value });
+                          setFormErrors(prev => ({ ...prev, email: '' }));
+                        }}
+                        style={styles.formInput}
+                      />
+                      {formErrors.email && (
+                        <div style={{ color: '#ef4444', fontSize: 10, marginTop: 2, paddingLeft: 2 }}>{formErrors.email}</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <input
+                        type="tel"
+                        placeholder="Phone Number"
+                        required
+                        value={formData.phone}
+                        onChange={e => {
+                          const sanitized = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setFormData({ ...formData, phone: sanitized });
+                          setFormErrors(prev => ({ ...prev, phone: '' }));
+                        }}
+                        style={styles.formInput}
+                      />
+                      {formErrors.phone && (
+                        <div style={{ color: '#ef4444', fontSize: 10, marginTop: 2, paddingLeft: 2 }}>{formErrors.phone}</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Enquiry Type"
+                        required
+                        readOnly
+                        value={formData.enquiryType}
+                        style={{ ...styles.formInput, backgroundColor: '#f1f5f9', cursor: 'not-allowed' }}
+                      />
+                    </div>
 
                     <div style={{ display: 'flex', gap: 6, justifySelf: 'flex-end', justifyContent: 'flex-end', marginTop: 4 }}>
                       <button
                         type="button"
-                        onClick={() => setShowEnquiryForm(false)}
+                        onClick={() => {
+                          setShowEnquiryForm(false);
+                          setFormErrors({ name: '', email: '', phone: '' });
+                        }}
                         style={styles.formCancelBtn}
                       >
                         Cancel

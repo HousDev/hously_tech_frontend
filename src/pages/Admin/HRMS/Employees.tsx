@@ -345,16 +345,16 @@ const StatCard = ({
   accent: string;
   sub?: string;
 }) => (
-  <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-4 flex items-center gap-3">
-    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accent} flex-shrink-0`}>
+  <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-2.5 sm:p-4 flex items-center gap-2 sm:gap-3">
+    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center ${accent} flex-shrink-0`}>
       {icon}
     </div>
-    <div className="min-w-0">
-      <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest truncate">
+    <div className="min-w-0 flex-1">
+      <p className="text-[8px] sm:text-[9px] font-extrabold text-slate-400 uppercase tracking-widest truncate">
         {label}
       </p>
-      <p className="text-lg font-extrabold text-slate-800 leading-tight">{value}</p>
-      {sub && <p className="text-[9px] text-slate-400 font-semibold truncate">{sub}</p>}
+      <p className="text-sm sm:text-lg font-extrabold text-slate-800 leading-tight">{value}</p>
+      {sub && <p className="text-[8px] sm:text-[9px] text-slate-400 font-semibold truncate">{sub}</p>}
     </div>
   </div>
 );
@@ -372,6 +372,7 @@ const InputField = ({
   isSelect = false,
   icon = null,
   multiple = false,
+  error = "",
 }: any) => {
   const isEditing = React.useContext(EditingContext);
   return (
@@ -389,7 +390,9 @@ const InputField = ({
           <select
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className={`w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 bg-white ${icon ? "pl-9" : ""}`}
+            className={`w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 bg-white ${
+              error ? "border-red-300 focus:ring-red-200" : "border-slate-200"
+            } ${icon ? "pl-9" : ""}`}
             disabled={!isEditing}
           >
             <option value="">Select {label}</option>
@@ -407,7 +410,9 @@ const InputField = ({
               const selected = Array.from(e.target.selectedOptions, option => option.value);
               onChange(selected);
             }}
-            className={`w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 bg-white ${icon ? "pl-9" : ""}`}
+            className={`w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 bg-white ${
+              error ? "border-red-300 focus:ring-red-200" : "border-slate-200"
+            } ${icon ? "pl-9" : ""}`}
             disabled={!isEditing}
             style={{ minHeight: "80px" }}
           >
@@ -423,11 +428,14 @@ const InputField = ({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            className={`w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 ${icon ? "pl-9" : ""}`}
+            className={`w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 ${
+              error ? "border-red-300 focus:ring-red-200" : "border-slate-200"
+            } ${icon ? "pl-9" : ""}`}
             disabled={!isEditing}
           />
         )}
       </div>
+      {error && <p className="text-[10px] text-red-500 font-semibold pl-1">{error}</p>}
     </div>
   );
 };
@@ -454,6 +462,42 @@ const EmployeeProfile = ({
   const [isEditing, setIsEditing] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(employee.avatarUrl || null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const errs: Record<string, string> = {};
+
+    if (!formData.firstName.trim()) {
+      errs.firstName = "Required";
+    } else if (!/^[A-Za-z\s]+$/.test(formData.firstName)) {
+      errs.firstName = "Only letters allowed";
+    }
+
+    if (!formData.lastName.trim()) {
+      errs.lastName = "Required";
+    } else if (!/^[A-Za-z\s]+$/.test(formData.lastName)) {
+      errs.lastName = "Only letters allowed";
+    }
+
+    if (!formData.email.trim()) {
+      errs.email = "Required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errs.email = "Valid email required";
+    }
+
+    if (!formData.phone.trim()) {
+      errs.phone = "Required";
+    } else if (!/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
+      errs.phone = "Must be exactly 10 digits";
+    }
+
+    if (formData.emergencyContact && !/^\d{10}$/.test(formData.emergencyContact.replace(/\D/g, ''))) {
+      errs.emergencyContact = "Must be exactly 10 digits";
+    }
+
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   const [formData, setFormData] = useState({
     firstName: employee.firstName,
@@ -518,6 +562,10 @@ const EmployeeProfile = ({
   };
 
   const handleSave = async () => {
+    if (!validate()) {
+      toast.error("Please resolve the validation errors");
+      return;
+    }
     setSaving(true);
     try {
       const payload: Omit<EmployeeRecord, "id" | "employeeId" | "createdAt"> = {
@@ -619,37 +667,59 @@ const EmployeeProfile = ({
               <InputField
                 label="First Name"
                 value={formData.firstName}
-                onChange={(v: string) => setFormData({ ...formData, firstName: v })}
+                onChange={(v: string) => {
+                  const val = v.replace(/[^A-Za-z\s]/g, '');
+                  setFormData({ ...formData, firstName: val });
+                  if (formErrors.firstName) setFormErrors(prev => ({ ...prev, firstName: "" }));
+                }}
                 required
                 icon={<UserIcon size={14} />}
+                error={formErrors.firstName}
               />
               <InputField
                 label="Middle Name"
                 value={formData.middleName}
-                onChange={(v: string) => setFormData({ ...formData, middleName: v })}
+                onChange={(v: string) => {
+                  const val = v.replace(/[^A-Za-z\s]/g, '');
+                  setFormData({ ...formData, middleName: val });
+                }}
                 icon={<UserIcon size={14} />}
               />
               <InputField
                 label="Last Name"
                 value={formData.lastName}
-                onChange={(v: string) => setFormData({ ...formData, lastName: v })}
+                onChange={(v: string) => {
+                  const val = v.replace(/[^A-Za-z\s]/g, '');
+                  setFormData({ ...formData, lastName: val });
+                  if (formErrors.lastName) setFormErrors(prev => ({ ...prev, lastName: "" }));
+                }}
                 required
                 icon={<UserIcon size={14} />}
+                error={formErrors.lastName}
               />
               <InputField
                 label="Email"
                 value={formData.email}
-                onChange={(v: string) => setFormData({ ...formData, email: v })}
+                onChange={(v: string) => {
+                  setFormData({ ...formData, email: v });
+                  if (formErrors.email) setFormErrors(prev => ({ ...prev, email: "" }));
+                }}
                 type="email"
                 required
                 icon={<MailIcon size={14} />}
+                error={formErrors.email}
               />
               <InputField
                 label="Mobile"
                 value={formData.phone}
-                onChange={(v: string) => setFormData({ ...formData, phone: v })}
+                onChange={(v: string) => {
+                  const val = v.replace(/\D/g, '').slice(0, 10);
+                  setFormData({ ...formData, phone: val });
+                  if (formErrors.phone) setFormErrors(prev => ({ ...prev, phone: "" }));
+                }}
                 required
                 icon={<Smartphone size={14} />}
+                error={formErrors.phone}
               />
               <InputField
                 label="Gender"
@@ -747,9 +817,14 @@ const EmployeeProfile = ({
               <InputField
                 label="Emergency Contact"
                 value={formData.emergencyContact}
-                onChange={(v: string) => setFormData({ ...formData, emergencyContact: v })}
+                onChange={(v: string) => {
+                  const val = v.replace(/\D/g, '').slice(0, 10);
+                  setFormData({ ...formData, emergencyContact: val });
+                  if (formErrors.emergencyContact) setFormErrors(prev => ({ ...prev, emergencyContact: "" }));
+                }}
                 placeholder="10-digit number"
                 icon={<PhoneCall size={14} />}
+                error={formErrors.emergencyContact}
               />
               <InputField
                 label="Emergency Contact Name"
@@ -1037,10 +1112,10 @@ const EmployeeProfile = ({
 
   return (
     <div
-      className={`p-4 md:p-6 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out ${visible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
+      className={`p-4 md:p-6 flex flex-col h-full overflow-y-auto md:overflow-hidden transition-all duration-300 ease-in-out ${visible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
         }`}
     >
-      {/* Top Header Section (Static, does not scroll) */}
+      {/* Top Header Section (Static, scrolls away on mobile) */}
       <div className="flex-none space-y-4">
         {/* Buttons Header */}
         <div className="py-2 flex items-center justify-between flex-wrap gap-3 border-b border-slate-100 bg-white">
@@ -1091,7 +1166,7 @@ const EmployeeProfile = ({
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs flex-wrap justify-center sm:justify-start">
             <span className="text-slate-500 font-semibold">Allotted Project(s) -</span>
             <span className="bg-[#0D47A1]/5 text-[#0D47A1] px-2.5 py-0.5 rounded-full font-bold border border-[#0D47A1]/20">
               {formData.allottedProjects && formData.allottedProjects.length > 0
@@ -1100,28 +1175,28 @@ const EmployeeProfile = ({
             </span>
           </div>
         </div>
+      </div>
 
-        {/* Tabs Headers */}
-        <div className="border-b border-slate-200 bg-white">
-          <div className="flex gap-1 overflow-x-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition whitespace-nowrap ${activeTab === tab.id
-                  ? "text-[#0D47A1] border-b-2 border-[#0D47A1] bg-[#0D47A1]/5"
-                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-                  }`}
-              >
-                {tab.icon} {tab.label}
-              </button>
-            ))}
-          </div>
+      {/* Tabs Headers - Sticky on mobile at the top, static on desktop */}
+      <div className="sticky top-0 z-30 border-b border-slate-200 bg-white flex-none mt-4">
+        <div className="flex gap-1 overflow-x-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition whitespace-nowrap ${activeTab === tab.id
+                ? "text-[#0D47A1] border-b-2 border-[#0D47A1] bg-[#0D47A1]/5"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                }`}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Scrollable Form Content (ONLY this section scrolls!) */}
-      <div className="flex-1 overflow-y-auto mt-4 pr-1">
+      {/* Scrollable Form Content */}
+      <div className="flex-1 overflow-y-visible md:overflow-y-auto mt-4 pr-1">
         <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-6">
           <EditingContext.Provider value={isEditing}>
             {renderTabContent()}
@@ -1717,7 +1792,7 @@ export default function EmployeesPage() {
   return (
     <div className="p-4 md:p-6 space-y-4 min-h-full">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         <StatCard
           label="Total Employees"
           value={totalEmployees}
@@ -1746,46 +1821,46 @@ export default function EmployeesPage() {
         />
       </div>
 
-      {/* Toolbar - Sticky */}
-      <div className="sticky top-0 z-20 bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] px-4 py-3 flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
+      {/* Toolbar - Static on mobile, Sticky on desktop */}
+      <div className="static sm:sticky sm:top-0 z-20 bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {selectedEmployees.size > 0 && (
-            <>
+            <div className="flex items-center gap-2 flex-wrap w-full justify-between sm:justify-start">
               <button
                 onClick={handleDeleteSelected}
                 className="flex items-center gap-1.5 px-3 py-2 bg-red-500 text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition cursor-pointer"
               >
-                <Trash2 size={13} /> Delete Selected ({selectedEmployees.size})
+                <Trash2 size={13} /> Delete ({selectedEmployees.size})
               </button>
               <span className="text-xs text-slate-500 font-medium">
-                {selectedEmployees.size} employee{selectedEmployees.size > 1 ? 's' : ''} selected
+                {selectedEmployees.size} selected
               </span>
-            </>
+            </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={handleImport}
-            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold hover:bg-emerald-100 transition cursor-pointer"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1 px-2.5 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold hover:bg-emerald-100 transition cursor-pointer"
           >
             <FileSpreadsheet size={13} /> Import
           </button>
           <button
             onClick={handleExport}
-            className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1 px-2.5 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
           >
             <Download size={13} /> Export
           </button>
           <button
             onClick={() => setFilterOpen(true)}
-            className={`flex items-center gap-1.5 px-3 py-2 border rounded-xl text-xs font-bold transition cursor-pointer ${Object.values(filters).some(v => v !== "")
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-2.5 py-2 border rounded-xl text-xs font-bold transition cursor-pointer ${Object.values(filters).some(v => v !== "")
               ? "bg-[#0D47A1]/10 border-[#0D47A1]/30 text-[#0D47A1]"
               : "border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
           >
             <Filter size={13} /> Filter
             {Object.values(filters).some(v => v !== "") && (
-              <span className="w-4 h-4 bg-[#0D47A1] text-white rounded-full text-[9px] font-black flex items-center justify-center">
+              <span className="w-4 h-4 bg-[#0D47A1] text-white rounded-full text-[9px] font-black flex items-center justify-center ml-1">
                 {Object.values(filters).filter(v => v !== "").length}
               </span>
             )}
@@ -1793,9 +1868,9 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div className="overflow-y-auto max-h-[calc(100vh-380px)]">
+      {/* Table - Hidden on Mobile, Visible on Desktop */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
           <table className="min-w-full border-collapse text-xs">
             <thead className="sticky top-0 z-10">
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -1959,7 +2034,7 @@ export default function EmployeesPage() {
 
         {/* Pagination */}
         {filtered.length > 0 && (
-          <div className="sticky bottom-0 z-20 px-5 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-white/95 backdrop-blur-sm flex-wrap gap-2">
+          <div className="static sm:sticky sm:bottom-0 z-20 px-5 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-white/95 backdrop-blur-sm flex-wrap gap-2">
             <span className="font-semibold">
               Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} of {filtered.length} employees
             </span>
@@ -2017,6 +2092,157 @@ export default function EmployeesPage() {
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                   className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-white transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <ChevronRight size={13} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Card List - Visible on Mobile only */}
+      <div className="block md:hidden space-y-3">
+        {loading ? (
+          <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center text-slate-400 text-sm font-semibold">
+            <div className="flex flex-col items-center justify-center gap-2">
+              <div className="w-6 h-6 border-2 border-[#0D47A1] border-t-transparent rounded-full animate-spin" />
+              <span>Loading employees...</span>
+            </div>
+          </div>
+        ) : paginated.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center text-slate-400 text-sm font-semibold">
+            No employees found.
+          </div>
+        ) : (
+          paginated.map((employee) => {
+            const statusCfg = STATUS_CONFIG[employee.status];
+            const fullName = `${employee.firstName}${employee.middleName ? " " + employee.middleName : ""} ${employee.lastName}`;
+            const isChecked = selectedEmployees.has(employee.id);
+
+            return (
+              <div
+                key={employee.id}
+                className={`bg-white rounded-2xl border p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col gap-3 transition-colors ${
+                  isChecked ? "border-[#0D47A1] bg-[#0D47A1]/5" : "border-slate-100"
+                }`}
+              >
+                {/* Header Row */}
+                <div className="flex items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => handleSelectEmployee(employee.id)}
+                    className="mt-1 w-4 h-4 rounded border-slate-300 text-[#0D47A1] focus:ring-[#0D47A1]/20 cursor-pointer"
+                  />
+                  <Avatar name={fullName} url={employee.avatarUrl} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-extrabold text-slate-800 text-xs truncate">{fullName}</h3>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{employee.employeeId}</p>
+                  </div>
+                  <button
+                    onClick={() => setStatusEmployee(employee)}
+                    className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold transition hover:scale-[1.03] ${statusCfg.bg} ${statusCfg.color}`}
+                  >
+                    <span className={`w-1 h-1 rounded-full ${statusCfg.dot}`} />
+                    {statusCfg.label}
+                  </button>
+                </div>
+
+                <hr className="border-t border-slate-100" />
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600">
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Department</span>
+                    <span className="font-semibold text-slate-700 truncate block">{employee.department}</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Role</span>
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md font-bold bg-indigo-50 text-indigo-700 text-[10px]">
+                      {employee.role}
+                    </span>
+                  </div>
+                  <div className="col-span-2 space-y-0.5">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Email</span>
+                    <a href={`mailto:${employee.email}`} className="font-semibold text-[#0D47A1] hover:underline flex items-center gap-1 truncate">
+                      <Mail size={10} className="text-[#0D47A1] flex-shrink-0" /> {employee.email}
+                    </a>
+                  </div>
+                </div>
+
+                <hr className="border-t border-slate-100" />
+
+                {/* Actions */}
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-[10px] text-slate-400 font-semibold">
+                    Joined: {new Date(employee.joinDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setViewEmployee(employee)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold hover:bg-blue-100 transition"
+                    >
+                      <Eye size={12} /> View
+                    </button>
+                    <button
+                      onClick={() => setEditEmployee(employee)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-green-50 text-green-600 rounded-lg text-[10px] font-bold hover:bg-green-100 transition"
+                    >
+                      <Edit2 size={12} /> Edit
+                    </button>
+                    <button
+                      onClick={() => setDeleteEmployee(employee)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100 transition"
+                    >
+                      <Trash2 size={12} /> Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+
+        {/* Card View Pagination */}
+        {filtered.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col gap-3 items-center justify-center text-xs text-slate-500">
+            <span className="font-semibold text-center">
+              Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} of {filtered.length} employees
+            </span>
+
+            <div className="flex items-center gap-3 w-full justify-between sm:justify-center">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-semibold text-slate-400">Show:</span>
+                <select
+                  value={pageSize === filtered.length ? 'all' : pageSize}
+                  onChange={handlePageSizeChange}
+                  className="px-2 py-1 text-xs border border-slate-200 rounded-lg font-semibold text-slate-700 outline-none cursor-pointer bg-white"
+                >
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="all">All</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-white transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={13} />
+                </button>
+
+                <span className="px-3 py-1 font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg">
+                  {page} / {totalPages}
+                </span>
+
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-white transition disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ChevronRight size={13} />
                 </button>
