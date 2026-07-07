@@ -381,7 +381,8 @@ const About: React.FC = () => {
             <div className="flex flex-col items-center">
               {/* Premium Badge */}
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-blue-600/10 to-purple-600/10 backdrop-blur-sm rounded-full border border-blue-200/30 mb-3">
-                <Sparkles className="w-3 h-3 text-blue-600" />
+
+
                 <span className="text-[10px] font-bold text-blue-700 tracking-wider uppercase"> WHO WE ARE </span>
               </div>
 

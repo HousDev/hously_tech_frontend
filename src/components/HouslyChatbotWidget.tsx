@@ -337,9 +337,9 @@ export default function HouslyChatbotWidget() {
 
       {/* Chat Window */}
       {open && (
-        <div 
+        <div
           className="fixed left-[14px] md:left-[18px] bottom-[70px] md:bottom-[96px] w-[min(330px,calc(100vw-24px))] h-[min(460px,calc(100vh-110px))] bg-white rounded-xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden z-[9998]"
-          role="dialog" 
+          role="dialog"
           aria-label="Hously AI Assistant"
           style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
         >

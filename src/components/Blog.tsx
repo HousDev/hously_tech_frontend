@@ -196,9 +196,8 @@ const BlogSection: React.FC = () => {
           <div className="flex flex-wrap justify-between items-end mb-10">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-blue-600/10 to-purple-600/10 backdrop-blur-sm rounded-full border border-blue-200/30 mb-3 -mt-2">
-                <svg className="w-3 h-3 fill-[#FBBF24]" viewBox="0 0 20 20">
-                  <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                </svg>
+
+
                 <span className="text-[10px] font-bold text-[#0077d9] tracking-wider uppercase">News & Blog</span>
               </div>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 leading-tight">
@@ -210,7 +209,7 @@ const BlogSection: React.FC = () => {
             <div className="hidden lg:block">
               <button
                 onClick={() => window.location.href = '/blog'}
-                className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:border-[#0077d9] hover:text-[#0077d9] transition-all duration-300"
+                className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:border-[#0077d9] hover:text-[#0077d9] transition-all duration-300 cursor-pointer"
               >
                 View All Posts <span>→</span>
               </button>
@@ -233,7 +232,7 @@ const BlogSection: React.FC = () => {
           <div className="lg:hidden flex justify-center mt-8">
             <button
               onClick={() => window.location.href = '/blog'}
-              className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:border-[#0077d9] hover:text-[#0077d9] transition-all duration-300"
+              className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:border-[#0077d9] hover:text-[#0077d9] transition-all duration-300 cursor-pointer"
             >
               View All Posts <span>→</span>
             </button>

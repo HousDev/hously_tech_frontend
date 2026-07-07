@@ -65,10 +65,10 @@ const Footer: React.FC = () => {
   const fetchFooterLogo = async () => {
     try {
       const logoData = await settingsApi.getLogos();
-      
+
       if (logoData.footerLogo) {
         const timestamp = new Date().getTime();
-        const logoUrl = logoData.footerLogo.includes('?') 
+        const logoUrl = logoData.footerLogo.includes('?')
           ? `${logoData.footerLogo}&t=${timestamp}`
           : `${logoData.footerLogo}?t=${timestamp}`;
         setFooterLogo(logoUrl);
@@ -87,7 +87,7 @@ const Footer: React.FC = () => {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.currentTarget;
     const timestamp = new Date().getTime();
-    
+
     if (!target.src.includes('/images/footer-logo1.png')) {
       target.src = `/images/footer-logo1.png?t=${timestamp}`;
     } else {
@@ -248,28 +248,28 @@ const Footer: React.FC = () => {
                   >
                     Company
                   </h3>
+
                   <ul className="space-y-2">
                     {[
-                      "About Company",
-                      "Our Team",
-                      "Careers",
-                      "Partners",
-                      "Press & Media",
-                      "Investor Relations",
+                      { label: "About Company", href: "/about" },
+                      { label: "Our Team", href: "/about" },
+                      { label: "Careers", href: "/career" },
+                      { label: "Partners", href: "#" },
+                      { label: "Press & Media", href: "#" },
+                      { label: "Investor Relations", href: "#" },
                     ].map((item) => (
-                      <li key={item}>
+                      <li key={item.label}>
                         <a
-                          href="#"
+                          href={item.href}
                           className="text-gray-300 hover:text-white hover:translate-x-1 transition-all duration-300 inline-block text-sm"
                           style={{ fontFamily: '"DM Sans", sans-serif' }}
                         >
-                          {item}
+                          {item.label}
                         </a>
                       </li>
                     ))}
                   </ul>
                 </div>
-
                 {/* Column 4: Services */}
                 <div
                   className="w-full md:w-auto px-3 mb-6 md:mb-0 animate-slideInUp"
@@ -291,7 +291,7 @@ const Footer: React.FC = () => {
                     ].map((service) => (
                       <li key={service}>
                         <a
-                          href="#"
+                          href="/services"
                           className="text-gray-300 hover:text-white hover:translate-x-1 transition-all duration-300 inline-block text-sm"
                           style={{ fontFamily: '"DM Sans", sans-serif' }}
                         >

@@ -815,7 +815,7 @@ const ProfilePage = () => {
     user_id: '',
     account_type: ''
   });
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(true);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -990,15 +990,7 @@ const ProfilePage = () => {
     <div className="min-h-screen bg-gray-50">
       <ToastContainer position="top-right" autoClose={3000} />
       
-      {/* Mobile Menu Button - Only visible on small screens */}
-      <div className="lg:hidden fixed top-4 right-4 z-50">
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 bg-white rounded-lg shadow-md"
-        >
-          <Menu className="w-6 h-6 text-gray-700" />
-        </button>
-      </div>
+
 
       {/* Header Section - Made responsive */}
       
@@ -1409,16 +1401,24 @@ const ProfilePage = () => {
           {/* Right Column - Account Information - Always visible, responsive layout */}
           <div className="lg:w-80">
             <div className={`bg-white rounded-xl border border-gray-200 overflow-hidden ${isMobileMenuOpen ? 'block' : 'block lg:block'}`}>
-              <div className="border-b border-gray-100 px-4 sm:px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">Account Information</h2>
-                  <button
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="lg:hidden p-1"
-                  >
-                    <ChevronDown className={`w-5 h-5 text-gray-600 transition-transform ${isMobileMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                </div>
+              <div 
+                className="border-b border-gray-100 px-4 sm:px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between cursor-pointer lg:cursor-default select-none"
+                onClick={() => {
+                  if (window.innerWidth < 1024) {
+                    setIsMobileMenuOpen(!isMobileMenuOpen);
+                  }
+                }}
+              >
+                <h2 className="text-lg font-semibold text-gray-900">Account Information</h2>
+                <button
+                  className="lg:hidden p-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMobileMenuOpen(!isMobileMenuOpen);
+                  }}
+                >
+                  <ChevronDown className={`w-5 h-5 text-gray-600 transition-transform ${isMobileMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
               </div>
 
               <div className={`${isMobileMenuOpen ? 'block' : 'hidden lg:block'} p-4 sm:p-6 space-y-6`}>

@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import {
   MapPin,
@@ -62,19 +60,70 @@ const HouslyContactPage = () => {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
+    const { name, value } = e.target;
+
+    // For fullName - only allow letters and spaces
+    if (name === 'fullName') {
+      const onlyLetters = value.replace(/[^a-zA-Z\s]/g, '');
+      setFormData({
+        ...formData,
+        [name]: onlyLetters,
+      });
+      return;
+    }
+
+    // For companyName - allow letters, numbers, spaces, and basic punctuation
+    if (name === 'companyName') {
+      const onlyValidChars = value.replace(/[^a-zA-Z0-9\s\-.,&]/g, '');
+      setFormData({
+        ...formData,
+        [name]: onlyValidChars,
+      });
+      return;
+    }
+
+    // For phoneNumber - only allow digits and limit to 10 characters
+    if (name === 'phoneNumber') {
+      const onlyDigits = value.replace(/\D/g, '');
+      if (onlyDigits.length <= 10) {
+        setFormData({
+          ...formData,
+          [name]: onlyDigits,
+        });
+      }
+      return;
+    }
+
+    // For message - allow letters, numbers, spaces, and common punctuation
+    if (name === 'message') {
+      const onlyValidChars = value.replace(/[^a-zA-Z0-9\s.,!?@#\-]/g, '');
+      setFormData({
+        ...formData,
+        [name]: onlyValidChars,
+      });
+      return;
+    }
+
+    // For all other fields
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Full Name validation - only letters and spaces
     if (!formData.fullName.trim()) {
       toast.error('Full name is required');
       return;
     }
+    if (!/^[a-zA-Z\s]+$/.test(formData.fullName)) {
+      toast.error('Full name should only contain letters and spaces');
+      return;
+    }
+
     if (!formData.email.trim()) {
       toast.error('Email is required');
       return;
@@ -83,6 +132,15 @@ const HouslyContactPage = () => {
       toast.error('Please enter a valid email address');
       return;
     }
+
+    // Phone number validation - exactly 10 digits
+    if (formData.phoneNumber && formData.phoneNumber.length > 0) {
+      if (!/^\d{10}$/.test(formData.phoneNumber)) {
+        toast.error('Phone number must be exactly 10 digits');
+        return;
+      }
+    }
+
     if (!formData.inquiryType) {
       toast.error('Please select inquiry type');
       return;
@@ -91,6 +149,7 @@ const HouslyContactPage = () => {
       toast.error('Please select a service');
       return;
     }
+
     if (!formData.message.trim()) {
       toast.error('Message is required');
       return;
@@ -188,8 +247,8 @@ const HouslyContactPage = () => {
       <Breadcrumb />
       <div className="min-h-screen bg-gray-50">
         {/* Compact Hero Section */}
-       
-       
+
+
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 -mt-6 pb-12 relative z-10">
@@ -253,6 +312,7 @@ const HouslyContactPage = () => {
                       placeholder="Enter your full name"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0f3b7a] focus:border-transparent outline-none transition-all text-sm"
                     />
+                    <p className="text-xs text-gray-400 mt-1">Only letters and spaces allowed</p>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -294,9 +354,10 @@ const HouslyContactPage = () => {
                       value={formData.phoneNumber}
                       onChange={handleChange}
                       maxLength={10}
-                      placeholder="+91 XXXXX XXXXX"
+                      placeholder="Enter 10 digit mobile number"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0f3b7a] focus:border-transparent outline-none transition-all text-sm"
                     />
+                    <p className="text-xs text-gray-400 mt-1">Exactly 10 digits required</p>
                   </div>
                 </div>
 
@@ -412,9 +473,9 @@ const HouslyContactPage = () => {
                   <div>
                     <h3 className="font-semibold text-sm text-gray-900">Email Us</h3>
                     <p className="text-xs text-gray-500 mb-0.5">Send your project requirements</p>
-                    <a 
-                      href="https://mail.google.com/mail/?view=cm&fs=1&to=careers@hously.in" 
-                      target="_blank" 
+                    <a
+                      href="https://mail.google.com/mail/?view=cm&fs=1&to=careers@hously.in"
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-[#0f3b7a] font-medium hover:underline text-sm"
                     >

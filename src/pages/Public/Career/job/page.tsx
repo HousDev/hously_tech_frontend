@@ -219,7 +219,7 @@ export default function CareersPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   <SlidersHorizontal className="w-4 h-4" />
                   Filters
@@ -231,7 +231,7 @@ export default function CareersPage() {
                 </button>
                 <button
                   onClick={handleReset}
-                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-500 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Clear
                 </button>
@@ -246,7 +246,7 @@ export default function CareersPage() {
                     <select
                       value={selectedLocation}
                       onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedLocation(e.target.value)}
-                      className="w-full pl-7 pr-2 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+                      className="w-full pl-7 pr-2 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white cursor-pointer"
                     >
                       <option value="all">All Locations</option>
                       <option value="remote">Remote</option>
@@ -266,7 +266,7 @@ export default function CareersPage() {
                   <select
                     value={selectedType}
                     onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedType(e.target.value)}
-                    className="w-full px-2 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+                    className="w-full px-2 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white cursor-pointer"
                   >
                     <option value="all">All Types</option>
                     {JOB_TYPES.map((type) => (
@@ -339,7 +339,7 @@ export default function CareersPage() {
               <div className="col-span-2">
                 <button
                   onClick={handleReset}
-                  className="w-full text-blue-600 hover:text-blue-800 px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full text-blue-600 hover:text-blue-800 px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -355,7 +355,7 @@ export default function CareersPage() {
                 {searchTerm && (
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-xs">
                     Search: "{searchTerm}"
-                    <button onClick={() => setSearchTerm("")} className="ml-1.5 text-blue-500 hover:text-blue-700">
+                    <button onClick={() => setSearchTerm("")} className="ml-1.5 text-blue-500 hover:text-blue-700 cursor-pointer">
                       &times;
                     </button>
                   </span>
@@ -363,7 +363,7 @@ export default function CareersPage() {
                 {selectedLocation !== "all" && (
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs">
                     Location: {selectedLocation}
-                    <button onClick={() => setSelectedLocation("all")} className="ml-1.5 text-green-500 hover:text-green-700">
+                    <button onClick={() => setSelectedLocation("all")} className="ml-1.5 text-green-500 hover:text-green-700 cursor-pointer">
                       &times;
                     </button>
                   </span>
@@ -371,7 +371,7 @@ export default function CareersPage() {
                 {selectedType !== "all" && (
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 text-xs">
                     Type: {selectedType}
-                    <button onClick={() => setSelectedType("all")} className="ml-1.5 text-purple-500 hover:text-purple-700">
+                    <button onClick={() => setSelectedType("all")} className="ml-1.5 text-purple-500 hover:text-purple-700 cursor-pointer">
                       &times;
                     </button>
                   </span>
@@ -401,7 +401,7 @@ export default function CareersPage() {
             <select
               value={sortBy}
               onChange={(e: ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer"
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
@@ -433,7 +433,7 @@ export default function CareersPage() {
             </p>
             <button
               onClick={handleReset}
-              className="bg-gradient-to-r from-[#0270e1] to-[#024a9e] text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+              className="bg-gradient-to-r from-[#0270e1] to-[#024a9e] text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity cursor-pointer"
             >
               View All Jobs
             </button>
@@ -465,14 +465,14 @@ export default function CareersPage() {
                         <span
                           key={i}
                           className={`text-xs px-3 py-1 rounded-full font-medium ${type.trim().toLowerCase() === "internship"
-                              ? "bg-green-100 text-green-700"
-                              : type.trim().toLowerCase() === "freelance"
-                                ? "bg-orange-100 text-orange-700"
-                                : type.trim().toLowerCase() === "contract"
-                                  ? "bg-yellow-100 text-yellow-700"
-                                  : type.trim().toLowerCase() === "part-time"
-                                    ? "bg-purple-100 text-purple-700"
-                                    : "bg-blue-100 text-blue-700"
+                            ? "bg-green-100 text-green-700"
+                            : type.trim().toLowerCase() === "freelance"
+                              ? "bg-orange-100 text-orange-700"
+                              : type.trim().toLowerCase() === "contract"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : type.trim().toLowerCase() === "part-time"
+                                  ? "bg-purple-100 text-purple-700"
+                                  : "bg-blue-100 text-blue-700"
                             }`}
                         >
                           {type.trim()}
@@ -497,7 +497,7 @@ export default function CareersPage() {
                     </div>
                     <button
                       onClick={() => handleViewDetails(job.slug)}
-                      className="bg-gradient-to-r from-[#0270e1] to-[#024a9e] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity hover:shadow-md"
+                      className="bg-gradient-to-r from-[#0270e1] to-[#024a9e] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity hover:shadow-md cursor-pointer"
                     >
                       View Details
                     </button>
@@ -510,7 +510,7 @@ export default function CareersPage() {
             {filteredJobs.length > 9 && (
               <div className="mt-12 flex justify-center">
                 <nav className="flex items-center space-x-2">
-                  <button className="px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">
+                  <button className="px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 cursor-pointer">
                     Previous
                   </button>
                   <button className="px-3 py-2 rounded-lg bg-blue-600 text-white">1</button>
@@ -520,7 +520,7 @@ export default function CareersPage() {
                   <button className="px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">
                     3
                   </button>
-                  <button className="px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">
+                  <button className="px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 cursor-pointer">
                     Next
                   </button>
                 </nav>

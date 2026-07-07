@@ -23,7 +23,7 @@
 
 // //   const renderAnimatedText = (text: string) => {
 // //     const words = text.split(' ');
-    
+
 // //     return words.map((word, wordIndex) => (
 // //       <span key={wordIndex} className="inline-block">
 // //         {word.split('').map((letter, letterIndex) => (
@@ -50,10 +50,10 @@
 // //         setError(null);
 // //         // Use getPublic() to fetch only active case studies
 // //         const data = await caseStudyApi.getPublic();
-        
+
 // //         // Sort by display_order if needed
 // //         const sortedData = [...data].sort((a, b) => a.display_order - b.display_order);
-        
+
 // //         setCaseStudies(sortedData);
 // //         setTotalSlides(sortedData.length);
 // //       } catch (err) {
@@ -394,7 +394,7 @@
 // //           .project-slider .swiper-slide {
 // //             opacity: 0.7;
 // //           }
-          
+
 // //           .project-slider .swiper-slide-active {
 // //             opacity: 1;
 // //           }
@@ -577,7 +577,8 @@ const CaseStudiesSection: React.FC = () => {
           {/* Header */}
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-blue-600/10 to-purple-600/10 backdrop-blur-sm rounded-full border border-blue-200/30 mb-3 -mt-2">
-              <Sparkles className="w-3 h-3 text-yellow-400" />
+
+
               <span className="text-[10px] font-bold text-[#0077d9] tracking-wider uppercase">Case Studies</span>
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 leading-tight mb-2">
@@ -742,11 +743,10 @@ export const CaseStudiesPage: React.FC = () => {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                    activeCategory === cat
-                      ? 'bg-[#0076d8] text-white border-[#0076d8] shadow'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-[#0076d8] hover:text-[#0076d8]'
-                  }`}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${activeCategory === cat
+                    ? 'bg-[#0076d8] text-white border-[#0076d8] shadow'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-[#0076d8] hover:text-[#0076d8]'
+                    }`}
                 >
                   {cat}
                 </button>
