@@ -290,12 +290,12 @@ function WelcomePage({ onSectorClick, onLoginClick }: WelcomePageProps) {
         </div>
 
         {/* Logo */}
-        <div className="fixed top-2 left-2 sm:top-4 sm:left-4 md:top-6 md:left-6 z-40 animate-fade-in">
-          <img src={logo} alt="Hously Logo" className="h-12 sm:h-16 md:h-20 w-auto object-contain drop-shadow-2xl" />
+        <div className="fixed top-4 left-4 sm:top-6 sm:left-6 md:top-8 md:left-8 z-40 animate-fade-in">
+          <img src={logo} alt="Hously Logo" className="h-10 sm:h-16 md:h-20 w-auto object-contain drop-shadow-2xl" />
         </div>
 
         {/* Top Right Navigation Actions */}
-        <div className="fixed top-2 right-2 sm:top-4 sm:right-4 md:top-6 md:right-6 z-40 flex items-center gap-3 sm:gap-4 animate-fade-in select-none">
+        <div className="fixed top-4 right-4 sm:top-6 sm:right-6 md:top-8 md:right-8 z-40 flex items-center gap-2 sm:gap-4 animate-fade-in select-none">
           {/* Careers Button with Floating Blinking Hiring Badge */}
           <div className="relative">
             {/* Blinking Hiring Badge */}
@@ -310,7 +310,7 @@ function WelcomePage({ onSectorClick, onLoginClick }: WelcomePageProps) {
             {/* Careers Button */}
             <Link
               to="/career"
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/95 backdrop-blur-md border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-slate-700 rounded-full shadow-sm hover:shadow-md transition-all duration-300 font-semibold text-[10px] sm:text-xs group"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 bg-white/95 backdrop-blur-md border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-slate-700 rounded-full shadow-sm hover:shadow-md transition-all duration-300 font-semibold text-[11px] sm:text-xs group"
             >
               <Briefcase className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-slate-500 group-hover:scale-110 transition-transform" />
               <span>Careers</span>
@@ -320,7 +320,7 @@ function WelcomePage({ onSectorClick, onLoginClick }: WelcomePageProps) {
           {/* Login Button */}
           <button
             onClick={onLoginClick}
-            className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 bg-[#0076d8] hover:bg-[#0066c0] text-white rounded-full shadow-md shadow-[#0076d8]/10 hover:shadow-lg hover:shadow-[#0076d8]/20 transition-all duration-300 font-semibold text-[10px] sm:text-xs group"
+            className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-2 sm:px-5 sm:py-2.5 bg-[#0076d8] hover:bg-[#0066c0] text-white rounded-full shadow-md shadow-[#0076d8]/10 hover:shadow-lg hover:shadow-[#0076d8]/20 transition-all duration-300 font-semibold text-[11px] sm:text-xs group"
           >
             <LogIn className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-white/90 group-hover:translate-x-0.5 transition-transform" />
             <span>Login</span>

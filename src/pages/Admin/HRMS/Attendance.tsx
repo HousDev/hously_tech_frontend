@@ -11,6 +11,8 @@ import {
   FileText, AlertTriangle, Send, Filter,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
+import { attendanceApi } from "../../../lib/attendanceApi";
+import { io } from "socket.io-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,6 +22,8 @@ type ViewTab = "today" | "report" | "regularize" | "calendar";
 
 interface AttendanceRecord {
   id: string;
+  userId?: number;
+  date?: string;
   empId: string;
   name: string;
   department: string;
@@ -33,7 +37,8 @@ interface AttendanceRecord {
   workingHours?: string;
   overtime?: string;
   lateByMinutes?: number;
-  shift: string;
+  checkInSelfie?: string | null;
+  checkOutSelfie?: string | null;
 }
 
 interface RegularizeRequest {
@@ -76,44 +81,10 @@ const COLORS = [
   "from-teal-500 to-teal-600", "from-orange-500 to-orange-600",
 ];
 
-const RECORDS: AttendanceRecord[] = [
-  { id: "1", empId: "EMP-001", name: "Suraj Kumar", department: "Software Dev", designation: "Sr. Developer", avatarColor: COLORS[0], checkInTime: "09:12 AM", checkOutTime: "06:35 PM", status: "present", checkInType: "office", location: "Noida HQ", workingHours: "9h 23m", overtime: "1h 23m", lateByMinutes: 0, shift: "General (9AM–6PM)" },
-  { id: "2", empId: "EMP-002", name: "Anjali Sharma", department: "UI/UX Design", designation: "Lead Designer", avatarColor: COLORS[1], checkInTime: "09:48 AM", checkOutTime: "07:02 PM", status: "late", checkInType: "remote", location: "Home Office", workingHours: "9h 14m", overtime: "1h 14m", lateByMinutes: 48, shift: "General (9AM–6PM)" },
-  { id: "3", empId: "EMP-003", name: "Vikram Patel", department: "Data Analytics", designation: "Data Scientist", avatarColor: COLORS[2], checkInTime: "10:30 AM", checkOutTime: "07:18 PM", status: "late", checkInType: "office", location: "Mumbai Branch", workingHours: "8h 48m", overtime: "0m", lateByMinutes: 90, shift: "General (9AM–6PM)" },
-  { id: "4", empId: "EMP-004", name: "Rajesh Roy", department: "QA", designation: "QA Lead", avatarColor: COLORS[3], status: "absent", checkInType: "office", shift: "General (9AM–6PM)" },
-  { id: "5", empId: "EMP-005", name: "Priya Mehta", department: "HR", designation: "HR Manager", avatarColor: COLORS[4], checkInTime: "09:00 AM", checkOutTime: "06:00 PM", status: "present", checkInType: "office", location: "Noida HQ", workingHours: "9h 00m", overtime: "0m", lateByMinutes: 0, shift: "General (9AM–6PM)" },
-  { id: "6", empId: "EMP-006", name: "Amit Singh", department: "Software Dev", designation: "Jr. Developer", avatarColor: COLORS[5], status: "on_leave", shift: "General (9AM–6PM)" },
-  { id: "7", empId: "EMP-007", name: "Neha Verma", department: "Marketing", designation: "Marketing Lead", avatarColor: COLORS[6], checkInTime: "09:30 AM", checkOutTime: "06:45 PM", status: "present", checkInType: "field", location: "Client Site", workingHours: "9h 15m", overtime: "1h 15m", lateByMinutes: 0, shift: "General (9AM–6PM)" },
-  { id: "8", empId: "EMP-008", name: "Deepak Gupta", department: "Database", designation: "DBA", avatarColor: COLORS[7], checkInTime: "08:50 AM", checkOutTime: "05:30 PM", status: "present", checkInType: "office", location: "Noida HQ", workingHours: "8h 40m", overtime: "0m", lateByMinutes: 0, shift: "Morning (8AM–5PM)" },
-  { id: "9", empId: "EMP-009", name: "Sneha Reddy", department: "DevOps", designation: "DevOps Engineer", avatarColor: COLORS[8], checkInTime: "09:00 AM", checkOutTime: "01:00 PM", status: "half_day", checkInType: "remote", location: "Home Office", workingHours: "4h 00m", overtime: "0m", lateByMinutes: 0, shift: "General (9AM–6PM)" },
-  { id: "10", empId: "EMP-010", name: "Rahul Jain", department: "Security", designation: "Security Analyst", avatarColor: COLORS[9], checkInTime: "08:30 AM", checkOutTime: "05:00 PM", status: "present", checkInType: "office", location: "Noida HQ", workingHours: "8h 30m", overtime: "0m", lateByMinutes: 0, shift: "Morning (8AM–5PM)" },
-  { id: "11", empId: "EMP-011", name: "Kavya Nair", department: "Finance", designation: "Finance Analyst", avatarColor: COLORS[0], status: "not_marked", shift: "General (9AM–6PM)" },
-  { id: "12", empId: "EMP-012", name: "Arjun Desai", department: "Operations", designation: "Ops Manager", avatarColor: COLORS[1], checkInTime: "09:05 AM", checkOutTime: "06:10 PM", status: "present", checkInType: "office", location: "Noida HQ", workingHours: "9h 05m", overtime: "1h 05m", lateByMinutes: 0, shift: "General (9AM–6PM)" },
-  { id: "13", empId: "EMP-013", name: "Pooja Tiwari", department: "Marketing", designation: "Content Writer", avatarColor: COLORS[2], checkInTime: "09:20 AM", checkOutTime: "06:20 PM", status: "present", checkInType: "remote", location: "Home Office", workingHours: "9h 00m", overtime: "0m", lateByMinutes: 20, shift: "General (9AM–6PM)" },
-  { id: "14", empId: "EMP-014", name: "Ravi Shankar", department: "Software Dev", designation: "Tech Lead", avatarColor: COLORS[3], checkInTime: "09:02 AM", checkOutTime: "07:30 PM", status: "present", checkInType: "office", location: "Noida HQ", workingHours: "10h 28m", overtime: "2h 28m", lateByMinutes: 0, shift: "General (9AM–6PM)" },
-  { id: "15", empId: "EMP-015", name: "Meera Iyer", department: "HR", designation: "HR Executive", avatarColor: COLORS[4], status: "on_leave", shift: "General (9AM–6PM)" },
-];
-
-const REGULARIZE_DATA: RegularizeRequest[] = [
-  { id: "r1", empId: "EMP-003", name: "Vikram Patel", avatarColor: COLORS[2], department: "Data Analytics", date: "2026-07-02", reason: "Forgot to punch-in due to early morning meeting", requestedIn: "09:15 AM", requestedOut: "06:30 PM", actualIn: "10:30 AM", actualOut: "07:18 PM", status: "pending", submittedOn: "2026-07-03 10:15 AM" },
-  { id: "r2", empId: "EMP-006", name: "Amit Singh", avatarColor: COLORS[5], department: "Software Dev", date: "2026-07-01", reason: "System issue — biometric not working", requestedIn: "09:00 AM", requestedOut: "06:00 PM", status: "pending", submittedOn: "2026-07-02 09:30 AM" },
-  { id: "r3", empId: "EMP-009", name: "Sneha Reddy", avatarColor: COLORS[8], department: "DevOps", date: "2026-06-30", reason: "Attended client call from home, forgot to mark WFH", requestedIn: "09:00 AM", requestedOut: "06:00 PM", actualIn: "09:00 AM", actualOut: "01:00 PM", status: "approved", submittedOn: "2026-07-01 02:00 PM" },
-  { id: "r4", empId: "EMP-011", name: "Kavya Nair", avatarColor: COLORS[0], department: "Finance", date: "2026-06-29", reason: "Power outage at home — could not punch remotely", requestedIn: "09:30 AM", requestedOut: "06:30 PM", status: "rejected", submittedOn: "2026-06-30 11:00 AM" },
-  { id: "r5", empId: "EMP-002", name: "Anjali Sharma", avatarColor: COLORS[1], department: "UI/UX Design", date: "2026-07-02", reason: "App crash during punch", requestedIn: "09:00 AM", requestedOut: "06:00 PM", actualIn: "09:48 AM", actualOut: "07:02 PM", status: "pending", submittedOn: "2026-07-03 08:00 AM" },
-];
-
-const MONTHLY_REPORT: MonthlyReport[] = [
-  { name: "Suraj Kumar", empId: "EMP-001", avatarColor: COLORS[0], department: "Software Dev", present: 22, absent: 0, late: 1, halfDay: 0, onLeave: 0, total: 23, workingHours: "198h 30m" },
-  { name: "Anjali Sharma", empId: "EMP-002", avatarColor: COLORS[1], department: "UI/UX Design", present: 19, absent: 1, late: 3, halfDay: 0, onLeave: 2, total: 23, workingHours: "171h 00m" },
-  { name: "Vikram Patel", empId: "EMP-003", avatarColor: COLORS[2], department: "Data Analytics", present: 18, absent: 2, late: 5, halfDay: 1, onLeave: 0, total: 23, workingHours: "162h 15m" },
-  { name: "Rajesh Roy", empId: "EMP-004", avatarColor: COLORS[3], department: "QA", present: 20, absent: 3, late: 0, halfDay: 0, onLeave: 0, total: 23, workingHours: "180h 00m" },
-  { name: "Priya Mehta", empId: "EMP-005", avatarColor: COLORS[4], department: "HR", present: 23, absent: 0, late: 0, halfDay: 0, onLeave: 0, total: 23, workingHours: "207h 00m" },
-  { name: "Amit Singh", empId: "EMP-006", avatarColor: COLORS[5], department: "Software Dev", present: 15, absent: 1, late: 2, halfDay: 0, onLeave: 5, total: 23, workingHours: "135h 45m" },
-  { name: "Neha Verma", empId: "EMP-007", avatarColor: COLORS[6], department: "Marketing", present: 21, absent: 0, late: 2, halfDay: 0, onLeave: 0, total: 23, workingHours: "193h 30m" },
-  { name: "Deepak Gupta", empId: "EMP-008", avatarColor: COLORS[7], department: "Database", present: 22, absent: 1, late: 0, halfDay: 0, onLeave: 0, total: 23, workingHours: "193h 00m" },
-  { name: "Sneha Reddy", empId: "EMP-009", avatarColor: COLORS[8], department: "DevOps", present: 17, absent: 0, late: 1, halfDay: 3, onLeave: 2, total: 23, workingHours: "148h 30m" },
-  { name: "Rahul Jain", empId: "EMP-010", avatarColor: COLORS[9], department: "Security", present: 23, absent: 0, late: 0, halfDay: 0, onLeave: 0, total: 23, workingHours: "195h 30m" },
-];
+// Static data removed — data is loaded from backend
+const RECORDS: AttendanceRecord[] = [];
+const REGULARIZE_DATA: RegularizeRequest[] = [];
+const MONTHLY_REPORT: MonthlyReport[] = [];
 
 const STATUS_CONFIG: Record<AttendanceStatus, { label: string; textColor: string; bgColor: string; borderColor: string; dot: string }> = {
   present: { label: "Present", textColor: "text-emerald-700", bgColor: "bg-emerald-50", borderColor: "border-emerald-200", dot: "bg-emerald-500" },
@@ -229,17 +200,7 @@ const MiniCalendar = ({ selected, onChange }: { selected: string; onChange: (d: 
   );
 };
 
-// ─── ROSTER & HELPERS ──────────────────────────────────────────────────────────
-
-const ROSTER = RECORDS.map(r => ({
-  id: r.id,
-  empId: r.empId,
-  name: r.name,
-  department: r.department,
-  designation: r.designation,
-  avatarColor: r.avatarColor,
-  shift: r.shift
-}));
+// ─── HELPERS ──────────────────────────────────────────────────────────
 
 const format24to12 = (time24: string): string => {
   if (!time24) return "";
@@ -360,14 +321,13 @@ const TodayView = ({
   };
 
   const handleExportToday = () => {
-    let csvContent = "Employee ID,Name,Department,Designation,Shift,Status,Punch In,Punch Out,Punch Type,Location,Working Hours,Overtime\n";
+    let csvContent = "Employee ID,Name,Department,Designation,Status,Punch In,Punch Out,Punch Type,Location,Working Hours,Overtime\n";
 
     filtered.forEach(r => {
       const empId = r.empId;
       const name = r.name;
       const department = r.department;
       const designation = r.designation || "";
-      const shift = r.shift || "";
       const status = r.status.toUpperCase();
       const checkIn = r.checkInTime || "";
       const checkOut = r.checkOutTime || "";
@@ -376,7 +336,7 @@ const TodayView = ({
       const workingHours = r.workingHours || "";
       const overtime = r.overtime || "";
 
-      csvContent += `${empId},${name},${department},${designation},${shift},${status},${checkIn},${checkOut},${punchType},${location},${workingHours},${overtime}\n`;
+      csvContent += `${empId},${name},${department},${designation},${status},${checkIn},${checkOut},${punchType},${location},${workingHours},${overtime}\n`;
     });
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -534,7 +494,7 @@ const TodayView = ({
           <table className="min-w-full border-collapse text-[11px]">
             <thead className="sticky top-0 bg-slate-50 z-20 shadow-sm border-b border-slate-200">
               <tr className="bg-slate-50">
-                {["Employee", "Department", "Shift", "Punch In", "Punch Out", "Type", "Location", "Hours", "Late", "Overtime", "Status", "Actions"].map(h => (
+                {["Employee", "Department", "Punch In", "Punch Out", "Type", "Location", "Hours", "Late", "Overtime", "Status", "Actions"].map(h => (
                   <th key={h} className="px-3 py-2.5 text-left text-[9px] font-extrabold text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -588,7 +548,6 @@ const TodayView = ({
                       </div>
                     </td>
                     <td className="px-3 py-2.5 font-semibold text-slate-655">{r.department}</td>
-                    <td className="px-3 py-2.5 text-slate-500 font-semibold">{r.shift || "—"}</td>
                     <td className="px-3 py-2.5 font-bold text-slate-700">{r.checkInTime || "—"}</td>
                     <td className="px-3 py-2.5 font-bold text-slate-700">{r.checkOutTime || "—"}</td>
                     <td className="px-3 py-2.5 font-semibold capitalize text-slate-500">{r.checkInType || "—"}</td>
@@ -689,20 +648,54 @@ const TodayView = ({
 // ─── EMPLOYEE ATTENDANCE VIEW ────────────────────────────────────────────────
 
 const EmployeeAttendanceView = ({
-  recordsByDate,
-  onUpdateRecords
+  roster,
+  socketTrigger
 }: {
-  recordsByDate: Record<string, AttendanceRecord[]>;
-  onUpdateRecords: (dateStr: string, updatedList: AttendanceRecord[]) => void;
+  roster: any[];
+  socketTrigger?: number;
 }) => {
+  const BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+  const getSelfieUrl = (pathStr?: string | null) => {
+    if (!pathStr) return "";
+    if (pathStr.startsWith("data:") || pathStr.startsWith("http")) return pathStr;
+    return `${BASE_URL}/${pathStr}`;
+  };
+
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
 
-  const [selectedEmp, setSelectedEmp] = useState(ROSTER[0]);
-  const [searchQuery, setSearchQuery] = useState(ROSTER[0].name);
+  const [selectedEmp, setSelectedEmp] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [monthlyLogs, setMonthlyLogs] = useState<AttendanceRecord[]>([]);
+  const [loadingMonthly, setLoadingMonthly] = useState(false);
+
+  useEffect(() => {
+    if (roster.length > 0 && !selectedEmp) {
+      setSelectedEmp(roster[0]);
+      setSearchQuery(roster[0].name);
+    }
+  }, [roster]);
+
+  const fetchMonthlyLogs = async () => {
+    if (!selectedEmp || !selectedEmp.userId) return;
+    setLoadingMonthly(true);
+    try {
+      const data = await attendanceApi.getAdminUserLogs(selectedEmp.userId, selectedMonth, selectedYear);
+      setMonthlyLogs(data);
+    } catch (err) {
+      console.error("Failed to load employee monthly logs:", err);
+    } finally {
+      setLoadingMonthly(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMonthlyLogs();
+  }, [selectedEmp, selectedMonth, selectedYear, socketTrigger]);
 
   // Custom Biometric Log Popup State
   const [selectedLog, setSelectedLog] = useState<{ dateStr: string; record?: AttendanceRecord } | null>(null);
@@ -723,14 +716,13 @@ const EmployeeAttendanceView = ({
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
       const dayOfWeekName = new Date(dateStr).toLocaleDateString("en-US", { weekday: "short" });
-      const dayRecords = recordsByDate[dateStr] || [];
-      const rec = dayRecords.find(r => r.empId === selectedEmp.empId);
+      const rec = monthlyLogs.find(r => r.date === dateStr);
 
       let status = "Not Marked";
       if (rec) status = rec.status.toUpperCase();
       else {
         const dayIdx = new Date(dateStr).getDay();
-        if (dayIdx === 0 || dayIdx === 6) status = "WEEKEND OFF";
+        if (dayIdx === 0) status = "WEEKEND OFF";
       }
 
       const checkIn = rec?.checkInTime || "";
@@ -759,8 +751,11 @@ const EmployeeAttendanceView = ({
   const [tempWorkingHours, setTempWorkingHours] = useState("");
   const [tempCheckInTime, setTempCheckInTime] = useState("");
   const [tempCheckOutTime, setTempCheckOutTime] = useState("");
-  const [tempLocation, setTempLocation] = useState("");
+  const [tempCheckInLocation, setTempCheckInLocation] = useState("");
+  const [tempCheckOutLocation, setTempCheckOutLocation] = useState("");
   const [tempComment, setTempComment] = useState("");
+  const [tempCheckInSelfie, setTempCheckInSelfie] = useState<string | null>(null);
+  const [tempCheckOutSelfie, setTempCheckOutSelfie] = useState<string | null>(null);
 
   // Sync edit form states when a cell is clicked/selected
   const handleSelectCell = (dateStr: string, rec?: AttendanceRecord) => {
@@ -769,82 +764,89 @@ const EmployeeAttendanceView = ({
     if (rec) {
       setTempStatus(rec.status);
       setTempLeaveType((rec as any).leaveType || "");
-      setTempWorkingHours(rec.workingHours || "10:28h");
-      setTempCheckInTime(rec.checkInTime || "10:13 AM");
-      setTempCheckOutTime(rec.checkOutTime || "08:41 PM");
-      setTempLocation(rec.location || "Kalewadi, Pimpri-Chinchwad, Haveli Subdistrict, Pune, Maharashtra, 411017, India");
+      setTempWorkingHours(rec.workingHours || "");
+      setTempCheckInTime(rec.checkInTime || "");
+      setTempCheckOutTime(rec.checkOutTime || "");
       setTempComment((rec as any).comment || "");
+      setTempCheckInSelfie(rec.checkInSelfie || null);
+      setTempCheckOutSelfie(rec.checkOutSelfie || null);
+
+      // Resolve check-in address
+      const checkInLat = (rec as any).checkInLat;
+      const checkInLng = (rec as any).checkInLng;
+      if (checkInLat && checkInLng) {
+        setTempCheckInLocation("Loading address...");
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${checkInLat}&lon=${checkInLng}`)
+          .then(r => r.json())
+          .then(json => {
+            const addr = json?.display_name || `${checkInLat}, ${checkInLng}`;
+            setTempCheckInLocation(addr.split(',').slice(0, 3).join(',').trim());
+          })
+          .catch(() => {
+            setTempCheckInLocation(`${Number(checkInLat).toFixed(5)}, ${Number(checkInLng).toFixed(5)}`);
+          });
+      } else {
+        setTempCheckInLocation(rec.location || "");
+      }
+
+      // Resolve check-out address
+      const checkOutLat = (rec as any).checkOutLat;
+      const checkOutLng = (rec as any).checkOutLng;
+      if (checkOutLat && checkOutLng) {
+        setTempCheckOutLocation("Loading address...");
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${checkOutLat}&lon=${checkOutLng}`)
+          .then(r => r.json())
+          .then(json => {
+            const addr = json?.display_name || `${checkOutLat}, ${checkOutLng}`;
+            setTempCheckOutLocation(addr.split(',').slice(0, 3).join(',').trim());
+          })
+          .catch(() => {
+            setTempCheckOutLocation(`${Number(checkOutLat).toFixed(5)}, ${Number(checkOutLng).toFixed(5)}`);
+          });
+      } else {
+        setTempCheckOutLocation(rec.location || "");
+      }
     } else {
       // Default initial states for blank dates
       setTempStatus("present");
       setTempLeaveType("");
-      setTempWorkingHours("10:28h");
-      setTempCheckInTime("10:13 AM");
-      setTempCheckOutTime("08:41 PM");
-      setTempLocation("Kalewadi, Pimpri-Chinchwad, Haveli Subdistrict, Pune, Maharashtra, 411017, India");
+      setTempWorkingHours("");
+      setTempCheckInTime("");
+      setTempCheckOutTime("");
+      setTempCheckInLocation("");
+      setTempCheckOutLocation("");
       setTempComment("");
+      setTempCheckInSelfie(null);
+      setTempCheckOutSelfie(null);
     }
   };
 
-  const handleSaveLog = () => {
-    if (!selectedLog) return;
+  const handleSaveLog = async () => {
+    if (!selectedLog || !selectedEmp || !selectedEmp.userId) return;
 
-    const dateRecords = recordsByDate[selectedLog.dateStr] || [];
-    const existingRec = dateRecords.find(r => r.empId === selectedEmp.empId);
+    const isOffStatus = tempStatus === "absent" || tempStatus === "on_leave" || tempStatus === "holiday" || tempStatus === "not_marked" || tempStatus === "week_off";
 
-    const isOffStatus = tempStatus === "absent" || tempStatus === "on_leave" || tempStatus === "holiday" || tempStatus === "not_marked";
-
-    // Auto-calculate late duration if present & check-in is parsed
-    let lateMins = 0;
-    if (tempStatus === "late" && tempCheckInTime) {
-      const match = tempCheckInTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
-      if (match) {
-        let hrs = parseInt(match[1]);
-        const mins = parseInt(match[2]);
-        const ampm = match[3].toUpperCase();
-        if (ampm === "PM" && hrs !== 12) hrs += 12;
-        if (ampm === "AM" && hrs === 12) hrs = 0;
-        const totalMinutes = hrs * 60 + mins;
-        const shiftStartMinutes = 9 * 60; // 09:00 AM
-        if (totalMinutes > shiftStartMinutes) {
-          lateMins = totalMinutes - shiftStartMinutes;
-        }
-      }
-    }
-
-    const updatedRec: AttendanceRecord = {
-      id: existingRec?.id || `rec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      empId: selectedEmp.empId,
-      name: selectedEmp.name,
-      department: selectedEmp.department,
-      designation: selectedEmp.designation,
-      avatarColor: selectedEmp.avatarColor,
-      status: tempStatus,
-      shift: existingRec?.shift || "General (9AM–6PM)",
-      checkInTime: isOffStatus ? undefined : tempCheckInTime || undefined,
-      checkOutTime: isOffStatus ? undefined : tempCheckOutTime || undefined,
-      workingHours: isOffStatus ? undefined : tempWorkingHours || undefined,
-      checkInType: existingRec?.checkInType || "office",
-      location: isOffStatus ? undefined : tempLocation || undefined,
-      overtime: existingRec?.overtime || undefined,
-      lateByMinutes: lateMins,
-      // Custom extra properties
-      ...({
-        leaveType: (tempStatus === "on_leave" || tempStatus === "half_day") ? tempLeaveType : undefined,
+    try {
+      await attendanceApi.saveManualAttendance({
+        userId: selectedEmp.userId,
+        date: selectedLog.dateStr,
+        status: tempStatus,
+        checkIn: isOffStatus ? undefined : tempCheckInTime,
+        checkOut: isOffStatus ? undefined : tempCheckOutTime,
+        workMode: isOffStatus ? undefined : "Office",
+        location: isOffStatus ? undefined : tempCheckInLocation,
+        hours: isOffStatus ? undefined : tempWorkingHours,
+        leaveType: tempLeaveType || undefined,
         comment: tempComment || undefined
-      } as any)
-    };
+      });
 
-    let updatedList: AttendanceRecord[] = [];
-    if (existingRec) {
-      updatedList = dateRecords.map(r => r.empId === selectedEmp.empId ? updatedRec : r);
-    } else {
-      updatedList = [...dateRecords, updatedRec];
+      toast.success("Attendance record saved successfully!");
+      fetchMonthlyLogs();
+      handleCloseModal();
+    } catch (err: any) {
+      console.error("Failed to save attendance:", err);
+      toast.error(err.message || "Failed to save attendance record");
     }
-
-    onUpdateRecords(selectedLog.dateStr, updatedList);
-    toast.success("Attendance record saved successfully!");
-    handleCloseModal();
   };
 
   useEffect(() => {
@@ -859,14 +861,14 @@ const EmployeeAttendanceView = ({
 
   const filteredEmployees = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query || query === selectedEmp.name.toLowerCase() || query === selectedEmp.empId.toLowerCase()) {
-      return ROSTER;
+    if (!selectedEmp || !query || query === selectedEmp.name.toLowerCase() || query === selectedEmp.empId.toLowerCase()) {
+      return roster;
     }
-    return ROSTER.filter(emp =>
+    return roster.filter(emp =>
       emp.name.toLowerCase().includes(query) ||
       emp.empId.toLowerCase().includes(query)
     );
-  }, [searchQuery, selectedEmp]);
+  }, [searchQuery, selectedEmp, roster]);
 
   // Calculate stats for the selected employee in the selected month & year
   const stats = useMemo(() => {
@@ -879,13 +881,13 @@ const EmployeeAttendanceView = ({
     let notMarked = 0;
 
     const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+    const todayStr = new Date().toISOString().split("T")[0];
 
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      const dayRecords = recordsByDate[dateStr] || [];
-      const rec = dayRecords.find(r => r.empId === selectedEmp.empId);
+      const rec = monthlyLogs.find(r => r.date === dateStr);
       const dayOfWeek = new Date(dateStr).getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const isWeekend = dayOfWeek === 0; // Week Off Days only sunday ka ho
 
       if (rec) {
         if (rec.status === "present") present++;
@@ -895,8 +897,11 @@ const EmployeeAttendanceView = ({
         else if (rec.status === "on_leave") onLeave++;
         else if (rec.status === "holiday") holiday++;
         else if (rec.status === "not_marked") notMarked++;
+        else if (rec.status === "week_off") holiday++;
       } else if (isWeekend) {
         holiday++;
+      } else if (dateStr < todayStr) {
+        absent++;
       } else {
         notMarked++;
       }
@@ -905,7 +910,7 @@ const EmployeeAttendanceView = ({
     const totalDays = daysInMonth;
     const rate = totalDays > holiday ? Math.round(((present + late + halfDay) / (totalDays - holiday)) * 100) : 0;
     return { present, absent, late, halfDay, onLeave, holiday, notMarked, rate };
-  }, [recordsByDate, selectedEmp, selectedMonth, selectedYear]);
+  }, [monthlyLogs, selectedEmp, selectedMonth, selectedYear]);
 
   // Calculate cumulative overall stats for the selected employee across all dates
   const overallStats = useMemo(() => {
@@ -914,30 +919,20 @@ const EmployeeAttendanceView = ({
     let late = 0;
     let halfDay = 0;
     let onLeave = 0;
-    let holiday = 0;
 
-    Object.entries(recordsByDate).forEach(([dateStr, dayRecords]) => {
-      const rec = dayRecords.find(r => r.empId === selectedEmp.empId);
-      const dayOfWeek = new Date(dateStr).getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-      if (rec) {
-        if (rec.status === "present") present++;
-        else if (rec.status === "absent") absent++;
-        else if (rec.status === "late") late++;
-        else if (rec.status === "half_day") halfDay++;
-        else if (rec.status === "on_leave") onLeave++;
-        else if (rec.status === "holiday") holiday++;
-      } else if (isWeekend) {
-        holiday++;
-      }
+    monthlyLogs.forEach(rec => {
+      if (rec.status === "present") present++;
+      else if (rec.status === "absent") absent++;
+      else if (rec.status === "late") late++;
+      else if (rec.status === "half_day") halfDay++;
+      else if (rec.status === "on_leave") onLeave++;
     });
 
     const totalDays = present + absent + late + halfDay + onLeave;
     const rate = totalDays > 0 ? Math.round(((present + late + halfDay) / totalDays) * 100) : 0;
 
     return { present, absent, late, halfDay, onLeave, rate };
-  }, [recordsByDate, selectedEmp]);
+  }, [monthlyLogs]);
 
   // Calendar cells generation
   const calendarCells = useMemo(() => {
@@ -951,12 +946,43 @@ const EmployeeAttendanceView = ({
     }
 
     // Days in current month
+    const todayStr = new Date().toISOString().split("T")[0];
+
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      const dayRecords = recordsByDate[dateStr] || [];
-      const rec = dayRecords.find(r => r.empId === selectedEmp.empId);
+      let rec = monthlyLogs.find(r => r.date === dateStr);
       const dayOfWeek = new Date(dateStr).getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const isWeekend = dayOfWeek === 0;
+
+      if (!rec && selectedEmp) {
+        if (dateStr < todayStr) {
+          if (isWeekend) {
+            rec = {
+              id: `temp-${dateStr}`,
+              userId: selectedEmp.userId,
+              date: dateStr,
+              empId: selectedEmp.empId,
+              name: selectedEmp.name,
+              department: selectedEmp.department,
+              designation: selectedEmp.designation,
+              avatarColor: selectedEmp.avatarColor,
+              status: "week_off"
+            };
+          } else {
+            rec = {
+              id: `temp-${dateStr}`,
+              userId: selectedEmp.userId,
+              date: dateStr,
+              empId: selectedEmp.empId,
+              name: selectedEmp.name,
+              department: selectedEmp.department,
+              designation: selectedEmp.designation,
+              avatarColor: selectedEmp.avatarColor,
+              status: "absent"
+            };
+          }
+        }
+      }
 
       cells.push({
         dateStr,
@@ -968,7 +994,7 @@ const EmployeeAttendanceView = ({
     }
 
     return cells;
-  }, [recordsByDate, selectedEmp, selectedMonth, selectedYear]);
+  }, [monthlyLogs, selectedEmp, selectedMonth, selectedYear]);
 
   const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
@@ -1101,7 +1127,7 @@ const EmployeeAttendanceView = ({
                       setSearchQuery(emp.name);
                       setIsDropdownOpen(false);
                     }}
-                    className={`w-full px-3 py-2 text-left text-xs font-bold transition hover:bg-slate-50 flex items-center gap-2.5 border-b border-slate-100 last:border-0 ${selectedEmp.empId === emp.empId ? "bg-blue-50/40 text-[#0D47A1]" : "text-slate-700"
+                    className={`w-full px-3 py-2 text-left text-xs font-bold transition hover:bg-slate-50 flex items-center gap-2.5 border-b border-slate-100 last:border-0 ${selectedEmp?.empId === emp.empId ? "bg-blue-50/40 text-[#0D47A1]" : "text-slate-700"
                       }`}
                   >
                     <Avatar name={emp.name} color={emp.avatarColor} />
@@ -1118,12 +1144,11 @@ const EmployeeAttendanceView = ({
 
         {/* Selected Employee Summary Card (Desktop Only) */}
         {selectedEmp && (
-          <div className="hidden lg:flex items-center gap-3 border-l border-slate-200 pl-4 py-1">
+              <div className="hidden lg:flex items-center gap-3 border-l border-slate-200 pl-4 py-1">
             <Avatar name={selectedEmp.name} color={selectedEmp.avatarColor} />
             <div className="text-xs">
               <p className="font-extrabold text-slate-800 leading-tight">{selectedEmp.name}</p>
               <p className="text-[10px] text-slate-450 font-bold">{selectedEmp.designation} • {selectedEmp.department}</p>
-              <p className="text-[9px] text-slate-400 font-bold">Shift: {selectedEmp.shift || "General"}</p>
             </div>
           </div>
         )}
@@ -1235,7 +1260,7 @@ const EmployeeAttendanceView = ({
 
                 const isToday = new Date().toISOString().split("T")[0] === cell.dateStr;
                 const rec = cell.record;
-                let statusColor = "bg-slate-50 border-slate-100 text-slate-400 cursor-default opacity-85";
+                let statusColor = "bg-slate-50 border-slate-100 text-slate-400 cursor-pointer hover:scale-105 hover:shadow-sm opacity-85";
 
                 if (rec) {
                   if (rec.status === "present") {
@@ -1254,7 +1279,7 @@ const EmployeeAttendanceView = ({
                     statusColor = "bg-pink-100 border-pink-300 text-pink-800 cursor-pointer hover:scale-105 hover:shadow-sm";
                   }
                 } else if (cell.isWeekend) {
-                  statusColor = "bg-gray-100 border-gray-300 text-gray-500 cursor-default opacity-85";
+                  statusColor = "bg-gray-100 border-gray-300 text-gray-500 cursor-pointer hover:scale-105 hover:shadow-sm opacity-85";
                 }
 
                 return (
@@ -1262,9 +1287,7 @@ const EmployeeAttendanceView = ({
                     key={cell.dateStr}
                     type="button"
                     onClick={() => {
-                      if (rec && rec.status && rec.status !== "not_marked") {
-                        handleSelectCell(cell.dateStr, rec);
-                      }
+                      handleSelectCell(cell.dateStr, rec);
                     }}
                     className={`w-full aspect-square border rounded-2xl flex items-center justify-center transition-all duration-150 text-xs font-bold focus:outline-none ${statusColor} ${isToday ? "ring-2 ring-[#0D47A1] ring-offset-1" : ""
                       }`}
@@ -1352,45 +1375,18 @@ const EmployeeAttendanceView = ({
                 <div className="flex-1 min-w-0">
                   <span className="text-[10px] text-slate-400 block uppercase leading-none font-bold mb-1">Status</span>
                   <select
-                    value={
-                      tempStatus === "present" ? "PRESENT" :
-                        tempStatus === "absent" ? "ABSENT" :
-                          tempStatus === "half_day" ? "HALF DAY" :
-                            tempStatus === "week_off" ? "WEEK OFF" :
-                              tempStatus === "holiday" ? "HOLIDAY" :
-                                "Select"
-                    }
-                    onChange={(e) => {
-                      const val = e.target.value;
-
-                      switch (val) {
-                        case "PRESENT":
-                          setTempStatus("present");
-                          break;
-                        case "ABSENT":
-                          setTempStatus("absent");
-                          break;
-                        case "HALF DAY":
-                          setTempStatus("half_day");
-                          break;
-                        case "WEEK OFF":
-                          setTempStatus("week_off");
-                          break;
-                        case "HOLIDAY":
-                          setTempStatus("holiday");
-                          break;
-                        default:
-                          setTempStatus("not_marked");
-                      }
-                    }}
+                    value={tempStatus}
+                    onChange={(e) => setTempStatus(e.target.value as AttendanceStatus)}
                     className="w-full px-3 py-1 text-[11px] border border-slate-200 rounded-full font-bold outline-none cursor-pointer focus:ring-1 focus:ring-[#0D47A1] text-slate-800 bg-white"
                   >
-                    <option value="Select">Select</option>
-                    <option value="PRESENT">PRESENT</option>
-                    <option value="ABSENT">ABSENT</option>
-                    <option value="HALF DAY">HALF DAY</option>
-                    <option value="WEEK OFF">WEEK OFF</option>
-                    <option value="HOLIDAY">HOLIDAY</option>
+                    <option value="not_marked">Select</option>
+                    <option value="present">PRESENT</option>
+                    <option value="absent">ABSENT</option>
+                    <option value="late">LATE</option>
+                    <option value="half_day">HALF DAY</option>
+                    <option value="on_leave">ON LEAVE</option>
+                    <option value="holiday">HOLIDAY</option>
+                    <option value="week_off">WEEK OFF</option>
                   </select>
                 </div>
               </div>
@@ -1435,8 +1431,16 @@ const EmployeeAttendanceView = ({
                 {/* Out punch */}
                 {tempCheckOutTime && (
                   <div className="flex items-start gap-3">
-                    <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${selectedEmp.avatarColor} flex items-center justify-center font-extrabold text-white text-[10px] shadow-sm flex-shrink-0`}>
-                      {selectedEmp.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                    <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${selectedEmp.avatarColor} flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden border border-slate-100`}>
+                      {tempCheckOutSelfie ? (
+                        <img
+                          src={getSelfieUrl(tempCheckOutSelfie)}
+                          alt="Out Selfie"
+                          className="w-full h-full object-cover transition-transform duration-200 hover:scale-155 cursor-zoom-in"
+                        />
+                      ) : (
+                        <User size={20} className="text-white opacity-85" />
+                      )}
                     </div>
                     <div className="text-[11px] flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 font-bold text-slate-800">
@@ -1451,8 +1455,8 @@ const EmployeeAttendanceView = ({
                       </div>
                       <input
                         type="text"
-                        value={tempLocation}
-                        onChange={e => setTempLocation(e.target.value)}
+                        value={tempCheckOutLocation}
+                        onChange={e => setTempCheckOutLocation(e.target.value)}
                         className="text-[10px] text-slate-500 font-medium w-full bg-transparent focus:outline-none border-b border-dashed border-slate-200 mt-0.5 leading-tight"
                         placeholder="Location address..."
                       />
@@ -1463,8 +1467,16 @@ const EmployeeAttendanceView = ({
                 {/* In punch */}
                 {tempCheckInTime && (
                   <div className="flex items-start gap-3">
-                    <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${selectedEmp.avatarColor} flex items-center justify-center font-extrabold text-white text-[10px] shadow-sm flex-shrink-0`}>
-                      {selectedEmp.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                    <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${selectedEmp.avatarColor} flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden border border-slate-100`}>
+                      {tempCheckInSelfie ? (
+                        <img
+                          src={getSelfieUrl(tempCheckInSelfie)}
+                          alt="In Selfie"
+                          className="w-full h-full object-cover transition-transform duration-200 hover:scale-155 cursor-zoom-in"
+                        />
+                      ) : (
+                        <User size={20} className="text-white opacity-85" />
+                      )}
                     </div>
                     <div className="text-[11px] flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 font-bold text-slate-800">
@@ -1479,8 +1491,8 @@ const EmployeeAttendanceView = ({
                       </div>
                       <input
                         type="text"
-                        value={tempLocation}
-                        onChange={e => setTempLocation(e.target.value)}
+                        value={tempCheckInLocation}
+                        onChange={e => setTempCheckInLocation(e.target.value)}
                         className="text-[10px] text-slate-500 font-medium w-full bg-transparent focus:outline-none border-b border-dashed border-slate-200 mt-0.5 leading-tight"
                         placeholder="Location address..."
                       />
@@ -1539,6 +1551,7 @@ export default function AttendancePage() {
 
   const [activeTab, setActiveTab] = useState<ViewTab>("today");
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [socketTrigger, setSocketTrigger] = useState(0);
 
   // Modal states lifted
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1546,7 +1559,6 @@ export default function AttendancePage() {
   const [selectedEmpId, setSelectedEmpId] = useState("");
   const [modalDate, setModalDate] = useState("");
   const [modalStatus, setModalStatus] = useState<AttendanceStatus>("present");
-  const [modalShift, setModalShift] = useState("General (9AM–6PM)");
   const [modalCheckIn, setModalCheckIn] = useState("");
   const [modalCheckOut, setModalCheckOut] = useState("");
   const [modalType, setModalType] = useState<CheckInType>("office");
@@ -1554,13 +1566,33 @@ export default function AttendancePage() {
   const [modalWorkingHours, setModalWorkingHours] = useState("");
   const [modalOvertime, setModalOvertime] = useState("");
 
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [recordsByDate, setRecordsByDate] = useState<Record<string, AttendanceRecord[]>>({});
+  const [loadingLogs, setLoadingLogs] = useState(true);
+
+  const roster = useMemo(() => {
+    const unique = new Map<string, any>();
+    records.forEach(r => {
+      if (r.empId && !unique.has(r.empId)) {
+        unique.set(r.empId, {
+          userId: r.userId,
+          empId: r.empId,
+          name: r.name,
+          department: r.department,
+          designation: r.designation,
+          avatarColor: r.avatarColor
+        });
+      }
+    });
+    return Array.from(unique.values());
+  }, [records]);
+
   const openModal = (mode: "add" | "edit", dateStr: string, empId?: string, record?: AttendanceRecord) => {
     setModalMode(mode);
     setModalDate(dateStr);
     if (mode === "add") {
-      setSelectedEmpId(empId || (ROSTER[0]?.empId || ""));
+      setSelectedEmpId(empId || (roster[0]?.empId || ""));
       setModalStatus("present");
-      setModalShift("General (9AM–6PM)");
       setModalCheckIn("09:00 AM");
       setModalCheckOut("06:00 PM");
       setModalType("office");
@@ -1571,7 +1603,6 @@ export default function AttendancePage() {
       if (record) {
         setSelectedEmpId(record.empId);
         setModalStatus(record.status);
-        setModalShift(record.shift || "General (9AM–6PM)");
         setModalCheckIn(record.checkInTime || "09:00 AM");
         setModalCheckOut(record.checkOutTime || "06:00 PM");
         setModalType(record.checkInType || "office");
@@ -1583,100 +1614,63 @@ export default function AttendancePage() {
     setIsModalOpen(true);
   };
 
-  const [recordsByDate, setRecordsByDate] = useState<Record<string, AttendanceRecord[]>>(() => {
-    const initial: Record<string, AttendanceRecord[]> = {};
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth() + 1;
-
-    const todayStr = today.toISOString().split("T")[0];
-    initial[todayStr] = RECORDS.map(r => ({ ...r }));
-
-    for (let d = 1; d < today.getDate(); d++) {
-      const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      const dayOfWeek = new Date(dateStr).getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-      if (isWeekend) {
-        initial[dateStr] = RECORDS.map(r => ({
-          ...r,
-          status: "holiday" as AttendanceStatus,
-          checkInTime: undefined,
-          checkOutTime: undefined,
-          checkInType: undefined,
-          location: undefined,
-          workingHours: undefined,
-          overtime: undefined,
-          lateByMinutes: 0
-        }));
-      } else {
-        initial[dateStr] = RECORDS.map(r => {
-          const rand = Math.random();
-          let status: AttendanceStatus = "present";
-          let checkInTime: string | undefined = "09:05 AM";
-          let checkOutTime: string | undefined = "06:00 PM";
-          let workingHours: string | undefined = "8h 55m";
-          let lateByMinutes = 0;
-          let checkInType: CheckInType | undefined = "office";
-          let location: string | undefined = "Noida HQ";
-
-          if (rand < 0.08) {
-            status = "absent";
-            checkInTime = undefined;
-            checkOutTime = undefined;
-            workingHours = undefined;
-            checkInType = undefined;
-            location = undefined;
-          } else if (rand < 0.15) {
-            status = "on_leave";
-            checkInTime = undefined;
-            checkOutTime = undefined;
-            workingHours = undefined;
-            checkInType = undefined;
-            location = undefined;
-          } else if (rand < 0.3) {
-            status = "late";
-            checkInTime = "09:45 AM";
-            lateByMinutes = 45;
-            workingHours = "8h 15m";
-          } else if (rand < 0.4) {
-            status = "half_day";
-            checkInTime = "09:00 AM";
-            checkOutTime = "01:00 PM";
-            workingHours = "4h 00m";
-          }
-
-          return {
-            ...r,
-            status,
-            checkInTime,
-            checkOutTime,
-            workingHours,
-            lateByMinutes,
-            checkInType,
-            location
-          };
-        });
-      }
+  const fetchAdminLogs = async () => {
+    try {
+      const data = await attendanceApi.getAdminLogs(selectedDate);
+      setRecords(data);
+      setRecordsByDate(prev => ({
+        ...prev,
+        [selectedDate]: data
+      }));
+    } catch (err) {
+      console.error('Failed to load employee attendance logs:', err);
     }
-    return initial;
-  });
+  };
+
+  // Sync today's view records with backend database logs
+  useEffect(() => {
+    setLoadingLogs(true);
+    fetchAdminLogs().finally(() => setLoadingLogs(false));
+  }, [selectedDate]);
+
+  // Real-time socket updates!
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    if (!token || !userStr) return;
+
+    try {
+      const userObj = JSON.parse(userStr);
+      const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+      const socket = io(SOCKET_URL, {
+        auth: { token, userId: userObj.id },
+        transports: ['websocket'],
+        reconnection: true
+      });
+
+      socket.on('connect', () => {
+        console.log('✅ Admin attendance page connected to live socket!');
+      });
+
+      socket.on('attendanceUpdate', (info) => {
+        console.log('⚡ Live attendance update received:', info);
+        fetchAdminLogs();
+        setSocketTrigger(prev => prev + 1);
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    } catch (err) {
+      console.error('Socket setup error:', err);
+    }
+  }, [selectedDate]);
 
   const getRecordsForDate = (dateStr: string) => {
-    if (recordsByDate[dateStr]) {
-      return recordsByDate[dateStr];
+    if (dateStr === selectedDate) {
+      return records;
     }
-    return RECORDS.map(r => ({
-      ...r,
-      status: "not_marked" as AttendanceStatus,
-      checkInTime: undefined,
-      checkOutTime: undefined,
-      checkInType: undefined,
-      location: undefined,
-      workingHours: undefined,
-      overtime: undefined,
-      lateByMinutes: 0
-    }));
+    return recordsByDate[dateStr] || [];
   };
 
   const handleUpdateRecords = (dateStr: string, updatedList: AttendanceRecord[]) => {
@@ -1684,67 +1678,43 @@ export default function AttendancePage() {
       ...prev,
       [dateStr]: updatedList
     }));
+    if (dateStr === selectedDate) {
+      setRecords(updatedList);
+    }
   };
 
-  const handleSaveModal = () => {
+  const handleSaveModal = async () => {
     if (!selectedEmpId) {
       toast.error("Please select an employee");
       return;
     }
-    const empObj = ROSTER.find(e => e.empId === selectedEmpId);
+    const empObj = roster.find(e => e.empId === selectedEmpId);
     if (!empObj) {
       toast.error("Selected employee not found");
       return;
     }
 
-    const lateMins = calculateLateMinutes(modalCheckIn, modalShift);
-    const dateRecords = getRecordsForDate(modalDate);
-
-    const isRecordExist = dateRecords.some(r => r.empId === selectedEmpId);
-    let updatedList = [];
     const isOffStatus = ["absent", "on_leave", "holiday", "not_marked"].includes(modalStatus);
-    if (isRecordExist) {
-      updatedList = dateRecords.map(r => {
-        if (r.empId === selectedEmpId) {
-          return {
-            ...r,
-            status: modalStatus,
-            shift: modalShift,
-            checkInTime: isOffStatus ? undefined : modalCheckIn || undefined,
-            checkOutTime: isOffStatus ? undefined : modalCheckOut || undefined,
-            checkInType: isOffStatus ? undefined : modalType,
-            location: isOffStatus ? undefined : modalLocation || undefined,
-            workingHours: isOffStatus ? undefined : modalWorkingHours || undefined,
-            overtime: isOffStatus ? undefined : modalOvertime || undefined,
-            lateByMinutes: lateMins
-          };
-        }
-        return r;
-      });
-    } else {
-      const newRec: AttendanceRecord = {
-        id: `${modalDate}_${selectedEmpId}`,
-        empId: selectedEmpId,
-        name: empObj.name,
-        department: empObj.department,
-        designation: empObj.designation,
-        avatarColor: empObj.avatarColor,
-        status: modalStatus,
-        shift: modalShift,
-        checkInTime: isOffStatus ? undefined : modalCheckIn || undefined,
-        checkOutTime: isOffStatus ? undefined : modalCheckOut || undefined,
-        checkInType: isOffStatus ? undefined : modalType,
-        location: isOffStatus ? undefined : modalLocation || undefined,
-        workingHours: isOffStatus ? undefined : modalWorkingHours || undefined,
-        overtime: isOffStatus ? undefined : modalOvertime || undefined,
-        lateByMinutes: lateMins
-      };
-      updatedList = [...dateRecords, newRec];
-    }
 
-    handleUpdateRecords(modalDate, updatedList);
-    toast.success(modalMode === "add" ? "Attendance marked successfully!" : "Attendance updated successfully!");
-    setIsModalOpen(false);
+    try {
+      await attendanceApi.saveManualAttendance({
+        userId: empObj.userId,
+        date: modalDate,
+        status: modalStatus,
+        checkIn: isOffStatus ? undefined : modalCheckIn,
+        checkOut: isOffStatus ? undefined : modalCheckOut,
+        workMode: isOffStatus ? undefined : modalType,
+        location: isOffStatus ? undefined : modalLocation,
+        hours: isOffStatus ? undefined : modalWorkingHours
+      });
+
+      toast.success(modalMode === "add" ? "Attendance marked successfully!" : "Attendance updated successfully!");
+      fetchAdminLogs();
+      setIsModalOpen(false);
+    } catch (err: any) {
+      console.error("Failed to save attendance:", err);
+      toast.error(err.message || "Failed to save attendance record");
+    }
   };
 
   const TABS: { id: ViewTab; label: string; icon: React.ReactNode; badge?: number }[] = [
@@ -1799,7 +1769,7 @@ export default function AttendancePage() {
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] font-semibold text-slate-700 bg-white disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer"
                   >
                     <option value="" disabled>Select Employee</option>
-                    {ROSTER.map((e) => (
+                    {roster.map((e) => (
                       <option key={e.empId} value={e.empId}>
                         {e.name} ({e.empId})
                       </option>
@@ -1818,8 +1788,8 @@ export default function AttendancePage() {
                 </div>
               </div>
 
-              {/* Row 2: Status & Shift */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Row 2: Status */}
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-[10px] uppercase text-slate-400 mb-1">Status</label>
                   <select
@@ -1834,19 +1804,6 @@ export default function AttendancePage() {
                     <option value="on_leave">On Leave</option>
                     <option value="holiday">Holiday</option>
                     <option value="not_marked">Not Marked</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-400 mb-1">Shift</label>
-                  <select
-                    value={modalShift}
-                    onChange={(e) => setModalShift(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] font-semibold text-slate-700 bg-white cursor-pointer"
-                  >
-                    <option value="General (9AM–6PM)">General (9AM–6PM)</option>
-                    <option value="Morning (8AM–5PM)">Morning (8AM–5PM)</option>
-                    <option value="Night (9PM–6AM)">Night (9PM–6AM)</option>
                   </select>
                 </div>
               </div>
@@ -1967,8 +1924,8 @@ export default function AttendancePage() {
         )}
         {activeTab === "report" && (
           <EmployeeAttendanceView
-            recordsByDate={recordsByDate}
-            onUpdateRecords={handleUpdateRecords}
+            roster={roster}
+            socketTrigger={socketTrigger}
           />
         )}
       </div>

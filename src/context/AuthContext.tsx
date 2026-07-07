@@ -7,7 +7,7 @@ interface User {
   id: number;
   username: string;
   email: string;
-  role: 'admin' | 'editor' | 'viewer';
+  role: string;
   full_name?: string;
   avatar_url?: string;
 }
@@ -34,16 +34,19 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
+  const [user, setUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        return JSON.parse(storedUser);
+      } catch (e) {
+        localStorage.removeItem('user');
+        return null;
+      }
     }
-    setLoading(false);
-  }, []);
+    return null;
+  });
+  const [loading, setLoading] = useState(false);
 
   const login = async (email: string, password: string) => {
     try {
@@ -78,7 +81,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const isAdmin = () => user?.role === 'admin';
+  const isAdmin = () => {
+    if (!user) return false;
+    const r = user.role.toLowerCase();
+    return r === 'admin' || r === 'super admin' || r === 'supper admin';
+  };
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, isAdmin, isAuthenticated: !!user }}>

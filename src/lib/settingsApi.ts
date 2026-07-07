@@ -25,6 +25,21 @@ export interface SecuritySettings {
   maxLoginAttempts: number;
 }
 
+export interface AttendanceSecuritySettings {
+  punchInRadius: number;
+  punchOutRadius: number;
+  maxDistance: number;
+  allowRemotePunch: boolean;
+  autoPunchOut: boolean;
+  autoPunchOutRadius: number;
+  delay: number;
+  geolocationTracking: boolean;
+  selfieOnPunch: boolean;
+  maxPunchInTime: string;
+  minPunchOutTime: string;
+  allowWeekendPunch: boolean;
+}
+
 export interface AppearanceSettings {
   primaryColor: string;
   secondaryColor: string;
@@ -119,6 +134,16 @@ uploadFavicon: async (file: File): Promise<{ url: string; fullUrl: string; filen
   /** UPDATE security settings */
   updateSecurity: (data: Partial<SecuritySettings>): Promise<void> =>
     unwrap(api.put<ApiResponse<void>>('/settings/security', data)),
+
+  // ─── Attendance Security Settings ───────────────────────────────────
+
+  /** GET attendance security settings */
+  getAttendanceSecurity: (): Promise<AttendanceSecuritySettings> =>
+    unwrap(api.get<ApiResponse<AttendanceSecuritySettings>>('/settings/attendance-security')),
+
+  /** UPDATE attendance security settings */
+  updateAttendanceSecurity: (data: AttendanceSecuritySettings): Promise<void> =>
+    unwrap(api.put<ApiResponse<void>>('/settings/attendance-security', data)),
 
   // ─── Appearance Settings ────────────────────────────────────────────
 

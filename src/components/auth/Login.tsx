@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock, LogIn } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
@@ -9,7 +9,7 @@ interface LoginProps {
   onSuccess: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({  onSuccess }) => {
+const Login: React.FC<LoginProps> = ({ onSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -48,25 +48,28 @@ const Login: React.FC<LoginProps> = ({  onSuccess }) => {
       
       if (result.success) {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-        
-        if (user?.role !== 'admin') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          toast.error('Admin access only!');
-          setLoading(false);
-          return;
-        }
+        const userRole = (user?.role || '').toLowerCase();
         
         if (rememberMe) {
           localStorage.setItem('rememberMe', 'true');
           localStorage.setItem('rememberedEmail', email);
         }
         
-        toast.success('Admin login successful!');
-        setTimeout(() => {
-          navigate('/dashboard');
-          onSuccess();
-        }, 1000);
+        const isUserAdmin = userRole === 'admin' || userRole === 'super admin' || userRole === 'supper admin';
+        
+        if (isUserAdmin) {
+          toast.success('Admin login successful!');
+          setTimeout(() => {
+            navigate('/dashboard');
+            onSuccess();
+          }, 1000);
+        } else {
+          toast.success('Login successful!');
+          setTimeout(() => {
+            navigate('/employee');
+            onSuccess();
+          }, 1000);
+        }
       } else {
         setError(result.message || 'Login failed');
         toast.error(result.message || 'Login failed');
@@ -80,7 +83,7 @@ const Login: React.FC<LoginProps> = ({  onSuccess }) => {
   };
 
   // Load remembered email
-  React.useEffect(() => {
+  useEffect(() => {
     const remembered = localStorage.getItem('rememberMe');
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     if (remembered === 'true' && rememberedEmail) {

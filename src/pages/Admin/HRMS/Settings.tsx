@@ -840,17 +840,44 @@ const SecuritySettings = () => {
     minPunchOutTime: "18:00",
     allowWeekendPunch: false,
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const fetchSettings = async (silent = false) => {
+    try {
+      if (!silent) setLoading(true);
+      const data = await settingsApi.getAttendanceSecurity();
+      setFormData(data);
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Failed to load security settings");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
-    toast.success("Security settings saved successfully!");
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await settingsApi.updateAttendanceSecurity(formData);
+      toast.success("Security settings saved successfully!");
+    } catch (e) {
+      toast.error("Failed to save security settings");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleResetDefaults = () => {
-    setFormData({
+  const handleResetDefaults = async () => {
+    const defaults = {
       punchInRadius: 200,
       punchOutRadius: 200,
       maxDistance: 500,
@@ -863,11 +890,21 @@ const SecuritySettings = () => {
       maxPunchInTime: "10:30",
       minPunchOutTime: "18:00",
       allowWeekendPunch: false,
-    });
-    toast.success("Settings reset to defaults!");
+    };
+    try {
+      setSaving(true);
+      await settingsApi.updateAttendanceSecurity(defaults);
+      setFormData(defaults);
+      toast.success("Settings reset to defaults!");
+    } catch (e) {
+      toast.error("Failed to reset defaults");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleRefresh = () => {
+    fetchSettings(false);
     toast.success("Security settings refreshed!");
   };
 
@@ -899,13 +936,15 @@ const SecuritySettings = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#0D47A1] text-white rounded-xl text-xs font-bold hover:bg-[#1565C0] transition shadow-sm cursor-pointer"
+            disabled={loading || saving}
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#0D47A1] text-white rounded-xl text-xs font-bold hover:bg-[#1565C0] transition shadow-sm disabled:opacity-60 cursor-pointer"
           >
             <RefreshIcon size={14} /> Refresh
           </button>
           <button
             onClick={handleResetDefaults}
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#475569] text-white rounded-xl text-xs font-bold hover:bg-amber-600 transition shadow-sm cursor-pointer"
+            disabled={loading || saving}
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#475569] text-white rounded-xl text-xs font-bold hover:bg-amber-600 transition shadow-sm disabled:opacity-60 cursor-pointer"
           >
             <RotateCcw size={14} /> Reset Defaults
           </button>
@@ -913,239 +952,255 @@ const SecuritySettings = () => {
       </div>
 
       {/* Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto space-y-6 pt-4 pb-6 pr-1">
-        {/* Location Validation */}
-        <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <MapPinIcon2 size={24} className="text-green-500" />
-            <h3 className="text-sm font-extrabold text-slate-800">Location Validation</h3>
-            <span className="text-xs text-slate-400 ml-2">Require employees to be within office radius to punch</span>
+      {loading ? (
+        <div className="flex-1 flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-[#0D47A1] animate-spin" />
+          <span className="text-xs text-slate-400 mt-2 font-bold uppercase tracking-wider">Loading settings...</span>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto space-y-6 pt-4 pb-6 pr-1">
+          {/* Location Validation */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <MapPinIcon2 size={24} className="text-green-500" />
+              <h3 className="text-sm font-extrabold text-slate-800">Location Validation</h3>
+              <span className="text-xs text-slate-400 ml-2">Require employees to be within office radius to punch</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
+                  Punch-In Radius (meters)
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0D47A1]">
+                    <Ruler size={14} className="text-blue-500 font-bold" />
+                  </div>
+                  <input
+                    type="number"
+                    value={formData.punchInRadius}
+                    onChange={(e) => handleChange('punchInRadius', parseInt(e.target.value))}
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Distance allowed for punch-in</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
+                  Punch-Out Radius (meters)
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0D47A1]">
+                    <Ruler size={14} className="text-red-500 font-bold" />
+                  </div>
+                  <input
+                    type="number"
+                    value={formData.punchOutRadius}
+                    onChange={(e) => handleChange('punchOutRadius', parseInt(e.target.value))}
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Distance allowed for punch-out</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
+                  Max Distance (meters)
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0D47A1]">
+                    <Maximize size={14} className="text-yellow-500 font-bold" />
+                  </div>
+                  <input
+                    type="number"
+                    value={formData.maxDistance}
+                    onChange={(e) => handleChange('maxDistance', parseInt(e.target.value))}
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Maximum punch distance allowed</p>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
-                Punch-In Radius (meters)
+          {/* Remote Punch & Auto Punch-Out */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                    <SmartphoneIcon size={24} className="text-red-500 font-extrabold" />
+                    Allow Remote Punch
+                  </h4>
+                  <p className="text-xs text-slate-400 ml-7">Allow employees to punch from outside office</p>
+                </div>
+                <ToggleSwitch checked={formData.allowRemotePunch} onChange={(v) => handleChange('allowRemotePunch', v)} />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                    <LogOut size={24} className="text-[#0D47A1] font-extrabold" />
+                    Auto Punch-Out
+                  </h4>
+                  <p className="text-xs text-slate-400 ml-7">Automatically logout if outside office radius</p>
+                </div>
+                <ToggleSwitch checked={formData.autoPunchOut} onChange={(v) => handleChange('autoPunchOut', v)} />
+              </div>
+            </div>
+          </div>
+
+          {/* Auto Punch-Out Radius & Delay */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
+              <label className="text-[10px] font-extrabold text-black uppercase tracking-wider block mb-1">
+                Auto Punch-Out Radius (km)
               </label>
               <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0D47A1]">
-                  <Ruler size={14} className="text-blue-500 font-bold" />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0D47A1] font-extrabold">
+                  <MapPinnedIcon size={18} />
                 </div>
                 <input
                   type="number"
-                  value={formData.punchInRadius}
-                  onChange={(e) => handleChange('punchInRadius', parseInt(e.target.value))}
+                  step="0.01"
+                  value={formData.autoPunchOutRadius}
+                  onChange={(e) => handleChange('autoPunchOutRadius', parseFloat(e.target.value))}
                   className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
                 />
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">Distance allowed for punch-in</p>
             </div>
 
-            <div>
-              <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
-                Punch-Out Radius (meters)
-              </label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0D47A1]">
-                  <Ruler size={14} className="text-red-500 font-bold" />
-                </div>
-                <input
-                  type="number"
-                  value={formData.punchOutRadius}
-                  onChange={(e) => handleChange('punchOutRadius', parseInt(e.target.value))}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
-                />
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1">Distance allowed for punch-out</p>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
-                Max Distance (meters)
-              </label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0D47A1]">
-                  <Maximize size={14} className="text-yellow-500 font-bold" />
-                </div>
-                <input
-                  type="number"
-                  value={formData.maxDistance}
-                  onChange={(e) => handleChange('maxDistance', parseInt(e.target.value))}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
-                />
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1">Maximum punch distance allowed</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Remote Punch & Auto Punch-Out */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
-                  <SmartphoneIcon size={24} className="text-red-500 font-extrabold" />
-                  Allow Remote Punch
-                </h4>
-                <p className="text-xs text-slate-400 ml-7">Allow employees to punch from outside office</p>
-              </div>
-              <ToggleSwitch checked={formData.allowRemotePunch} onChange={(v) => handleChange('allowRemotePunch', v)} />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
-                  <LogOut size={24} className="text-[#0D47A1] font-extrabold" />
-                  Auto Punch-Out
-                </h4>
-                <p className="text-xs text-slate-400 ml-7">Automatically logout if outside office radius</p>
-              </div>
-              <ToggleSwitch checked={formData.autoPunchOut} onChange={(v) => handleChange('autoPunchOut', v)} />
-            </div>
-          </div>
-        </div>
-
-        {/* Auto Punch-Out Radius & Delay */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
-            <label className="text-[10px] font-extrabold text-black uppercase tracking-wider block mb-1">
-              Auto Punch-Out Radius (km)
-            </label>
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0D47A1] font-extrabold">
-                <MapPinnedIcon size={18} />
-              </div>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.autoPunchOutRadius}
-                onChange={(e) => handleChange('autoPunchOutRadius', parseFloat(e.target.value))}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
-              />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
-            <label className="text-[10px] font-extrabold text-black uppercase tracking-wider block mb-1">
-              Delay (minutes)
-            </label>
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-red-500 font-extrabold">
-                <Timer size={18} />
-              </div>
-              <input
-                type="number"
-                value={formData.delay}
-                onChange={(e) => handleChange('delay', parseInt(e.target.value))}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Geolocation Tracking & Selfie on Punch */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2 ">
-                  <MapPinned size={24} className="text-green-500" />
-                  Geolocation Tracking
-                </h4>
-                <p className="text-xs text-slate-400 ml-7">Track employee location during work hours</p>
-              </div>
-              <ToggleSwitch checked={formData.geolocationTracking} onChange={(v) => handleChange('geolocationTracking', v)} />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
-                  <CameraIcon size={24} className="text-purple-500" />
-                  Selfie on Punch
-                </h4>
-                <p className="text-xs text-slate-400 ml-7">Require photo verification for punches</p>
-              </div>
-              <ToggleSwitch checked={formData.selfieOnPunch} onChange={(v) => handleChange('selfieOnPunch', v)} />
-            </div>
-          </div>
-        </div>
-
-        {/* Time Restrictions */}
-        <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <ClockIcon2 size={24} className="text-orange-500" />
-            <h3 className="text-sm font-extrabold text-slate-800">Time Restrictions</h3>
-            <span className="text-xs text-slate-400 ml-2">Set allowed punch-in/out times</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
-                Max Punch-In Time
-              </label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 font-extrabold">
-                  <Clock9 size={16} />
-                </div>
-                <input
-                  type="time"
-                  value={formData.maxPunchInTime}
-                  onChange={(e) => handleChange('maxPunchInTime', e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
-                />
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1">Latest time to punch-in</p>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
-                Min Punch-Out Time
+            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
+              <label className="text-[10px] font-extrabold text-black uppercase tracking-wider block mb-1">
+                Delay (minutes)
               </label>
               <div className="relative">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-red-500 font-extrabold">
-                  <Clock3 size={16} />
+                  <Timer size={18} />
                 </div>
                 <input
-                  type="time"
-                  value={formData.minPunchOutTime}
-                  onChange={(e) => handleChange('minPunchOutTime', e.target.value)}
+                  type="number"
+                  value={formData.delay}
+                  onChange={(e) => handleChange('delay', parseInt(e.target.value))}
                   className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
                 />
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">Earliest time to punch-out</p>
             </div>
           </div>
-        </div>
 
-        {/* Allow Weekend Punch */}
-        <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
-                <CalendarRange size={24} className="text-blue-500" />
-                Allow Weekend Punch
-              </h4>
-              <p className="text-xs text-slate-400 ml-7">Allow employees to punch on weekends</p>
+          {/* Geolocation Tracking & Selfie on Punch */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2 ">
+                    <MapPinned size={24} className="text-green-500" />
+                    Geolocation Tracking
+                  </h4>
+                  <p className="text-xs text-slate-400 ml-7">Track employee location during work hours</p>
+                </div>
+                <ToggleSwitch checked={formData.geolocationTracking} onChange={(v) => handleChange('geolocationTracking', v)} />
+              </div>
             </div>
-            <ToggleSwitch checked={formData.allowWeekendPunch} onChange={(v) => handleChange('allowWeekendPunch', v)} />
+
+            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                    <CameraIcon size={24} className="text-purple-500" />
+                    Selfie on Punch
+                  </h4>
+                  <p className="text-xs text-slate-400 ml-7">Require photo verification for punches</p>
+                </div>
+                <ToggleSwitch checked={formData.selfieOnPunch} onChange={(v) => handleChange('selfieOnPunch', v)} />
+              </div>
+            </div>
+          </div>
+
+          {/* Time Restrictions */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <ClockIcon2 size={24} className="text-orange-500" />
+              <h3 className="text-sm font-extrabold text-slate-800">Time Restrictions</h3>
+              <span className="text-xs text-slate-400 ml-2">Set allowed punch-in/out times</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
+                  Max Punch-In Time
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 font-extrabold">
+                    <Clock9 size={16} />
+                  </div>
+                  <input
+                    type="time"
+                    value={formData.maxPunchInTime}
+                    onChange={(e) => handleChange('maxPunchInTime', e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Latest time to punch-in</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
+                  Min Punch-Out Time
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-red-500 font-extrabold">
+                    <Clock3 size={16} />
+                  </div>
+                  <input
+                    type="time"
+                    value={formData.minPunchOutTime}
+                    onChange={(e) => handleChange('minPunchOutTime', e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Earliest time to punch-out</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Allow Weekend Punch */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                  <CalendarRange size={24} className="text-blue-500" />
+                  Allow Weekend Punch
+                </h4>
+                <p className="text-xs text-slate-400 ml-7">Allow employees to punch on weekends</p>
+              </div>
+              <ToggleSwitch checked={formData.allowWeekendPunch} onChange={(v) => handleChange('allowWeekendPunch', v)} />
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-xl text-sm font-bold hover:opacity-90 transition shadow-md disabled:opacity-60 cursor-pointer"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  <SaveIcon size={16} /> Save Security Settings
+                </>
+              )}
+            </button>
           </div>
         </div>
-
-        {/* Save Button */}
-        <div className="flex justify-end pt-2">
-          <button
-            onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-xl text-sm font-bold hover:opacity-90 transition shadow-md cursor-pointer"
-          >
-            <SaveIcon size={16} /> Save Security Settings
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

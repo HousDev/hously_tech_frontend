@@ -204,16 +204,16 @@ const StatCard = ({
   icon: React.ReactNode;
   accent: string;
 }) => (
-  <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06)] p-4 flex items-center gap-3">
-    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accent} flex-shrink-0`}>
+  <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06)] p-2.5 sm:p-4 flex items-center gap-2 sm:gap-3">
+    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center ${accent} flex-shrink-0`}>
       {icon}
     </div>
-    <div className="min-w-0">
-      <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest truncate">
+    <div className="min-w-0 flex-1">
+      <p className="text-[8px] sm:text-[9px] font-extrabold text-slate-400 uppercase tracking-widest truncate">
         {label}
       </p>
-      <p className="text-lg font-extrabold text-slate-800 leading-tight">{value}</p>
-      <p className="text-[9px] text-slate-400 font-semibold truncate">{desc}</p>
+      <p className="text-sm sm:text-lg font-extrabold text-slate-800 leading-tight">{value}</p>
+      <p className="text-[8px] sm:text-[9px] text-slate-400 font-semibold truncate">{desc}</p>
     </div>
   </div>
 );
@@ -433,17 +433,20 @@ const ViewUserModal = ({
       />
       <div className="fixed inset-0 z-[61] flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="bg-white rounded-2xl shadow-2xl pointer-events-auto w-full transition-all duration-250"
+          className="bg-white rounded-2xl shadow-2xl pointer-events-auto w-full transition-all duration-250 overflow-hidden"
           style={{
             maxWidth: 560,
+            maxHeight: "90vh",
+            display: "flex",
+            flexDirection: "column",
             opacity: visible ? 1 : 0,
             transform: visible ? "translateY(0) scale(1)" : "translateY(16px) scale(0.96)",
           }}
         >
-          <div className="relative">
-            <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-[#0D47A1] to-[#1976D2] rounded-t-2xl opacity-10" />
+          <div className="relative flex flex-col flex-1 overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-[#0D47A1] to-[#1976D2] rounded-t-2xl opacity-10 pointer-events-none" />
 
-            <div className="relative px-6 pt-6 pb-5">
+            <div className="relative px-6 pt-6 pb-5 overflow-y-auto flex-1">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
                   <Avatar name={fullName} url={user.avatarUrl} size="lg" />
@@ -477,7 +480,7 @@ const ViewUserModal = ({
                 </button>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <DetailItem
                   icon={<Mail size={14} className="text-[#0D47A1]" />}
                   label="Email"
@@ -530,7 +533,7 @@ const ViewUserModal = ({
                   <p className="text-[9px] font-extrabold text-[#0D47A1] uppercase tracking-widest mb-2 flex items-center gap-2">
                     <Building2 size={12} /> Employee Details
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <DetailItem
                       icon={<Globe size={13} className="text-blue-500" />}
                       label="Company"
@@ -670,10 +673,30 @@ const UserFormModal = ({
   const validate = () => {
     const errs: Record<string, string> = {};
 
-    if (!form.firstName.trim()) errs.firstName = "Required";
-    if (!form.lastName.trim()) errs.lastName = "Required";
-    if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) errs.email = "Valid email required";
-    if (!form.phone.trim()) errs.phone = "Required";
+    if (!form.firstName.trim()) {
+      errs.firstName = "Required";
+    } else if (!/^[A-Za-z\s]+$/.test(form.firstName)) {
+      errs.firstName = "Only letters allowed";
+    }
+
+    if (!form.lastName.trim()) {
+      errs.lastName = "Required";
+    } else if (!/^[A-Za-z\s]+$/.test(form.lastName)) {
+      errs.lastName = "Only letters allowed";
+    }
+
+    if (!form.email.trim()) {
+      errs.email = "Required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      errs.email = "Valid email required";
+    }
+
+    if (!form.phone.trim()) {
+      errs.phone = "Required";
+    } else if (!/^\d{10}$/.test(form.phone)) {
+      errs.phone = "Must be exactly 10 digits";
+    }
+
     if (!form.department) errs.department = "Required";
     if (!form.role) errs.role = "Required";
 
@@ -759,14 +782,17 @@ const UserFormModal = ({
 
       <div className="fixed inset-0 z-[61] flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="bg-white rounded-2xl shadow-2xl pointer-events-auto w-full transition-all duration-250"
+          className="bg-white rounded-2xl shadow-2xl pointer-events-auto w-full transition-all duration-250 overflow-hidden"
           style={{
             maxWidth: 820,
+            maxHeight: "90vh",
+            display: "flex",
+            flexDirection: "column",
             opacity: visible ? 1 : 0,
             transform: visible ? "translateY(0) scale(1)" : "translateY(20px) scale(0.96)",
           }}
         >
-          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0D47A1] to-[#1976D2] flex items-center justify-center shadow-sm">
                 <Users size={15} className="text-white" />
@@ -791,9 +817,9 @@ const UserFormModal = ({
             </button>
           </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="flex">
-              <div className="w-44 flex-shrink-0 bg-slate-50 border-r border-slate-100 flex flex-col items-center gap-3 px-4 py-4">
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex flex-col sm:flex-row flex-1 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div className="w-full sm:w-44 flex-shrink-0 bg-slate-50 border-b sm:border-b-0 sm:border-r border-slate-100 flex flex-col items-center gap-3 px-4 py-4">
                 <div className="flex flex-col items-center gap-1.5">
                   <div
                     className="relative w-14 h-14 rounded-full cursor-pointer group"
@@ -902,12 +928,16 @@ const UserFormModal = ({
               </div>
 
               <div className="flex-1 px-5 py-4 space-y-3">
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div>
                     <Label text="First Name" required error={errors.firstName} />
                     <input
                       value={form.firstName}
-                      onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                        setForm((f) => ({ ...f, firstName: val }));
+                        if (errors.firstName) setErrors(prev => ({ ...prev, firstName: "" }));
+                      }}
                       placeholder="John"
                       className={inp(errors.firstName)}
                     />
@@ -916,7 +946,10 @@ const UserFormModal = ({
                     <Label text="Middle Name" />
                     <input
                       value={form.middleName}
-                      onChange={(e) => setForm((f) => ({ ...f, middleName: e.target.value }))}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                        setForm((f) => ({ ...f, middleName: val }));
+                      }}
                       placeholder="(Optional)"
                       className={inp()}
                     />
@@ -925,21 +958,28 @@ const UserFormModal = ({
                     <Label text="Last Name" required error={errors.lastName} />
                     <input
                       value={form.lastName}
-                      onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                        setForm((f) => ({ ...f, lastName: val }));
+                        if (errors.lastName) setErrors(prev => ({ ...prev, lastName: "" }));
+                      }}
                       placeholder="Doe"
                       className={inp(errors.lastName)}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
                     <Label text="Email" required error={errors.email} />
                     <div className="relative">
                       <Mail size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
                         value={form.email}
-                        onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                        onChange={(e) => {
+                          setForm((f) => ({ ...f, email: e.target.value }));
+                          if (errors.email) setErrors(prev => ({ ...prev, email: "" }));
+                        }}
                         placeholder="john@example.com"
                         type="email"
                         className={`${inp(errors.email)} pl-7`}
@@ -952,8 +992,12 @@ const UserFormModal = ({
                       <Phone size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
                         value={form.phone}
-                        onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                        placeholder="+91 98765 43210"
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setForm((f) => ({ ...f, phone: val }));
+                          if (errors.phone) setErrors(prev => ({ ...prev, phone: "" }));
+                        }}
+                        placeholder="10-digit mobile"
                         className={`${inp(errors.phone)} pl-7`}
                       />
                     </div>
@@ -961,7 +1005,7 @@ const UserFormModal = ({
                 </div>
 
                 {mode === "add" && (
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div>
                       <Label text="Password" required error={errors.password} />
                       <div className="relative">
@@ -1008,16 +1052,17 @@ const UserFormModal = ({
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
                     <Label text="Department" required error={errors.department} />
                     <div className="relative">
                       <Building2 size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <select
                         value={form.department}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, department: e.target.value, role: "" }))
-                        }
+                        onChange={(e) => {
+                          setForm((f) => ({ ...f, department: e.target.value, role: "" }));
+                          if (errors.department) setErrors(prev => ({ ...prev, department: "" }));
+                        }}
                         className={`${selCls(errors.department)} pl-7`}
                       >
                         <option value="">Select Department</option>
@@ -1037,7 +1082,10 @@ const UserFormModal = ({
                       <Shield size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <select
                         value={form.role}
-                        onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+                        onChange={(e) => {
+                          setForm((f) => ({ ...f, role: e.target.value }));
+                          if (errors.role) setErrors(prev => ({ ...prev, role: "" }));
+                        }}
                         className={`${selCls(errors.role)} pl-7`}
                       >
                         <option value="">Select Role</option>
@@ -1075,11 +1123,11 @@ const UserFormModal = ({
                 <div
                   className="overflow-hidden transition-all duration-300"
                   style={{
-                    maxHeight: isEmployee ? "120px" : "0px",
+                    maxHeight: isEmployee ? "400px" : "0px",
                     opacity: isEmployee ? 1 : 0,
                   }}
                 >
-                  <div className="grid grid-cols-4 gap-2.5 pt-1">
+                  <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
                     <div>
                       <Label text="Company Name" />
                       <div className="relative">
@@ -1800,7 +1848,7 @@ export default function UsersPage() {
   return (
     <>
       <div className="p-4 md:p-6 space-y-4 min-h-full">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3">
           <StatCard
             label="Total Users"
             value={`${users.length}`}
@@ -1815,43 +1863,45 @@ export default function UsersPage() {
             icon={<Shield size={18} className="text-indigo-600" />}
             accent="bg-indigo-50"
           />
-          <StatCard
-            label="Blocked"
-            value={`${users.filter((u) => u.status === "blocked").length}`}
-            desc="Restricted system logins"
-            icon={<UserX size={18} className="text-red-500" />}
-            accent="bg-red-50"
-          />
+          <div className="col-span-2 md:col-span-1">
+            <StatCard
+              label="Blocked"
+              value={`${users.filter((u) => u.status === "blocked").length}`}
+              desc="Restricted system logins"
+              icon={<UserX size={18} className="text-red-500" />}
+              accent="bg-red-50"
+            />
+          </div>
         </div>
 
-        {/* Toolbar - Sticky */}
-        <div className="sticky top-0 z-20 bg-white rounded-2xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06)] px-4 py-3 flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
+        {/* Toolbar - Static on mobile, Sticky on desktop */}
+        <div className="static sm:sticky sm:top-0 z-20 bg-white rounded-2xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06)] px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             {selectedUsers.size > 0 && (
-              <>
+              <div className="flex items-center gap-2 flex-wrap w-full justify-between sm:justify-start">
                 <button
                   onClick={handleDeleteSelected}
                   className="flex items-center gap-1.5 px-3 py-2 bg-red-500 text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition cursor-pointer"
                 >
-                  <Trash2 size={13} /> Delete Selected ({selectedUsers.size})
+                  <Trash2 size={13} /> Delete ({selectedUsers.size})
                 </button>
                 <span className="text-xs text-slate-500 font-medium">
-                  {selectedUsers.size} user{selectedUsers.size > 1 ? 's' : ''} selected
+                  {selectedUsers.size} selected
                 </span>
-              </>
+              </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={() => setFilterOpen(true)}
-              className={`flex items-center gap-1.5 px-3 py-2 border rounded-xl text-xs font-bold transition cursor-pointer ${Object.values(filters).some((v) => v)
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-2.5 py-2 border rounded-xl text-xs font-bold transition cursor-pointer ${Object.values(filters).some((v) => v)
                 ? "bg-[#0D47A1]/10 border-[#0D47A1]/30 text-[#0D47A1]"
                 : "border-slate-200 text-slate-600 hover:bg-slate-50"
                 }`}
             >
               <Filter size={13} /> Filter
               {Object.values(filters).some((v) => v) && (
-                <span className="w-4 h-4 bg-[#0D47A1] text-white rounded-full text-[9px] font-black flex items-center justify-center">
+                <span className="w-4 h-4 bg-[#0D47A1] text-white rounded-full text-[9px] font-black flex items-center justify-center ml-1">
                   {Object.values(filters).filter((v) => v).length}
                 </span>
               )}
@@ -1859,16 +1909,16 @@ export default function UsersPage() {
 
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-2 bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition cursor-pointer"
             >
               <Plus size={14} /> Add User
             </button>
           </div>
         </div>
 
-        {/* Table with scroll */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06)] overflow-hidden">
-          <div className="overflow-y-auto max-h-[calc(100vh-380px)]">
+        {/* Table with scroll - Hidden on Mobile, Visible on Desktop */}
+        <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06)] overflow-hidden">
+          <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
             <table className="min-w-full border-collapse text-xs">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-slate-50 border-b border-slate-200">
@@ -2047,7 +2097,7 @@ export default function UsersPage() {
 
           {/* Pagination - Sticky Bottom */}
           {filtered.length > 0 && (
-            <div className="sticky bottom-0 z-20 px-5 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-white/95 backdrop-blur-sm flex-wrap gap-2">
+            <div className="static sm:sticky sm:bottom-0 z-20 px-5 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-white/95 backdrop-blur-sm flex-wrap gap-2">
               <span className="font-semibold">
                 Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} of {filtered.length} users
               </span>
@@ -2107,6 +2157,157 @@ export default function UsersPage() {
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
                     className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-white transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <ChevronRight size={13} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Card List - Visible on Mobile only */}
+        <div className="block md:hidden space-y-3">
+          {loading ? (
+            <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center text-slate-400 text-sm font-semibold">
+              <div className="flex flex-col items-center justify-center gap-2">
+                <div className="w-6 h-6 border-2 border-[#0D47A1] border-t-transparent rounded-full animate-spin" />
+                <span>Loading users...</span>
+              </div>
+            </div>
+          ) : paginated.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center text-slate-400 text-sm font-semibold">
+              No users found.
+            </div>
+          ) : (
+            paginated.map((user) => {
+              const statusCfg = STATUS_CONFIG[user.status];
+              const fullName = `${user.firstName}${user.middleName ? " " + user.middleName : ""} ${user.lastName}`;
+              const isChecked = selectedUsers.has(user.id);
+
+              return (
+                <div
+                  key={user.id}
+                  className={`bg-white rounded-2xl border p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col gap-3 transition-colors ${
+                    isChecked ? "border-[#0D47A1] bg-[#0D47A1]/5" : "border-slate-100"
+                  }`}
+                >
+                  {/* Header Row */}
+                  <div className="flex items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => handleSelectUser(user.id)}
+                      className="mt-1 w-4 h-4 rounded border-slate-300 text-[#0D47A1] focus:ring-[#0D47A1]/20 cursor-pointer"
+                    />
+                    <Avatar name={fullName} url={user.avatarUrl} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-extrabold text-slate-800 text-xs truncate">{fullName}</h3>
+                      <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{user.id}</p>
+                    </div>
+                    <button
+                      onClick={() => setStatusUser(user)}
+                      className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold transition hover:scale-[1.03] ${statusCfg.bg} ${statusCfg.color}`}
+                    >
+                      <span className={`w-1 h-1 rounded-full ${statusCfg.dot}`} />
+                      {statusCfg.label}
+                    </button>
+                  </div>
+
+                  <hr className="border-t border-slate-100" />
+
+                  {/* Details Grid */}
+                  <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600">
+                    <div className="space-y-0.5">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Department</span>
+                      <span className="font-semibold text-slate-700 truncate block">{user.department}</span>
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Role</span>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md font-bold bg-indigo-50 text-indigo-700 text-[10px]">
+                        {user.role}
+                      </span>
+                    </div>
+                    <div className="col-span-2 space-y-0.5">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Email</span>
+                      <a href={`mailto:${user.email}`} className="font-semibold text-[#0D47A1] hover:underline flex items-center gap-1 truncate">
+                        <Mail size={10} className="text-[#0D47A1] flex-shrink-0" /> {user.email}
+                      </a>
+                    </div>
+                  </div>
+
+                  <hr className="border-t border-slate-100" />
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-[10px] text-slate-400 font-semibold">
+                      Employee: {user.isEmployee ? "Yes" : "No"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setViewUser(user)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold hover:bg-blue-100 transition"
+                      >
+                        <Eye size={12} /> View
+                      </button>
+                      <button
+                        onClick={() => setEditingUser(user)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-green-50 text-green-600 rounded-lg text-[10px] font-bold hover:bg-green-100 transition"
+                      >
+                        <Edit2 size={12} /> Edit
+                      </button>
+                      <button
+                        onClick={() => setDeleteUser(user)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100 transition"
+                      >
+                        <Trash2 size={12} /> Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          {/* Card View Pagination */}
+          {filtered.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col gap-3 items-center justify-center text-xs text-slate-500">
+              <span className="font-semibold text-center">
+                Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} of {filtered.length} users
+              </span>
+
+              <div className="flex items-center gap-3 w-full justify-between sm:justify-center">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-semibold text-slate-400">Show:</span>
+                  <select
+                    value={pageSize === filtered.length ? 'all' : pageSize}
+                    onChange={handlePageSizeChange}
+                    className="px-2 py-1 text-xs border border-slate-200 rounded-lg font-semibold text-slate-700 outline-none cursor-pointer bg-white"
+                  >
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="all">All</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-white transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft size={13} />
+                  </button>
+
+                  <span className="px-3 py-1 font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg">
+                    {page} / {totalPages}
+                  </span>
+
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-white transition disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <ChevronRight size={13} />
                   </button>
