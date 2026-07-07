@@ -61,19 +61,19 @@
 //   onReadMore: () => void;
 //   getIconComponent: (service: Service) => React.ReactNode;
 // }> = ({ service, onReadMore, getIconComponent }) => {
-  
+
 //   return (
 //     <div 
 //       className="w-full lg:w-1/2 xl:w-1/4 px-3 mt-3 animate-slideInUp group/card"
 //       style={{ animationDelay: `${(service.display_order - 1) * 270}ms` }}
 //     >
 //       <div className="bg-white rounded-2xl p-5 overflow-hidden relative shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col border border-gray-100 hover:border-gray-200 group-hover/card:-translate-y-1">
-        
+
 //         {/* Card hover effect */}
 //         <div className="absolute inset-0 rounded-2xl opacity-0 group-hover/card:opacity-100 transition-opacity duration-300">
 //           <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-transparent via-gray-50/30 to-transparent"></div>
 //         </div>
-        
+
 //         {/* Icon */}
 //         <div className="mb-3 relative z-10">
 //           <div className="relative inline-block transition-all duration-300 ease-out">
@@ -82,7 +82,7 @@
 //             </div>
 //           </div>
 //         </div>
-        
+
 //         {/* Title */}
 //         <h3 
 //           className="text-lg font-semibold text-[#051600] mb-2 relative z-10"
@@ -94,26 +94,26 @@
 //             {service.title}
 //           </a>
 //         </h3>
-        
+
 //         {/* Description */}
 //         <p 
 //           className="text-xs text-[#6F756D] leading-relaxed mt-2 mb-4 flex-grow"
 //         >
 //           {service.short_description}
 //         </p>
-        
+
 //         {/* Read More Link */}
 //         <button
 //           onClick={onReadMore}
 //           className="inline-flex items-center font-medium text-[11px] text-[#051600] hover:text-[#0174d7] transition-all duration-500 no-underline pb-0.5 relative group/button mt-auto z-10 bg-transparent border-none cursor-pointer overflow-hidden"
 //         >
 //           <span className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0174d7]/10 to-transparent translate-x-[-100%] group-hover/card:translate-x-[100%] transition-transform duration-1000"></span>
-          
+
 //           <span className="relative z-10 flex items-center gap-2">
 //             Read More
 //             <i className="fas fa-long-arrow-right text-[10px] transition-all duration-500 group-hover/button:translate-x-2 group-hover/button:text-[#0174d7]" />
 //           </span>
-          
+
 //           <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0174d7] transition-all duration-500 group-hover/card:w-full group-hover/card:delay-150"></span>
 //         </button>
 //       </div>
@@ -177,11 +177,11 @@
 //       try {
 //         setLoading(true);
 //         setError(null);
-        
+
 //         const response = await servicesApi.getAll();
 //         const activeServices = response.filter(service => service.is_active);
 //         setServices(activeServices);
-        
+
 //       } catch (err) {
 //         console.error('Error fetching services:', err);
 //         setError('Failed to load services.');
@@ -196,12 +196,12 @@
 
 //   const getIconComponent = (service: Service) => {
 // const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-    
+
 //     if (service.icon_type === 'custom' && service.icon_url) {
 //       const fullUrl = service.icon_url.startsWith('http') 
 //         ? service.icon_url 
 //         : `${backendUrl}${service.icon_url.startsWith('/') ? '' : '/'}${service.icon_url}`;
-      
+
 //       return (
 //         <div className="w-10 h-10 flex items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-blue-50 to-blue-100">
 //           <img 
@@ -217,7 +217,7 @@
 //         </div>
 //       );
 //     }
-    
+
 //     const iconName = service.icon_name || 'Code';
 //     const IconComponent = iconMap[iconName] || Code;
 //     return <IconComponent size={40} strokeWidth={1.5} />;
@@ -285,7 +285,7 @@
 //                     Services
 //                   </h2>
 //                 </div>
-                
+
 //                 {/* Subtitle */}
 //                 <div className="flex items-center justify-center space-x-2 mb-4">
 //                   <div className="w-6 h-0.5 bg-[#0174d7]"></div>
@@ -298,7 +298,7 @@
 //                   </span>
 //                   <div className="w-6 h-0.5 bg-[#0174d7]"></div>
 //                 </div>
-                
+
 //                 {/* Main title */}
 //                 <h2 
 //                   className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#051600] mb-4 mt-[-0.4em] animate-slideInUp leading-tight"
@@ -340,7 +340,7 @@
 //         service={selectedService} 
 //         onClose={() => setSelectedService(null)} 
 //       />
-      
+
 //       <style>{`
 //         @keyframes shimmer {
 //           0% {
@@ -387,15 +387,15 @@
 // export default ServicesSection;
 
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   X,
-  Code, 
-  Cloud, 
-  Laptop, 
-  Palette, 
-  UserCircle, 
-  Shield, 
-  TrendingUp, 
+  Code,
+  Cloud,
+  Laptop,
+  Palette,
+  UserCircle,
+  Shield,
+  TrendingUp,
   Smartphone,
   Server,
   Database,
@@ -412,7 +412,7 @@ import {
   Star as StarIcon,
   ThumbsUp,
   Award,
-  
+
   ArrowRight,
   Sparkles,
 
@@ -444,12 +444,12 @@ const iconMap: { [key: string]: React.ComponentType<any> } = {
 };
 
 // ServiceCard component - Premium IT Company Style with Compact Design
-const ServiceCard: React.FC<{ 
-  service: Service; 
+const ServiceCard: React.FC<{
+  service: Service;
   onReadMore: () => void;
   getIconComponent: (service: Service) => React.ReactNode;
 }> = ({ service, onReadMore, getIconComponent }) => {
-  
+
   const gradients = [
     'from-blue-600 to-cyan-600',
     'from-purple-600 to-pink-600',
@@ -461,15 +461,15 @@ const ServiceCard: React.FC<{
   const gradient = gradients[service.id % gradients.length] || gradients[0];
 
   return (
-    <div 
+    <div
       className="w-full sm:w-1/2 lg:w-1/3 xl:w-1/4 px-2.5 mt-3 group/card"
       style={{ animationDelay: `${(service.display_order - 1) * 80}ms` }}
     >
       <div className="relative bg-white rounded-xl p-4 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-400 h-full flex flex-col border border-gray-100/80 group-hover/card:-translate-y-1 group-hover/card:shadow-blue-500/15">
-        
+
         {/* Gradient Overlay */}
         <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover/card:opacity-[0.02] transition-opacity duration-500`}></div>
-        
+
         {/* Top Accent */}
         <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r ${gradient} opacity-0 group-hover/card:opacity-100 transition-opacity duration-400`}></div>
 
@@ -483,7 +483,7 @@ const ServiceCard: React.FC<{
             </div>
           </div>
         </div>
-        
+
         {/* Title */}
         <h3 className="text-sm font-bold text-slate-900 mb-1.5 group-hover/card:text-blue-700 transition-colors duration-300">
           <a
@@ -493,12 +493,12 @@ const ServiceCard: React.FC<{
             {service.title}
           </a>
         </h3>
-        
+
         {/* Description */}
         <p className="text-xs text-slate-600 leading-relaxed mb-3 flex-grow">
           {service.short_description}
         </p>
-        
+
         {/* Read More */}
         <button
           onClick={onReadMore}
@@ -518,7 +518,7 @@ const ServiceCard: React.FC<{
 // Modal Component
 const ServiceModal: React.FC<{ service: Service | null; onClose: () => void }> = ({ service, onClose }) => {
   const navigate = useNavigate();
-  
+
   if (!service) return null;
 
   const gradients = [
@@ -537,7 +537,7 @@ const ServiceModal: React.FC<{ service: Service | null; onClose: () => void }> =
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn" onClick={onClose}>
       <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-2xl shadow-blue-500/20 animate-scaleIn" onClick={(e) => e.stopPropagation()}>
-        
+
         {/* Header */}
         <div className={`relative bg-gradient-to-r ${gradient} p-6 rounded-t-2xl`}>
           <button
@@ -546,12 +546,12 @@ const ServiceModal: React.FC<{ service: Service | null; onClose: () => void }> =
           >
             <X className="w-4 h-4" />
           </button>
-          
+
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
               <div className="text-white">
-                {iconMap[service.icon_name || 'Code'] ? 
-                  React.createElement(iconMap[service.icon_name || 'Code'], { size: 24, strokeWidth: 1.5 }) : 
+                {iconMap[service.icon_name || 'Code'] ?
+                  React.createElement(iconMap[service.icon_name || 'Code'], { size: 24, strokeWidth: 1.5 }) :
                   <Code size={24} strokeWidth={1.5} />
                 }
               </div>
@@ -559,7 +559,8 @@ const ServiceModal: React.FC<{ service: Service | null; onClose: () => void }> =
             <div>
               <h3 className="text-lg font-bold text-white">{service.title}</h3>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <Sparkles className="w-3 h-3 text-white/80" />
+
+
                 <span className="text-xs text-white/80">Premium IT Service</span>
               </div>
             </div>
@@ -588,7 +589,7 @@ const ServiceModal: React.FC<{ service: Service | null; onClose: () => void }> =
           </div>
 
           {/* Get Started Button */}
-          <button 
+          <button
             onClick={handleGetStarted}
             className={`w-full px-5 py-2.5 bg-gradient-to-r ${gradient} text-white rounded-lg font-semibold text-sm hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 hover:-translate-y-0.5 flex items-center justify-center gap-2`}
           >
@@ -612,11 +613,11 @@ const ServicesSection: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const response = await servicesApi.getAll();
         const activeServices = response.filter(service => service.is_active);
         setServices(activeServices);
-        
+
       } catch (err) {
         console.error('Error fetching services:', err);
         setError('Failed to load services.');
@@ -631,16 +632,16 @@ const ServicesSection: React.FC = () => {
 
   const getIconComponent = (service: Service) => {
     const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-    
+
     if (service.icon_type === 'custom' && service.icon_url) {
-      const fullUrl = service.icon_url.startsWith('http') 
-        ? service.icon_url 
+      const fullUrl = service.icon_url.startsWith('http')
+        ? service.icon_url
         : `${backendUrl}${service.icon_url.startsWith('/') ? '' : '/'}${service.icon_url}`;
-      
+
       return (
         <div className="w-5 h-5 flex items-center justify-center overflow-hidden">
-          <img 
-            src={fullUrl} 
+          <img
+            src={fullUrl}
             alt={service.title}
             className="w-5 h-5 object-contain brightness-0 invert"
             onError={(e) => {
@@ -652,7 +653,7 @@ const ServicesSection: React.FC = () => {
         </div>
       );
     }
-    
+
     const iconName = service.icon_name || 'Code';
     const IconComponent = iconMap[iconName] || Code;
     return <IconComponent size={18} strokeWidth={1.5} />;
@@ -675,7 +676,7 @@ const ServicesSection: React.FC = () => {
     <>
       {/* Main Section with Cards - Background image ke upar content */}
       <section className="relative z-10 bg-[#e6e6e6] py-10 sm:py-14 overflow-hidden">
-        
+
         {/* Full width background image */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <div className="absolute inset-0 bg-[#e6e6e6]"></div>
@@ -690,11 +691,11 @@ const ServicesSection: React.FC = () => {
             />
           </div>
         </div>
-        
+
         {/* Gradient overlays for left and right sides */}
         <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-[#e6e6e6] to-transparent z-0 pointer-events-none"></div>
         <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#e6e6e6] to-transparent z-0 pointer-events-none"></div>
-        
+
         {/* Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           <div className="absolute -top-32 -right-32 w-72 h-72 bg-gradient-to-br from-blue-400/8 to-purple-400/8 rounded-full blur-3xl animate-pulse"></div>
@@ -720,12 +721,13 @@ const ServicesSection: React.FC = () => {
         )}
 
         <div className="container mx-auto max-w-7xl px-4 relative z-10">
-          
+
           {/* Header */}
           <div className="text-center mb-8">
             {/* Badge */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-blue-600/10 to-purple-600/10 backdrop-blur-sm rounded-full border border-blue-200/30 mb-3">
-              <Sparkles className="w-3 h-3 text-blue-600" />
+
+
               <span className="text-[10px] font-bold text-blue-700 tracking-wider uppercase">OUR SERVICES</span>
             </div>
 
@@ -750,9 +752,9 @@ const ServicesSection: React.FC = () => {
             <div className="flex flex-wrap justify-center -mx-2.5">
               {services.length > 0 ? (
                 services.map((service) => (
-                  <ServiceCard 
-                    key={service.id} 
-                    service={service} 
+                  <ServiceCard
+                    key={service.id}
+                    service={service}
                     onReadMore={() => setSelectedService(service)}
                     getIconComponent={getIconComponent}
                   />
@@ -773,11 +775,11 @@ const ServicesSection: React.FC = () => {
       </section>
 
       {/* Modal */}
-      <ServiceModal 
-        service={selectedService} 
-        onClose={() => setSelectedService(null)} 
+      <ServiceModal
+        service={selectedService}
+        onClose={() => setSelectedService(null)}
       />
-      
+
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }

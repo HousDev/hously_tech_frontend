@@ -351,7 +351,7 @@ const TodayView = ({
   };
 
   return (
-    <div className="flex flex-col gap-3 h-full min-h-0 relative">
+    <div className="flex flex-col gap-3 h-auto md:h-full min-h-full md:min-h-0 relative">
 
       {/* ── Sliding Filters Backdrop ──────────────────────────────────── */}
       {isFilterOpen && (
@@ -368,6 +368,42 @@ const TodayView = ({
           <button onClick={() => setIsFilterOpen(false)} className="text-slate-400 hover:text-slate-600 transition cursor-pointer">
             <X size={15} />
           </button>
+        </div>
+
+        {/* Search Input for Mobile/Sidebar */}
+        <div>
+          <label className="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Search Employee</label>
+          <input
+            type="text"
+            placeholder="Search name or ID..."
+            value={searchName}
+            onChange={e => setSearchName(e.target.value)}
+            className="w-full px-3 py-1.5 text-[11px] border border-slate-200 rounded-lg font-semibold text-slate-655 outline-none focus:ring-1 focus:ring-[#0D47A1] bg-white"
+          />
+        </div>
+
+        {/* Department text search */}
+        <div>
+          <label className="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Search Department</label>
+          <input
+            type="text"
+            placeholder="Search department..."
+            value={searchDept}
+            onChange={e => setSearchDept(e.target.value)}
+            className="w-full px-3 py-1.5 text-[11px] border border-slate-200 rounded-lg font-semibold text-slate-655 outline-none focus:ring-1 focus:ring-[#0D47A1] bg-white"
+          />
+        </div>
+
+        {/* Location search */}
+        <div>
+          <label className="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Search Location</label>
+          <input
+            type="text"
+            placeholder="Search location..."
+            value={searchLoc}
+            onChange={e => setSearchLoc(e.target.value)}
+            className="w-full px-3 py-1.5 text-[11px] border border-slate-200 rounded-lg font-semibold text-slate-655 outline-none focus:ring-1 focus:ring-[#0D47A1] bg-white"
+          />
         </div>
 
         {/* Status filter */}
@@ -441,49 +477,55 @@ const TodayView = ({
       </div>
 
       {/* Toolbar */}
-      <div className="flex-none bg-white border border-slate-100 rounded-xl px-3 py-2 flex items-center gap-2 flex-wrap">
-        {/* Date nav */}
-        <button onClick={() => shiftDate(-1)} className="p-1.5 border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 cursor-pointer"><ChevronLeft size={13} /></button>
-        <button
-          ref={calBtnRef}
-          onClick={() => {
-            if (showCalendar) {
-              setShowCalendar(false);
-              setCalPos(null);
-            } else {
-              const rect = calBtnRef.current?.getBoundingClientRect();
-              if (rect) setCalPos({ top: rect.bottom + 6, left: rect.left });
-              setShowCalendar(true);
-            }
-          }}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer bg-slate-50"
-        >
-          <Calendar size={12} className="text-[#0D47A1]" /> {formatDate(selectedDate)}
-        </button>
-        <button onClick={() => shiftDate(1)} disabled={selectedDate >= new Date().toISOString().split("T")[0]} className="p-1.5 border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 cursor-pointer disabled:opacity-40"><ChevronRight size={13} /></button>
+      <div className="flex-none bg-white border border-slate-100 rounded-xl p-2.5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-sm">
+        {/* Left: Date navigation & Filters */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Date nav */}
+          <div className="flex items-center gap-1">
+            <button onClick={() => shiftDate(-1)} className="p-2 border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 cursor-pointer"><ChevronLeft size={13} /></button>
+            <button
+              ref={calBtnRef}
+              onClick={() => {
+                if (showCalendar) {
+                  setShowCalendar(false);
+                  setCalPos(null);
+                } else {
+                  const rect = calBtnRef.current?.getBoundingClientRect();
+                  if (rect) setCalPos({ top: rect.bottom + 6, left: rect.left });
+                  setShowCalendar(true);
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer bg-slate-50"
+            >
+              <Calendar size={12} className="text-[#0D47A1]" /> {formatDate(selectedDate)}
+            </button>
+            <button onClick={() => shiftDate(1)} disabled={selectedDate >= new Date().toISOString().split("T")[0]} className="p-2 border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 cursor-pointer disabled:opacity-40"><ChevronRight size={13} /></button>
+          </div>
 
-        <div className="w-px h-5 bg-slate-200" />
+          <div className="w-px h-5 bg-slate-200 hidden sm:block" />
 
-        {/* Sidebar Filters Toggle Button */}
-        <button
-          onClick={() => setIsFilterOpen(prev => !prev)}
-          className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-50 cursor-pointer"
-        >
-          <Filter size={12} className="text-[#0D47A1]" /> Filters
-        </button>
-        {/* Action Buttons */}
-        <div className="ml-auto flex items-center gap-2">
+          {/* Sidebar Filters Toggle Button */}
+          <button
+            onClick={() => setIsFilterOpen(prev => !prev)}
+            className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-50 cursor-pointer"
+          >
+            <Filter size={12} className="text-[#0D47A1]" /> Filters
+          </button>
+        </div>
+
+        {/* Right: Action Buttons */}
+        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
           <button
             onClick={handleExportToday}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-50 cursor-pointer"
+            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-50 cursor-pointer"
           >
-            <Download size={12} className="text-[#0D47A1]" /> Export Data
+            <Download size={12} className="text-[#0D47A1]" /> <span className="hidden sm:inline">Export Data</span><span className="sm:hidden">Export</span>
           </button>
           <button
             onClick={() => openModal("add", selectedDate)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#0D47A1] hover:bg-[#0D47A1]/90 cursor-pointer"
+            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold text-white bg-[#0D47A1] hover:bg-[#0D47A1]/90 cursor-pointer"
           >
-            <UserCheck size={12} /> Add Attendance
+            <UserCheck size={12} /> <span className="hidden sm:inline">Add Attendance</span><span className="sm:hidden">Add</span>
           </button>
         </div>
       </div>
@@ -491,7 +533,8 @@ const TodayView = ({
       <div className="flex-1 min-h-0 bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm flex flex-col">
         {/* Scrollable table body wrapper */}
         <div className="flex-1 overflow-auto min-h-0">
-          <table className="min-w-full border-collapse text-[11px]">
+          {/* Desktop Table View */}
+          <table className="hidden md:table min-w-full border-collapse text-[11px]">
             <thead className="sticky top-0 bg-slate-50 z-20 shadow-sm border-b border-slate-200">
               <tr className="bg-slate-50">
                 {["Employee", "Department", "Punch In", "Punch Out", "Type", "Location", "Hours", "Late", "Overtime", "Status", "Actions"].map(h => (
@@ -572,6 +615,78 @@ const TodayView = ({
               })}
             </tbody>
           </table>
+
+          {/* Mobile Card List View */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {paginated.length === 0 ? (
+              <div className="py-14 text-center text-slate-400 text-xs font-semibold">
+                <UserX size={32} className="mx-auto mb-2 opacity-20" />
+                No records found
+              </div>
+            ) : (
+              paginated.map((r) => (
+                <div key={r.empId} className="p-4 flex flex-col gap-3 bg-white hover:bg-slate-50/50 transition">
+                  {/* Avatar, Name, Status */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <Avatar name={r.name} color={r.avatarColor} />
+                      <div>
+                        <h4 className="font-extrabold text-slate-800 text-xs">{r.name}</h4>
+                        <p className="text-[10px] text-slate-400 font-semibold">{r.empId} • {r.department}</p>
+                      </div>
+                    </div>
+                    <StatusBadge status={r.status} />
+                  </div>
+
+                  {/* Details Grid */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] bg-slate-50/50 rounded-xl p-2.5 border border-slate-100">
+                    <div className="flex flex-col">
+                      <span className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Punch In</span>
+                      <span className="text-slate-700 font-extrabold mt-0.5">{r.checkInTime || "—"}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Punch Out</span>
+                      <span className="text-slate-700 font-extrabold mt-0.5">{r.checkOutTime || "—"}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Working Hours</span>
+                      <span className="text-slate-700 font-extrabold mt-0.5">{r.workingHours || "—"}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Type / Location</span>
+                      <span className="text-slate-700 font-extrabold mt-0.5 truncate max-w-[150px]">
+                        {r.checkInType ? `${r.checkInType.toUpperCase()} (${r.location || "—"})` : "—"}
+                      </span>
+                    </div>
+                    {r.lateByMinutes ? (
+                      <div className="flex flex-col">
+                        <span className="text-amber-500 font-bold uppercase tracking-wider text-[8px]">Late By</span>
+                        <span className="text-amber-600 font-extrabold mt-0.5">{r.lateByMinutes}m</span>
+                      </div>
+                    ) : null}
+                    {r.overtime ? (
+                      <div className="flex flex-col">
+                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Overtime</span>
+                        <span className="text-slate-655 font-extrabold mt-0.5">{r.overtime}</span>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Actions Row */}
+                  <div className="flex items-center justify-between border-t border-slate-100/80 pt-2 mt-0.5">
+                    <span className="text-[10px] text-slate-400 font-bold">Actions</span>
+                    <button
+                      onClick={() => openModal("edit", selectedDate, r.empId, r)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-extrabold transition cursor-pointer"
+                      title="Edit Attendance"
+                    >
+                      <Edit3 size={11} className="text-[#0D47A1]" /> Edit Log
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         {/* Pagination Footer */}
@@ -628,9 +743,9 @@ const TodayView = ({
       </div>
 
       {showCalendar && calPos && (
-        <div className="fixed inset-0 z-[1200]" onClick={() => { setShowCalendar(false); setCalPos(null); }}>
-          <div className="absolute bg-white rounded-2xl shadow-2xl p-4 border border-slate-200/80 w-64 z-[1201] text-xs font-bold text-slate-700"
-            style={{ top: calPos.top, left: calPos.left }} onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center sm:block" onClick={() => { setShowCalendar(false); setCalPos(null); }}>
+          <div className="bg-white rounded-2xl shadow-2xl p-4 border border-slate-200/80 w-64 z-[1201] text-xs font-bold text-slate-700 relative sm:absolute"
+            style={window.innerWidth < 640 ? {} : { top: calPos.top, left: calPos.left }} onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center pb-2 border-b border-slate-100 mb-2">
               <span>Quick Date Selector</span>
               <button onClick={() => { setShowCalendar(false); setCalPos(null); }} className="text-slate-400 hover:text-slate-650 transition cursor-pointer"><X size={14} /></button>
@@ -1083,7 +1198,7 @@ const EmployeeAttendanceView = ({
   };
 
   return (
-    <div className="flex flex-col gap-4 h-full min-h-0">
+    <div className="flex flex-col gap-4 h-auto md:h-full min-h-full md:min-h-0">
       {/* Header Toolbar: Search bar & Month selector */}
       <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 flex-none">
 
@@ -1142,9 +1257,9 @@ const EmployeeAttendanceView = ({
           )}
         </div>
 
-        {/* Selected Employee Summary Card (Desktop Only) */}
+        {/* Selected Employee Summary Card (Responsive) */}
         {selectedEmp && (
-              <div className="hidden lg:flex items-center gap-3 border-l border-slate-200 pl-4 py-1">
+          <div className="flex items-center gap-3 border-t md:border-t-0 md:border-l border-slate-200 pt-2 md:pt-0 md:pl-4 py-1 flex-shrink-0">
             <Avatar name={selectedEmp.name} color={selectedEmp.avatarColor} />
             <div className="text-xs">
               <p className="font-extrabold text-slate-800 leading-tight">{selectedEmp.name}</p>
@@ -1205,8 +1320,8 @@ const EmployeeAttendanceView = ({
       {/* Two Column Layout: Left Pie Charts / Right Calendar */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0 overflow-auto">
 
-        {/* Left Column: Pie Charts Dashboard (lg:col-span-5) */}
-        <div className="lg:col-span-5 flex flex-col gap-2 flex-none lg:flex-1">
+        {/* Left Column: Pie Charts Dashboard (lg:col-span-5) - Displayed below Calendar on mobile */}
+        <div className="lg:col-span-5 flex flex-col gap-2 flex-none lg:flex-1 order-2 lg:order-1">
 
           {/* Card 1: This Month Donut */}
           <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 flex flex-col items-center justify-center flex-1">
@@ -1230,8 +1345,8 @@ const EmployeeAttendanceView = ({
 
         </div>
 
-        {/* Right Column: Calendar Grid Card (lg:col-span-7) */}
-        <div className="lg:col-span-7 bg-white border border-slate-100 rounded-2xl shadow-sm p-4 flex flex-col min-h-0">
+        {/* Right Column: Calendar Grid Card (lg:col-span-7) - Displayed above Pie Charts on mobile */}
+        <div className="lg:col-span-7 bg-white border border-slate-100 rounded-2xl shadow-sm p-4 flex flex-col min-h-0 order-1 lg:order-2">
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 flex-none">
             <div className="flex items-center gap-1.5">
               <CalendarDays size={14} className="text-[#0D47A1]" />
@@ -1723,9 +1838,9 @@ export default function AttendancePage() {
   ];
 
   return (
-    <div className="flex flex-col h-full min-h-0 gap-3 p-4">
+    <div className="flex flex-col h-auto md:h-full min-h-full md:min-h-0 gap-3 p-4">
       {/* Tab Bar */}
-      <div className="flex-none flex items-center gap-2 flex-wrap">
+      <div className="flex-none flex items-center gap-2 flex-wrap sticky md:static top-0 z-30 bg-[#f3f6fb] -mx-4 px-4 -mt-4 pt-4 pb-2 md:m-0 md:p-0 md:bg-transparent">
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-bold transition cursor-pointer ${activeTab === tab.id ? "bg-[#0D47A1] text-white shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>

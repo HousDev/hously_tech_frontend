@@ -153,7 +153,7 @@
 //           }}
 //         />
 
-       
+
 
 //         {/* ── Main Content ── */}
 //         <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 sm:px-6 lg:px-2 pt-20 pb-4">
@@ -498,13 +498,13 @@ const HeroSlider = () => {
           ── */}
           <div className="order-1 flex justify-center lg:order-1 lg:justify-start">
             <div
-              className={`w-full max-w-xl text-center transition-all duration-700 lg:text-left ${
-                isAnimating ? "translate-y-5 opacity-0" : "translate-y-0 opacity-100"
-              }`}
+              className={`w-full max-w-xl text-center transition-all duration-700 lg:text-left ${isAnimating ? "translate-y-5 opacity-0" : "translate-y-0 opacity-100"
+                }`}
             >
               {/* 1 — Badge */}
               <div className="-mt-2 mb-3 inline-flex items-center gap-2 rounded-full border border-[#f1d7de] bg-[#0076d8] px-4 py-2 shadow-sm backdrop-blur-sm sm:-mt-3">
-                <Sparkles className="h-4 w-4 text-yellow-300" />
+
+
                 <span className="text-xs font-medium tracking-[0.18em] text-white sm:text-sm">
                   Hously Finntech Realty
                 </span>
@@ -529,11 +529,10 @@ const HeroSlider = () => {
               {/* ── IMAGE SLOT (mobile only, shown between subtitle & description) ── */}
               {/* On mobile this appears here via order, on lg it's hidden (shown in right col) */}
               <div
-                className={`block lg:hidden mt-5 transition-all duration-700 ${
-                  isAnimating
+                className={`block lg:hidden mt-5 transition-all duration-700 ${isAnimating
                     ? "translate-x-4 scale-95 opacity-0"
                     : "translate-x-0 scale-100 opacity-100"
-                }`}
+                  }`}
               >
                 <div className="relative mx-auto w-full max-w-[300px] sm:max-w-[380px]">
                   {isPngImage(current.image_url) ? (
@@ -597,11 +596,10 @@ const HeroSlider = () => {
           {/* ── Right: Image (desktop only — hidden on mobile, shown in left col above) ── */}
           <div className="hidden lg:flex order-2 items-center justify-center">
             <div
-              className={`relative w-full max-w-[340px] transition-all duration-700 sm:max-w-[430px] md:max-w-[520px] lg:max-w-[620px] ${
-                isAnimating
+              className={`relative w-full max-w-[340px] transition-all duration-700 sm:max-w-[430px] md:max-w-[520px] lg:max-w-[620px] ${isAnimating
                   ? "translate-x-6 scale-95 opacity-0"
                   : "translate-x-0 scale-100 opacity-100"
-              }`}
+                }`}
             >
               {isPngImage(current.image_url) ? (
                 <img
@@ -641,11 +639,10 @@ const HeroSlider = () => {
             key={slide.id}
             onClick={() => triggerSlide(() => index)}
             aria-label={`Go to slide ${index + 1}`}
-            className={`h-2 rounded-full transition-all duration-500 cursor-pointer ${
-              index === currentSlide
+            className={`h-2 rounded-full transition-all duration-500 cursor-pointer ${index === currentSlide
                 ? "w-10 bg-gradient-to-r from-[#0076d8] to-[#0076d8]"
                 : "w-2 bg-[#cbd6e2] hover:bg-[#aebed0]"
-            }`}
+              }`}
           />
         ))}
       </div>

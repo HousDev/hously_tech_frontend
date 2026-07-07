@@ -192,7 +192,8 @@ const WhyChooseUsSection: React.FC = () => {
               {/* Title Section */}
               <div className="mb-6 lg:mb-8">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-600/10 backdrop-blur-sm rounded-full border border-blue-400/15 mb-3 animate-slideInLeft">
-                  <Sparkles className="w-3 h-3 text-blue-400" />
+
+
                   <span className="text-[9px] font-semibold text-blue-400 tracking-wider uppercase">
                     {renderAnimatedText(subTitle)}
                   </span>
