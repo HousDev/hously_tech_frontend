@@ -724,9 +724,8 @@ const TodayView = ({
               <button
                 key={p}
                 onClick={() => setPage(p)}
-                className={`w-6 h-6 rounded-lg text-[10px] transition flex items-center justify-center cursor-pointer ${
-                  page === p ? "bg-[#0D47A1] text-white" : "border border-slate-200 hover:bg-slate-50"
-                }`}
+                className={`w-6 h-6 rounded-lg text-[10px] transition flex items-center justify-center cursor-pointer ${page === p ? "bg-[#0D47A1] text-white" : "border border-slate-200 hover:bg-slate-50"
+                  }`}
               >
                 {p}
               </button>

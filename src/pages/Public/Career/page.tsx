@@ -85,18 +85,18 @@ const HouslyCareerPage: React.FC = () => {
     const fetchJobs = async () => {
       try {
         setLoading(true);
-        const response = await careerService.getJobs({ 
+        const response = await careerService.getJobs({
           active: true,
           limit: 3 // Only fetch 3 jobs
         });
-        
+
         if (response.success && response.data.jobs) {
           // Get only active jobs and sort by newest
           const activeJobs = response.data.jobs
             .filter((job: any) => job.is_active)
             .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
             .slice(0, 3); // Ensure we only take 3 jobs
-          
+
           setJobs(activeJobs);
         }
       } catch (error) {
@@ -116,7 +116,7 @@ const HouslyCareerPage: React.FC = () => {
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
@@ -174,7 +174,7 @@ const HouslyCareerPage: React.FC = () => {
             </p>
 
             <Link to="/career/job">
-              <button className="bg-[#0076d8] hover:from-[#024a9e] hover:to-[#0270e1] text-white font-bold py-4 px-10 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg">
+              <button className="bg-[#0076d8] hover:from-[#024a9e] hover:to-[#0270e1] text-white font-bold py-4 px-10 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg cursor-pointer">
                 Explore Opportunities
               </button>
             </Link>
@@ -268,7 +268,7 @@ const HouslyCareerPage: React.FC = () => {
                   Check back soon for new opportunities!
                 </p>
                 <Link to="/career/job">
-                  <button className="bg-[#0270e1] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#024a9e] transition-colors">
+                  <button className="bg-[#0270e1] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#024a9e] transition-colors cursor-pointer">
                     View All Jobs
                   </button>
                 </Link>
@@ -318,9 +318,9 @@ const HouslyCareerPage: React.FC = () => {
                           <span className="mx-2">•</span>
                           <span>Posted {formatDate(job.created_at)}</span>
                         </div>
-                        <button 
+                        <button
                           onClick={() => handleViewJobDetails(job.slug)}
-                          className="text-[#0270e1] hover:text-[#024a9e] text-sm font-semibold flex items-center gap-1"
+                          className="text-[#0270e1] hover:text-[#024a9e] text-sm font-semibold flex items-center gap-1 cursor-pointer"
                         >
                           View Details
                           <ChevronRight className="w-4 h-4" />
@@ -334,7 +334,7 @@ const HouslyCareerPage: React.FC = () => {
                 <div className="text-center">
                   <button
                     onClick={handleViewAllJobs}
-                    className="inline-flex items-center gap-2 bg-white text-[#0270e1] border-2 border-[#0270e1] hover:bg-[#0270e1] hover:text-white font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md"
+                    className="inline-flex items-center gap-2 bg-white text-[#0270e1] border-2 border-[#0270e1] hover:bg-[#0270e1] hover:text-white font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md cursor-pointer"
                   >
                     View All Job Openings
                     <ChevronRight className="w-5 h-5" />
@@ -362,16 +362,16 @@ const HouslyCareerPage: React.FC = () => {
             <div className="relative max-w-5xl mx-auto mb-10 md:mb-12 py-5 px-4 md:px-0">
               {/* Background Line - Mobile (vertical) */}
               <div className="absolute left-11 md:left-1/2 top-0 h-full w-0.5 bg-gray-200 md:hidden" />
-              
+
               {/* Background Line - Desktop (horizontal) */}
               <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 -translate-y-1/2 hidden md:block" />
 
               {/* Progress Line - Mobile (vertical) */}
               <div
-                className="absolute left-11 md:left-1/2 top-0 w-0.5 bg-gradient-to-b from-blue-600 to-blue-500 md:hidden transition-all duration-500"
+                className="absolute left-11 md:left-1/2 top-0 w-0.5 bg-[#0076d8] md:hidden transition-all duration-500"
                 style={{ height: progressWidth }}
               />
-              
+
               {/* Progress Line - Desktop (horizontal) */}
               <div
                 className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-blue-600 to-blue-500 -translate-y-1/2 hidden md:block transition-all duration-500"
@@ -387,30 +387,28 @@ const HouslyCareerPage: React.FC = () => {
                   >
                     {/* Mobile line connector */}
                     <div className="absolute left-[-17px] top-6 h-full w-0.5 bg-transparent md:hidden" />
-                    
+
                     {/* Step number indicator for mobile */}
-                    <div className={`absolute left-[-28px] top-6 w-4 h-4 rounded-full border-2 flex items-center justify-center text-xs font-bold z-10 md:hidden ${
-                      activeStep >= index
-                        ? 'bg-blue-600 border-blue-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-500'
-                    }`}>
+                    <div className={`absolute left-[-28px] top-6 w-4 h-4 rounded-full border-2 flex items-center justify-center text-xs font-bold z-10 md:hidden ${activeStep >= index
+                      ? 'bg-blue-600 border-blue-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-500'
+                      }`}>
                       {index + 1}
                     </div>
 
                     {/* Icon Container */}
                     <button
                       onClick={() => setActiveStep(index)}
-                      className={`w-14 h-14 md:w-16 md:h-16 rounded-full border-2 flex items-center justify-center transition-all relative z-20 focus:outline-none ${
-                        activeStep === index
-                          ? 'bg-blue-600 border-blue-600 text-white scale-110 shadow-lg shadow-blue-200'
-                          : activeStep > index
-                          ? 'bg-blue-600 border-blue-600 text-white'
+                      className={`w-14 h-14 md:w-16 md:h-16 rounded-full border-2 flex items-center justify-center transition-all relative z-20 focus:outline-none ${activeStep === index
+                        ? 'bg-[#0076d8] border-[#0076d8] text-white scale-110 shadow-lg shadow-blue-200'
+                        : activeStep > index
+                          ? 'bg-[#0076d8] border-[#0076d8] text-white'
                           : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       {/* Desktop Icon */}
                       <div className="hidden md:block">{step.icon}</div>
-                      
+
                       {/* Mobile Icon (smaller) */}
                       <div className="md:hidden">
                         {React.cloneElement(step.icon as React.ReactElement)}
@@ -420,9 +418,8 @@ const HouslyCareerPage: React.FC = () => {
                     {/* Title and Description */}
                     <div className="flex-1 md:flex-none md:text-center md:mt-4 md:max-w-[120px]">
                       <p
-                        className={`text-base font-semibold mb-1 ${
-                          activeStep === index ? 'text-blue-600' : 'text-gray-700'
-                        }`}
+                        className={`text-base font-semibold mb-1 ${activeStep === index ? 'text-blue-600' : 'text-gray-700'
+                          }`}
                       >
                         {step.title}
                       </p>

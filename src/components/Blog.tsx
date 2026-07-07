@@ -209,7 +209,7 @@ const BlogSection: React.FC = () => {
             <div className="hidden lg:block">
               <button
                 onClick={() => window.location.href = '/blog'}
-                className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:border-[#0077d9] hover:text-[#0077d9] transition-all duration-300"
+                className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:border-[#0077d9] hover:text-[#0077d9] transition-all duration-300 cursor-pointer"
               >
                 View All Posts <span>→</span>
               </button>
@@ -232,7 +232,7 @@ const BlogSection: React.FC = () => {
           <div className="lg:hidden flex justify-center mt-8">
             <button
               onClick={() => window.location.href = '/blog'}
-              className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:border-[#0077d9] hover:text-[#0077d9] transition-all duration-300"
+              className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:border-[#0077d9] hover:text-[#0077d9] transition-all duration-300 cursor-pointer"
             >
               View All Posts <span>→</span>
             </button>
