@@ -181,6 +181,7 @@ const AdminDashboard = () => {
     { path: '/dashboard/blog', icon: FileText, label: 'Blogs', section: 'blog', color: 'text-orange-500' },
     { path: '/dashboard/testimonials', icon: ThumbsUp, label: 'Testimonials', section: 'testimonials', color: 'text-amber-500' },
     { path: '/dashboard/enquiries', icon: MessageSquare, label: 'Enquiries', section: 'enquiries', color: 'text-sky-500' },
+    { path: '/dashboard/job-applicants', icon: Users, label: 'Job Applicant', section: 'job-applicants', color: 'text-emerald-500' },
     { path: '/dashboard/meetings', icon: Calendar, label: 'Meeting Schedule', section: 'meetings', color: 'text-purple-500' },
     { path: '/dashboard/case-studies', icon: FolderOpen, label: 'Case Studies', section: 'casestudies', color: 'text-cyan-500' },
     { path: '/dashboard/career', icon: Users, label: 'Careers', section: 'career', color: 'text-emerald-500' },
@@ -592,6 +593,11 @@ const AdminDashboard = () => {
           title: 'Enquiries',
           subtitle: 'Track & manage customer relationships'
         };
+      case '/dashboard/job-applicants':
+        return {
+          title: 'Job Applicants',
+          subtitle: 'Track & evaluate incoming talent applications'
+        };
       case '/dashboard/home':
         return {
           title: 'Home Page CMS',
@@ -696,6 +702,7 @@ const AdminDashboard = () => {
 
   const dashboardItem = navItems[0];
   const enquiriesItem = navItems.find(item => item.section === 'enquiries')!;
+  const jobApplicantsItem = navItems.find(item => item.section === 'job-applicants')!;
   const meetingsItem = navItems.find(item => item.section === 'meetings')!;
   const masterItem = navItems.find(item => item.section === 'master')!;
   const settingsItem = navItems.find(item => item.section === 'settings')!;
@@ -742,6 +749,7 @@ const AdminDashboard = () => {
     { path: '/dashboard/blog', icon: FileText, label: 'Blogs', color: 'text-orange-500' },
     { path: '/dashboard/testimonials', icon: ThumbsUp, label: 'Testimonials', color: 'text-amber-500' },
     { path: '/dashboard/enquiries', icon: MessageSquare, label: 'Enquiries', color: 'text-sky-500' },
+    { path: '/dashboard/job-applicants', icon: Users, label: 'Job Applicants', color: 'text-emerald-500' },
     { path: '/dashboard/meetings', icon: Calendar, label: 'Meeting Schedule', color: 'text-purple-500' },
     { path: '/dashboard/case-studies', icon: FolderOpen, label: 'Case Studies', color: 'text-cyan-500' },
     { path: '/dashboard/career', icon: Users, label: 'Careers', color: 'text-emerald-500' },
@@ -892,6 +900,23 @@ const AdminDashboard = () => {
               >
                 {({ isActive }) => (
                   <enquiriesItem.icon className={`w-5 h-5 ${isActive ? 'text-white' : enquiriesItem.color}`} />
+                )}
+              </NavLink>
+
+              {/* Job Applicants */}
+              <NavLink
+                to={jobApplicantsItem.path}
+                onClick={() => { setSidebarOpen(true); setMobileSidebarOpen(false); }}
+                className={({ isActive }) =>
+                  `flex items-center justify-center p-3 rounded-lg transition-all duration-200
+                  ${isActive
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10'
+                    : 'text-gray-600 hover:bg-slate-100/80 hover:text-slate-800'}`
+                }
+                title="Job Applicants"
+              >
+                {({ isActive }) => (
+                  <jobApplicantsItem.icon className={`w-5 h-5 ${isActive ? 'text-white' : jobApplicantsItem.color}`} />
                 )}
               </NavLink>
 
@@ -1076,6 +1101,25 @@ const AdminDashboard = () => {
                     <>
                       <enquiriesItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : enquiriesItem.color}`} />
                       <span className="text-sm font-semibold tracking-wide">Enquiries</span>
+                    </>
+                  )}
+                </NavLink>
+
+                {/* Job Applicants */}
+                <NavLink
+                  to={jobApplicantsItem.path}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
+                  ${isActive
+                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                      : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <jobApplicantsItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : jobApplicantsItem.color}`} />
+                      <span className="text-sm font-semibold tracking-wide">Job Applicants</span>
                     </>
                   )}
                 </NavLink>

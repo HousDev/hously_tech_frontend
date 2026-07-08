@@ -534,6 +534,7 @@ import HomeCMS from "./pages/Admin/CMS/HomeCMS";
 import ServicesCMS from "./pages/Admin/CMS/ServicesCMS";
 import BlogCMS from "./pages/Admin/CMS/BlogCMS";
 import CareerCMS from "./pages/Admin/CMS/CareerCMS";
+import JobApplicants from "./pages/Admin/JobApplicants";
 import SettingsCMS from "./pages/Admin/CMS/SettingsCMS";
 import Profile from "./pages/Admin/ProfilePage";
 import TestimonialsCMS from "./pages/Admin/CMS/TestimonialCMS";
@@ -762,6 +763,7 @@ function AppContent() {
             <Route path="blog" element={<BlogCMS />} />
             <Route path="testimonials" element={<TestimonialsCMS />} />
             <Route path="enquiries" element={<EnquiriesCMS />} />
+            <Route path="job-applicants" element={<JobApplicants />} />
             <Route path="meetings" element={<MeetingsCMS />} />
             <Route path="master" element={<MasterDataPage />} />
             <Route path="career" element={<CareerCMS />} />

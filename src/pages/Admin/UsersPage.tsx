@@ -414,6 +414,122 @@ const ChangePasswordModal = ({
   );
 };
 
+// ─── Multi-Select Projects Dropdown ──────────────────────────────────────────
+
+const MultiSelectProjects = ({
+  projects,
+  value,
+  onChange,
+}: {
+  projects: string[];
+  value: string;       // comma-separated string e.g. "Project Alpha, Project Beta"
+  onChange: (val: string) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Parse current selection
+  const selected: string[] = value
+    ? value.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  const toggle = (p: string) => {
+    const idx = selected.indexOf(p);
+    let next: string[];
+    if (idx >= 0) {
+      next = selected.filter((s) => s !== p);
+    } else {
+      next = [...selected, p];
+    }
+    onChange(next.join(', '));
+  };
+
+  const remove = (p: string) => {
+    onChange(selected.filter((s) => s !== p).join(', '));
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      {/* Selected pills */}
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-1.5">
+          {selected.map((p) => (
+            <span
+              key={p}
+              className="inline-flex items-center gap-1 bg-[#0D47A1]/10 text-[#0D47A1] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0D47A1]/20"
+            >
+              {p}
+              <button
+                type="button"
+                onClick={() => remove(p)}
+                className="hover:text-red-500 transition leading-none cursor-pointer"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg bg-white hover:border-slate-300 transition text-left cursor-pointer"
+      >
+        <span className="flex items-center gap-1.5 text-slate-500">
+          <FolderOpen size={11} className="text-slate-400 shrink-0" />
+          {selected.length === 0
+            ? 'Select Projects'
+            : `${selected.length} project${selected.length > 1 ? 's' : ''} selected`}
+        </span>
+        <ChevronDown
+          size={11}
+          className={`text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {/* Dropdown list */}
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+          {projects.length === 0 ? (
+            <div className="px-3 py-2 text-[11px] text-slate-400 italic">No projects available</div>
+          ) : (
+            projects.map((p) => {
+              const checked = selected.includes(p);
+              return (
+                <label
+                  key={p}
+                  className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-slate-50 transition text-xs font-semibold ${
+                    checked ? 'text-[#0D47A1] bg-blue-50/40' : 'text-slate-700'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggle(p)}
+                    className="w-3.5 h-3.5 accent-[#0D47A1] cursor-pointer"
+                  />
+                  {p}
+                </label>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── View User Modal ──────────────────────────────────────────────────────────
 
 const ViewUserModal = ({
@@ -503,11 +619,16 @@ const ViewUserModal = ({
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700">
                         <Shield size={9} /> {user.role}
                       </span>
-                      {user.isEmployee && (
+                      {/* Role-aware badge: Admin for admin-level roles, Employee for others */}
+                      {['super admin','admin','hr lead'].includes(user.role?.toLowerCase()) ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700">
+                          <Shield size={9} /> Admin
+                        </span>
+                      ) : user.isEmployee ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">
                           <UserCheck size={9} /> Employee
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -1144,22 +1265,12 @@ const UserFormModal = ({
 
                 <div>
                   <Label text="Allotted Projects" />
-                  <div className="relative">
-                    <FolderOpen size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <select
-                      value={form.allottedProjects}
-                      onChange={(e) => setForm((f) => ({ ...f, allottedProjects: e.target.value }))}
-                      className={`${selCls()} pl-7 appearance-none`}
-                    >
-                      <option value="">Select Projects</option>
-                      {projects.map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  </div>
+                  {/* Multi-select project dropdown */}
+                  <MultiSelectProjects
+                    projects={projects}
+                    value={form.allottedProjects}
+                    onChange={(val) => setForm((f) => ({ ...f, allottedProjects: val }))}
+                  />
                 </div>
 
                 <div
