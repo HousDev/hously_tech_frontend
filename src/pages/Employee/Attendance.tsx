@@ -303,6 +303,14 @@ const Attendance: React.FC = () => {
     }
   };
 
+  // Stop webcam when punch popup is closed
+  useEffect(() => {
+    if (!punchPopup) {
+      stopCamera();
+      setCameraActive(false);
+    }
+  }, [punchPopup]);
+
   const capturePhoto = (): string => {
     if (videoRef.current) {
       const canvas = document.createElement('canvas');
@@ -429,20 +437,28 @@ const Attendance: React.FC = () => {
     setScanProgress(15);
     setCameraActive(true);
 
-    let activeStream: MediaStream | null = null;
-    try {
-      // 1. Initialize Camera
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        activeStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
-        setStream(activeStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = activeStream;
-        }
-      }
+    let activeStream: MediaStream | null = stream;
+    let lat = 0;
+    let lng = 0;
+    let gpsError: any = null;
 
-      // 2. Geolocation Request + Reverse Geocode for Duty Location
-      let lat = 0;
-      let lng = 0;
+    // 1. Initialize Camera and GPS concurrently
+    const cameraPromise = (async () => {
+      try {
+        if (!activeStream && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          activeStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
+          setStream(activeStream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = activeStream;
+            videoRef.current.play().catch(e => console.warn("Video play error:", e));
+          }
+        }
+      } catch (camErr) {
+        console.warn("Camera load error:", camErr);
+      }
+    })();
+
+    const gpsPromise = (async () => {
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -458,24 +474,41 @@ const Attendance: React.FC = () => {
           const geoResp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
           const geoJson = await geoResp.json();
           const addr = geoJson?.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-          // Shorten to first 2 parts
+          // Shorten to first 3 parts
           const shortAddr = addr.split(',').slice(0, 3).join(',').trim();
           setLiveAddress(shortAddr);
         } catch (_) {
           setLiveAddress(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
         }
       } catch (geoErr) {
+        gpsError = geoErr;
+      }
+    })();
+
+    try {
+      // Step 1: Initializing Phase (0 to 1.5 seconds)
+      await new Promise(r => setTimeout(r, 1500));
+      
+      // Step 2: Face Sweep Phase (1.5 to 3.2 seconds)
+      setScanStep('face');
+      setScanProgress(50);
+      await new Promise(r => setTimeout(r, 1700));
+
+      // Step 3: GPS Geofencing Phase (3.2 to 5.0 seconds)
+      setScanStep('gps');
+      setScanProgress(85);
+      await new Promise(r => setTimeout(r, 1800));
+
+      // 2. Await both background promises before proceeding to capture & submission
+      await Promise.all([cameraPromise, gpsPromise]);
+
+      if (gpsError) {
         toast.error("GPS location permission required. Please enable location access.");
         handleClosePunchPopup();
         return;
       }
 
-      // 3. Face Sweep Phase (snappy 50ms)
-      await new Promise(r => setTimeout(r, 50));
-      setScanStep('face');
-      setScanProgress(50);
-
-      // Capture Photo
+      // Capture Photo now (at the 5.0-second mark!)
       let selfie = "";
       if (videoRef.current) {
         const canvas = document.createElement('canvas');
@@ -493,12 +526,6 @@ const Attendance: React.FC = () => {
         selfie = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop";
       }
 
-      // 4. GPS Geofencing Phase (snappy 50ms)
-      await new Promise(r => setTimeout(r, 50));
-      setScanStep('gps');
-      setScanProgress(85);
-
-      // 5. Submit to backend API
       const response = await attendanceApi.punch({
         isCheckingIn,
         latitude: lat,
@@ -513,7 +540,18 @@ const Attendance: React.FC = () => {
       setScanStep('success');
       setScanProgress(100);
 
-      // Refresh logs and state
+      // Update state locally first to toggle dashboard buttons immediately
+      if (isCheckingIn) {
+        setIsCheckedIn(true);
+        if (response.checkInTime) {
+          setCheckInTime(response.checkInTime);
+        }
+      } else {
+        setIsCheckedIn(false);
+        setCheckInTime(null);
+      }
+
+      // Refresh logs and state from backend
       const updatedLogs = await attendanceApi.getLogs();
       setLogs(updatedLogs);
 
@@ -551,11 +589,11 @@ const Attendance: React.FC = () => {
         setPunchError(null);
         setLiveAddress(null);
         setPunchPopup(null);
-      }, 1800);
+      }, 3000);
 
     } catch (err: any) {
       console.error(err);
-      const errMsg = err.message || "Attendance punch failed.";
+      const errMsg = err.response?.data?.message || err.message || "Attendance punch failed.";
       // Show failure INSIDE the popup camera box instead of just toast
       if (activeStream) {
         activeStream.getTracks().forEach(track => track.stop());
@@ -892,13 +930,34 @@ const Attendance: React.FC = () => {
 
           {/* Weekday headers */}
           <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-404 mb-3 uppercase">
-            <span>Sunday</span>
-            <span>Monday</span>
-            <span>Tuesday</span>
-            <span>Wednesday</span>
-            <span>Thursday</span>
-            <span>Friday</span>
-            <span>Saturday</span>
+            <span>
+              <span className="hidden sm:inline">Sunday</span>
+              <span className="sm:hidden">Sun</span>
+            </span>
+            <span>
+              <span className="hidden sm:inline">Monday</span>
+              <span className="sm:hidden">Mon</span>
+            </span>
+            <span>
+              <span className="hidden sm:inline">Tuesday</span>
+              <span className="sm:hidden">Tue</span>
+            </span>
+            <span>
+              <span className="hidden sm:inline">Wednesday</span>
+              <span className="sm:hidden">Wed</span>
+            </span>
+            <span>
+              <span className="hidden sm:inline">Thursday</span>
+              <span className="sm:hidden">Thu</span>
+            </span>
+            <span>
+              <span className="hidden sm:inline">Friday</span>
+              <span className="sm:hidden">Fri</span>
+            </span>
+            <span>
+              <span className="hidden sm:inline">Saturday</span>
+              <span className="sm:hidden">Sat</span>
+            </span>
           </div>
 
           {/* Days cells (COMPLETELY REMOVED TIMING LABELS) */}
@@ -1069,7 +1128,9 @@ const Attendance: React.FC = () => {
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-404 p-4 text-center z-10 bg-slate-900 border border-slate-800">
                     <Camera className="w-10 h-10 text-[#0d47a1] opacity-80 mb-2.5 animate-pulse" />
                     <span className="text-[10px] font-black uppercase text-slate-200 tracking-widest">Webcam Offline</span>
-                    <span className="text-[8px] font-bold text-slate-500 mt-1">Select mode below to start scan</span>
+                    <span className="text-[8px] font-bold text-slate-500 mt-1">
+                      Click {punchPopup.isCheckingIn ? 'Check-In' : 'Check-Out'} below to start verification
+                    </span>
                   </div>
                 )}
                 {cameraActive && !stream && (
@@ -1088,7 +1149,27 @@ const Attendance: React.FC = () => {
 
                 {/* Scan Laser sweeps when verifying */}
                 {isScanning && (
-                  <div className="absolute left-0 w-full h-0.5 bg-blue-500 opacity-80 animate-[bounce_2s_infinite] shadow-[0_0_10px_#3b82f6] z-20" />
+                  <>
+                    <style>{`
+                      @keyframes scan {
+                        0% { top: 0%; }
+                        50% { top: 100%; }
+                        100% { top: 0%; }
+                      }
+                    `}</style>
+                    {/* Sliding laser line */}
+                    <div 
+                      className="absolute left-0 w-full h-1 bg-cyan-400 opacity-90 shadow-[0_0_12px_#22d3ee] z-20 pointer-events-none" 
+                      style={{ animation: 'scan 2.5s linear infinite' }}
+                    />
+                    {/* Glowing viewport gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 via-transparent to-cyan-500/5 z-10 pointer-events-none" />
+                    {/* Glowing pulsing scan corners */}
+                    <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 border-cyan-400 rounded-tl-md shadow-[0_0_8px_#22d3ee] z-20 animate-pulse" />
+                    <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 border-cyan-400 rounded-tr-md shadow-[0_0_8px_#22d3ee] z-20 animate-pulse" />
+                    <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 border-cyan-400 rounded-bl-md shadow-[0_0_8px_#22d3ee] z-20 animate-pulse" />
+                    <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 border-cyan-400 rounded-br-md shadow-[0_0_8px_#22d3ee] z-20 animate-pulse" />
+                  </>
                 )}
 
                 {/* Step Banner overlay inside camera box */}
@@ -1132,26 +1213,27 @@ const Attendance: React.FC = () => {
               </div>
             </div>
 
-            {/* Check-In / Check-Out selector tabs at the bottom */}
-            <div className="flex bg-slate-100 p-1 rounded-2xl w-full border border-slate-200 shadow-inner">
-              <button
-                type="button"
-                disabled={isScanning || scanStep === 'success'}
-                onClick={() => handleStartPunch(true)}
-                className={`flex-1 py-2.5 text-xs font-black rounded-xl transition cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed ${punchPopup.isCheckingIn && isScanning ? 'bg-[#0D47A1] text-white shadow-xs' : 'text-slate-500 hover:text-slate-705'
-                  }`}
-              >
-                Check-In
-              </button>
-              <button
-                type="button"
-                disabled={isScanning || scanStep === 'success'}
-                onClick={() => handleStartPunch(false)}
-                className={`flex-1 py-2.5 text-xs font-black rounded-xl transition cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed ${!punchPopup.isCheckingIn && isScanning ? 'bg-[#0D47A1] text-white shadow-xs' : 'text-slate-500 hover:text-slate-705'
-                  }`}
-              >
-                Check-Out
-              </button>
+            {/* Check-In / Check-Out action button at the bottom */}
+            <div className="w-full mt-2">
+              {punchPopup.isCheckingIn ? (
+                <button
+                  type="button"
+                  disabled={isScanning || scanStep === 'success'}
+                  onClick={() => handleStartPunch(true)}
+                  className="w-full py-3 text-sm font-black rounded-2xl transition cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed bg-[#0D47A1] text-white hover:bg-blue-808 shadow-md hover:shadow-lg active:scale-[0.98] transform duration-150"
+                >
+                  {isScanning ? 'Verifying...' : 'Check-In'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isScanning || scanStep === 'success'}
+                  onClick={() => handleStartPunch(false)}
+                  className="w-full py-3 text-sm font-black rounded-2xl transition cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed bg-rose-600 text-white hover:bg-rose-700 shadow-md hover:shadow-lg active:scale-[0.98] transform duration-150"
+                >
+                  {isScanning ? 'Verifying...' : 'Check-Out'}
+                </button>
+              )}
             </div>
           </div>
         </div>,

@@ -105,11 +105,33 @@ const REGULARIZE_STATUS: Record<"pending" | "approved" | "rejected", { label: st
 
 // ─── Components ───────────────────────────────────────────────────────────────
 
-const Avatar = ({ name, color }: { name: string; color: string }) => (
-  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center font-extrabold text-white text-[10px] ring-2 ring-white flex-shrink-0`}>
-    {name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
-  </div>
-);
+const Avatar = ({ name, color, url }: { name: string; color: string; url?: string | null }) => {
+  const BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+  const getAvatarUrl = (pathStr?: string | null) => {
+    if (!pathStr) return "";
+    if (pathStr.startsWith("data:") || pathStr.startsWith("http")) return pathStr;
+    return `${BASE_URL}/${pathStr}`;
+  };
+
+  if (url) {
+    return (
+      <img
+        src={getAvatarUrl(url)}
+        alt={name}
+        className="w-8 h-8 rounded-full object-cover ring-2 ring-white flex-shrink-0"
+        onError={(e) => {
+          (e.target as HTMLElement).style.display = 'none';
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center font-extrabold text-white text-[10px] ring-2 ring-white flex-shrink-0`}>
+      {name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+    </div>
+  );
+};
 
 const StatusBadge = ({ status }: { status: AttendanceStatus }) => {
   const c = STATUS_CONFIG[status];
@@ -464,7 +486,7 @@ const TodayView = ({
           { label: "Total", val: stats.total, sub: "employees", color: "text-slate-700 bg-slate-50 border-slate-200" },
           { label: "Present", val: stats.present, sub: `${Math.round((stats.present / stats.total) * 100)}%`, color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
           { label: "Absent", val: stats.absent, sub: "not in", color: "text-red-700 bg-red-50 border-red-200" },
-          { label: "Late", val: stats.late, sub: "after 9:30", color: "text-amber-700 bg-amber-50 border-amber-200" },
+          { label: "Late", val: stats.late, sub: "after 10:30", color: "text-amber-700 bg-amber-50 border-amber-200" },
           { label: "On Leave", val: stats.onLeave, sub: "approved", color: "text-purple-700 bg-purple-50 border-purple-200" },
           { label: "Rate", val: `${stats.rate}%`, sub: "today", color: "text-indigo-700 bg-indigo-50 border-indigo-200" },
         ].map(s => (
@@ -563,7 +585,6 @@ const TodayView = ({
                 <th className="px-3 py-1.5"></th>
                 <th className="px-3 py-1.5"></th>
                 <th className="px-3 py-1.5"></th>
-                <th className="px-3 py-1.5"></th>
                 <th className="px-3 py-1.5">
                   <input
                     type="text"
@@ -586,7 +607,7 @@ const TodayView = ({
                   <tr key={r.empId} className={`border-b border-slate-100 hover:bg-blue-50/20 transition duration-155 ${i % 2 ? "bg-slate-50/30" : ""}`}>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
-                        <Avatar name={r.name} color={r.avatarColor} />
+                        <Avatar name={r.name} color={r.avatarColor} url={(r as any).avatarUrl} />
                         <div><p className="font-extrabold text-slate-800">{r.name}</p><p className="text-[9px] text-slate-400">{r.empId}</p></div>
                       </div>
                     </td>
@@ -629,7 +650,7 @@ const TodayView = ({
                   {/* Avatar, Name, Status */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <Avatar name={r.name} color={r.avatarColor} />
+                      <Avatar name={r.name} color={r.avatarColor} url={(r as any).avatarUrl} />
                       <div>
                         <h4 className="font-extrabold text-slate-800 text-xs">{r.name}</h4>
                         <p className="text-[10px] text-slate-400 font-semibold">{r.empId} • {r.department}</p>
@@ -1244,7 +1265,7 @@ const EmployeeAttendanceView = ({
                     className={`w-full px-3 py-2 text-left text-xs font-bold transition hover:bg-slate-50 flex items-center gap-2.5 border-b border-slate-100 last:border-0 ${selectedEmp?.empId === emp.empId ? "bg-blue-50/40 text-[#0D47A1]" : "text-slate-700"
                       }`}
                   >
-                    <Avatar name={emp.name} color={emp.avatarColor} />
+                    <Avatar name={emp.name} color={emp.avatarColor} url={emp.avatarUrl} />
                     <div className="text-left">
                       <p className="leading-tight text-slate-800">{emp.name}</p>
                       <p className="text-[9px] text-slate-400 font-semibold">{emp.empId} • {emp.department}</p>
@@ -1259,7 +1280,7 @@ const EmployeeAttendanceView = ({
         {/* Selected Employee Summary Card (Responsive) */}
         {selectedEmp && (
           <div className="flex items-center gap-3 border-t md:border-t-0 md:border-l border-slate-200 pt-2 md:pt-0 md:pl-4 py-1 flex-shrink-0">
-            <Avatar name={selectedEmp.name} color={selectedEmp.avatarColor} />
+            <Avatar name={selectedEmp.name} color={selectedEmp.avatarColor} url={selectedEmp.avatarUrl} />
             <div className="text-xs">
               <p className="font-extrabold text-slate-800 leading-tight">{selectedEmp.name}</p>
               <p className="text-[10px] text-slate-450 font-bold">{selectedEmp.designation} • {selectedEmp.department}</p>
@@ -1694,7 +1715,8 @@ export default function AttendancePage() {
           name: r.name,
           department: r.department,
           designation: r.designation,
-          avatarColor: r.avatarColor
+          avatarColor: r.avatarColor,
+          avatarUrl: (r as any).avatarUrl
         });
       }
     });

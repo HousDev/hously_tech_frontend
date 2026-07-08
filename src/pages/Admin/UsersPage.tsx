@@ -191,32 +191,53 @@ const Avatar = ({
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
+const ACCENT_CLASSES: Record<string, { cardBg: string; border: string; iconBg: string }> = {
+  blue: {
+    cardBg: "bg-blue-50/40",
+    border: "border-blue-100/60",
+    iconBg: "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]",
+  },
+  indigo: {
+    cardBg: "bg-indigo-50/40",
+    border: "border-indigo-100/60",
+    iconBg: "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]",
+  },
+  red: {
+    cardBg: "bg-red-50/40",
+    border: "border-red-100/60",
+    iconBg: "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]",
+  },
+};
+
 const StatCard = ({
   label,
   value,
   desc,
   icon,
-  accent,
+  accent = "blue",
 }: {
   label: string;
   value: string;
   desc: string;
   icon: React.ReactNode;
-  accent: string;
-}) => (
-  <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06)] p-2.5 sm:p-4 flex items-center gap-2 sm:gap-3">
-    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center ${accent} flex-shrink-0`}>
-      {icon}
+  accent?: "blue" | "indigo" | "red";
+}) => {
+  const cfg = ACCENT_CLASSES[accent] || ACCENT_CLASSES.blue;
+  return (
+    <div className={`${cfg.cardBg} ${cfg.border} rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-2.5 sm:p-4 flex items-center gap-2 sm:gap-3`}>
+      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center ${cfg.iconBg} flex-shrink-0`}>
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[8px] sm:text-[9px] font-extrabold text-slate-400 uppercase tracking-widest truncate">
+          {label}
+        </p>
+        <p className="text-sm sm:text-lg font-extrabold text-slate-800 leading-tight">{value}</p>
+        <p className="text-[8px] sm:text-[9px] text-slate-400 font-semibold truncate">{desc}</p>
+      </div>
     </div>
-    <div className="min-w-0 flex-1">
-      <p className="text-[8px] sm:text-[9px] font-extrabold text-slate-400 uppercase tracking-widest truncate">
-        {label}
-      </p>
-      <p className="text-sm sm:text-lg font-extrabold text-slate-800 leading-tight">{value}</p>
-      <p className="text-[8px] sm:text-[9px] text-slate-400 font-semibold truncate">{desc}</p>
-    </div>
-  </div>
-);
+  );
+};
 
 // ─── Change Password Modal ──────────────────────────────────────────────────
 
@@ -225,7 +246,7 @@ const ChangePasswordModal = ({
   onConfirm,
 }: {
   onClose: () => void;
-  onConfirm: (password: string) => void;
+  onConfirm: (password: string) => Promise<void>;
 }) => {
   const [visible, setVisible] = useState(false);
   const [password, setPassword] = useState("");
@@ -233,17 +254,19 @@ const ChangePasswordModal = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
   }, []);
 
   const handleClose = () => {
+    if (loading) return;
     setVisible(false);
     setTimeout(onClose, 250);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
       return;
@@ -252,8 +275,16 @@ const ChangePasswordModal = ({
       setError("Passwords do not match");
       return;
     }
-    onConfirm(password);
-    handleClose();
+    setLoading(true);
+    setError("");
+    try {
+      await onConfirm(password);
+      handleClose();
+    } catch (err: any) {
+      setError(err.message || "Failed to update password");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -356,15 +387,24 @@ const ChangePasswordModal = ({
             <div className="mt-5 flex gap-3">
               <button
                 onClick={handleClose}
-                className="flex-1 py-2 text-xs font-bold border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+                disabled={loading}
+                className="flex-1 py-2 text-xs font-bold border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
-                className="flex-1 py-2 text-xs font-bold bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-xl hover:opacity-90 transition shadow-sm cursor-pointer"
+                disabled={loading}
+                className="flex-1 py-2 text-xs font-bold bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-xl hover:opacity-90 transition shadow-sm cursor-pointer disabled:opacity-60 flex items-center justify-center gap-1.5"
               >
-                Update Password
+                {loading ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Password"
+                )}
               </button>
             </div>
           </div>
@@ -594,7 +634,7 @@ const ViewUserModal = ({
 
 interface UserFormModalProps {
   onClose: () => void;
-  onSave: (user: Omit<UserRecord, "id" | "createdAt">) => void;
+  onSave: (user: Omit<UserRecord, "id" | "createdAt"> & { password?: string }) => void;
   departments: string[];
   roles: string[];
   projects: string[];
@@ -733,14 +773,16 @@ const UserFormModal = ({
       dateOfJoining: form.dateOfJoining || undefined,
       gender: (form.gender as UserGender) || undefined,
       allottedProjects: form.allottedProjects || undefined,
+      password: mode === "add" ? form.password : undefined,
     });
 
     setSaving(false);
     handleClose();
   };
 
-  const handleChangePassword = (newPassword: string) => {
-    console.log("Password updated:", newPassword);
+  const handleChangePassword = async (newPassword: string) => {
+    if (!initialUser) return;
+    await userApi.changePassword(initialUser.id, newPassword);
   };
 
   const inp = (err?: string) =>
@@ -1795,7 +1837,7 @@ export default function UsersPage() {
     setPage(1);
   };
 
-  const handleAddUser = async (newUser: Omit<UserRecord, "id" | "createdAt">) => {
+  const handleAddUser = async (newUser: Omit<UserRecord, "id" | "createdAt"> & { password?: string }) => {
     try {
       await userApi.create(newUser);
       toast.success("User created successfully!");
@@ -1805,7 +1847,7 @@ export default function UsersPage() {
     }
   };
 
-  const handleUpdateUser = async (updatedUser: Omit<UserRecord, "id" | "createdAt">) => {
+  const handleUpdateUser = async (updatedUser: Omit<UserRecord, "id" | "createdAt"> & { password?: string }) => {
     if (!editingUser) return;
     try {
       await userApi.update(editingUser.id, updatedUser);
@@ -1847,21 +1889,21 @@ export default function UsersPage() {
 
   return (
     <>
-      <div className="p-4 md:p-6 space-y-4 min-h-full">
+      <div className="p-4 md:p-6 space-y-3.5 min-h-full">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3">
           <StatCard
             label="Total Users"
             value={`${users.length}`}
             desc="Across all access levels"
             icon={<Users size={18} className="text-blue-600" />}
-            accent="bg-blue-50"
+            accent="blue"
           />
           <StatCard
             label="Admins"
             value={`${users.filter((u) => u.role === "Super Admin" || u.role === "Admin").length}`}
             desc="Full system permissions"
             icon={<Shield size={18} className="text-indigo-600" />}
-            accent="bg-indigo-50"
+            accent="indigo"
           />
           <div className="col-span-2 md:col-span-1">
             <StatCard
@@ -1869,13 +1911,13 @@ export default function UsersPage() {
               value={`${users.filter((u) => u.status === "blocked").length}`}
               desc="Restricted system logins"
               icon={<UserX size={18} className="text-red-500" />}
-              accent="bg-red-50"
+              accent="red"
             />
           </div>
         </div>
 
-        {/* Toolbar - Static on mobile, Sticky on desktop */}
-        <div className="static sm:sticky sm:top-0 z-20 bg-white rounded-2xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06)] px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+        {/* Toolbar - Visible on Mobile only */}
+        <div className="block md:hidden bg-white rounded-2xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06)] px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {selectedUsers.size > 0 && (
               <div className="flex items-center gap-2 flex-wrap w-full justify-between sm:justify-start">
@@ -1917,8 +1959,55 @@ export default function UsersPage() {
         </div>
 
         {/* Table with scroll - Hidden on Mobile, Visible on Desktop */}
-        <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06)] overflow-hidden">
-          <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
+        <div className="hidden md:flex md:flex-col bg-white rounded-2xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06)] overflow-hidden h-[calc(100vh-270px)] min-h-[400px]">
+          {/* Desktop Card Header Toolbar */}
+          <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/20">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-extrabold text-[#0D47A1] uppercase tracking-wider bg-[#0D47A1]/5 px-2 py-1 rounded-md">
+                Users Directory
+              </span>
+              {selectedUsers.size > 0 && (
+                <div className="flex items-center gap-2 ml-3">
+                  <button
+                    onClick={handleDeleteSelected}
+                    className="flex items-center gap-1 px-2 py-1 bg-red-500 text-white rounded-lg text-[10px] font-bold shadow-sm hover:opacity-90 transition cursor-pointer"
+                  >
+                    <Trash2 size={11} /> Delete ({selectedUsers.size})
+                  </button>
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    {selectedUsers.size} selected
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setFilterOpen(true)}
+                className={`flex items-center justify-center gap-1 px-2.5 py-1.5 border rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                  Object.values(filters).some((v) => v)
+                    ? "bg-[#0D47A1]/10 border-[#0D47A1]/30 text-[#0D47A1]"
+                    : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"
+                }`}
+              >
+                <Filter size={11} /> Filter
+                {Object.values(filters).some((v) => v) && (
+                  <span className="w-3.5 h-3.5 bg-[#0D47A1] text-white rounded-full text-[8px] font-black flex items-center justify-center ml-0.5">
+                    {Object.values(filters).filter((v) => v).length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setShowModal(true)}
+                className="flex items-center justify-center gap-1 px-3 py-1.5 bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-lg text-[11px] font-bold shadow-sm hover:opacity-90 transition cursor-pointer"
+              >
+                <Plus size={12} /> Add User
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-y-auto flex-1">
             <table className="min-w-full border-collapse text-xs">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-slate-50 border-b border-slate-200">

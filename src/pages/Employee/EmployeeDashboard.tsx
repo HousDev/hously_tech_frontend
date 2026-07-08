@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -23,11 +23,59 @@ import { FiExternalLink } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import houslyLogo from '../../assets/images/hously-logo.png';
 import Attendance from './Attendance';
+import Leave from './Leave';
+import Ticket from './Ticket';
+import toast, { Toaster } from 'react-hot-toast';
+import { apiClient } from '../../lib/api';
+import { useLeaveSocket } from '../../hooks/useLeaveSocket';
+
+interface NotificationItem {
+  id: number;
+  user_id: number;
+  leave_id: number;
+  type: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+const formatRelativeTime = (dateStr: string) => {
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  const now = new Date();
+  let diffMs = now.getTime() - date.getTime();
+
+  // timezone offset correction if server returned local time parsed as UTC or vice versa
+  if (diffMs < 0) {
+    const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+    const adjustedDate = new Date(date.getTime() + timezoneOffsetMs);
+    const adjustedDiffMs = now.getTime() - adjustedDate.getTime();
+
+    if (adjustedDiffMs >= 0) {
+      diffMs = adjustedDiffMs;
+    } else {
+      diffMs = 0; // clock desync clamp
+    }
+  }
+
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  
+  return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+};
 
 const EmployeeDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'attendance'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'attendance' | 'leave' | 'ticket'>('dashboard');
   const { user, logout } = useAuth();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -35,9 +83,35 @@ const EmployeeDashboard = () => {
   const [searchTask, setSearchTask] = useState('');
   const [searchAnnouncement, setSearchAnnouncement] = useState('');
 
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const data = await apiClient.get<NotificationItem[]>('/leaves/notifications');
+      console.log(`[EmployeeDashboard] Fetched ${data ? data.length : 0} notifications:`, data);
+      setNotifications(data ?? []);
+    } catch (err) {
+      console.error('Failed to fetch employee notifications:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  useLeaveSocket((event, data) => {
+    console.log(`[EmployeeDashboard] useLeaveSocket callback: event="${event}"`, data);
+    if (event === 'leave_status_changed') {
+      fetchNotifications();
+    }
+    if (event === 'leave_deleted') {
+      fetchNotifications();
+    }
+  });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -61,17 +135,32 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const markNotificationRead = async (id: number) => {
+    try {
+      await apiClient.patch(`/leaves/notifications/${id}/read`);
+      fetchNotifications();
+    } catch (err) {
+      console.error('Failed to mark notification read:', err);
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
+    try {
+      await apiClient.patch('/leaves/notifications/read-all');
+      fetchNotifications();
+    } catch (err) {
+      console.error('Failed to mark all notifications read:', err);
+    }
+  };
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'attendance', label: 'Attendance', icon: Calendar },
+    { id: 'leave', label: 'Leave', icon: Briefcase },
+    { id: 'ticket', label: 'Ticket', icon: ListTodo },
   ];
 
-  const notifications = [
-    { id: 1, title: 'Meeting Reminder', message: 'Team sync at 3:00 PM', time: '5 mins ago', read: false },
-    { id: 2, title: 'Task Assigned', message: 'You have been assigned to Project Alpha', time: '1 hour ago', read: false },
-  ];
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.is_read || (n.is_read as any) === '0').length;
 
   // KPI Cards
   const kpiCards = [
@@ -116,10 +205,23 @@ const EmployeeDashboard = () => {
     item.category.toLowerCase().includes(searchAnnouncement.toLowerCase())
   );
 
-  const headerTitle = activeTab === 'dashboard' ? 'Dashboard' : 'Attendance';
+  const headerTitle = {
+    dashboard: 'Dashboard',
+    attendance: 'Attendance',
+    leave: 'Leave Management',
+    ticket: 'Helpdesk Tickets'
+  }[activeTab];
+
+  const headerSubtitle = {
+    dashboard: 'Overview of your activities, tasks, and meetings',
+    attendance: 'Track your daily punch-in, punch-out, and logs',
+    leave: 'Apply for leaves and track your leave balances',
+    ticket: 'Raise support tickets and view their progress'
+  }[activeTab];
 
   return (
     <div className="min-h-screen bg-[#f0f4f9] font-sans">
+      <Toaster position="top-right" />
 
       {/* Sidebar Overlay */}
       {mobileSidebarOpen && (
@@ -144,7 +246,7 @@ const EmployeeDashboard = () => {
               <button
                 key={item.id}
                 onClick={() => {
-                  setActiveTab(item.id as 'dashboard' | 'attendance');
+                  setActiveTab(item.id as 'dashboard' | 'attendance' | 'leave' | 'ticket');
                   setMobileSidebarOpen(false);
                 }}
                 className={`flex items-center w-full rounded-lg transition-all duration-200 px-3 py-2.5 text-left cursor-pointer
@@ -180,35 +282,74 @@ const EmployeeDashboard = () => {
         {/* Header */}
         <header className="sticky top-0 z-30 h-16 bg-white shadow-sm border-b border-slate-100">
           <div className="px-4 h-full flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 text-left">
               <button onClick={() => setSidebarOpen(!sidebarOpen)} className="hidden lg:flex p-2 rounded-lg hover:bg-slate-100 transition">
                 {sidebarOpen ? <Menu className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
               </button>
               <button onClick={() => setMobileSidebarOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition">
                 <Menu className="w-5 h-5" />
               </button>
-              <h1 className="text-xl font-bold text-slate-800">{headerTitle}</h1>
+              <div>
+                <h1 className="text-xl font-bold text-slate-800 leading-tight">{headerTitle}</h1>
+                <p className="text-[10px] text-gray-500 font-medium">{headerSubtitle}</p>
+              </div>
             </div>
 
             <div className="flex items-center space-x-3">
               <div className="relative" ref={notificationsRef}>
-                <button onClick={() => setShowNotifications(!showNotifications)} className="p-2 rounded-lg hover:bg-slate-100 transition relative">
+                <button onClick={() => setShowNotifications(!showNotifications)} className="p-2 rounded-lg hover:bg-slate-100 transition relative flex items-center">
                   <Bell className="w-5 h-5 text-gray-600" />
-                  {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />}
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                 </button>
                 {showNotifications && (
-                  <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50">
-                    <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                      <h3 className="font-semibold text-gray-900">Notifications</h3>
-                      <span className="text-xs text-blue-600 font-medium hover:underline cursor-pointer">Mark all read</span>
+                  <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+                    <div className="p-3 border-b border-gray-200 flex items-center justify-between bg-slate-50/50">
+                      <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllNotificationsRead}
+                          className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer bg-transparent border-0"
+                        >
+                          Mark all read
+                        </button>
+                      )}
                     </div>
-                    {notifications.map((n) => (
-                      <div key={n.id} className={`p-3 border-b border-gray-50 hover:bg-gray-50 transition ${!n.read ? 'bg-blue-50/30' : ''}`}>
-                        <p className="text-sm font-medium text-gray-800">{n.title}</p>
-                        <p className="text-xs text-gray-600 mt-0.5">{n.message}</p>
-                        <p className="text-xs text-gray-400 mt-1">{n.time}</p>
-                      </div>
-                    ))}
+                    <div className="max-h-72 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-slate-400">
+                          <Bell size={24} className="mx-auto text-slate-300 mb-2" />
+                          <p className="text-xs font-semibold">No notifications yet</p>
+                        </div>
+                      ) : (
+                        notifications.map((n) => {
+                          const fmtTime = formatRelativeTime(n.created_at);
+                          return (
+                            <div
+                              key={n.id}
+                              onClick={() => {
+                                markNotificationRead(n.id);
+                                setActiveTab('leave');
+                                setShowNotifications(false);
+                              }}
+                              className={`p-3 border-b border-gray-50 hover:bg-slate-50 transition cursor-pointer select-none ${(!n.is_read || (n.is_read as any) === '0') ? 'bg-blue-50/25 border-l-2 border-blue-500' : ''}`}
+                            >
+                              <div className="flex items-start gap-2">
+                                <span className="text-sm mt-0.5">🔔</span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-bold text-slate-800">{n.title}</p>
+                                  <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{n.message}</p>
+                                  <p className="text-[9px] text-slate-400 mt-1 font-semibold">{fmtTime}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -252,22 +393,25 @@ const EmployeeDashboard = () => {
 
         {/* Content Area */}
         <main className="p-4 md:p-6 overflow-y-auto" style={{ height: 'calc(100vh - 64px)' }}>
-          {activeTab === 'attendance' ? (
-            <Attendance />
-          ) : (
-            <div className="max-w-full space-y-6">
+          {activeTab === 'attendance' && <Attendance />}
 
+          {activeTab === 'leave' && <Leave />}
+
+          {activeTab === 'ticket' && <Ticket />}
+
+          {activeTab === 'dashboard' && (
+            <div className="max-w-full space-y-6">
               {/* KPI Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 {kpiCards.map((kpi, i) => (
-                  <div key={i} className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-all">
+                  <div key={i} className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-all text-left">
                     <div className="flex items-start justify-between">
                       <div className={`${kpi.bgColor} p-2 rounded-lg`}>
                         <kpi.icon className={`w-4 h-4 ${kpi.textColor}`} />
                       </div>
                     </div>
                     <div className="mt-2">
-                      <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{kpi.label}</p>
+                      <p className="text-[10px] text-slate-404 font-medium uppercase tracking-wider">{kpi.label}</p>
                       <h4 className="text-lg font-bold mt-0.5 text-slate-800">{kpi.value}</h4>
                       <p className="text-[10px] text-slate-400">{kpi.subValue}</p>
                     </div>
@@ -279,7 +423,7 @@ const EmployeeDashboard = () => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Time Distribution - Left Side (1/3 width) */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 lg:col-span-1">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 lg:col-span-1 text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                     <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2">
                       <PieChart className="w-5 h-5 text-blue-500" strokeWidth={2.5} />
@@ -321,7 +465,7 @@ const EmployeeDashboard = () => {
                 </div>
 
                 {/* Recent Tasks - Right Side (2/3 width with more height) */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 lg:col-span-2">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 lg:col-span-2 text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                     <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2">
                       <ListTodo className="w-5 h-5 text-amber-500" strokeWidth={2.5} />
@@ -338,7 +482,7 @@ const EmployeeDashboard = () => {
                       placeholder="Search tasks..."
                       value={searchTask}
                       onChange={(e) => setSearchTask(e.target.value)}
-                      className="w-full pl-7 pr-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-[#0D47A1] focus:ring-1 focus:ring-[#0D47A1] transition"
+                      className="w-full pl-7 pr-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-[#0D47A1] focus:ring-1 focus:ring-[#0D47A1] transition text-slate-808"
                     />
                   </div>
 
@@ -352,12 +496,12 @@ const EmployeeDashboard = () => {
                           <th className="text-left font-semibold text-slate-500 py-1.5 text-[10px] uppercase tracking-wider">Status</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="font-semibold text-slate-700">
                         {filteredTasks.map((item, i) => (
                           <tr key={i} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
-                            <td className="py-1.5 font-semibold text-slate-700 text-xs">{item.task}</td>
+                            <td className="py-1.5 text-xs text-slate-808">{item.task}</td>
                             <td className="py-1.5">
-                              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${item.priority === 'Urgent' ? 'bg-red-50 text-red-600' :
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.priority === 'Urgent' ? 'bg-red-50 text-red-600' :
                                   item.priority === 'High' ? 'bg-orange-50 text-orange-600' :
                                     item.priority === 'Medium' ? 'bg-blue-50 text-blue-600' :
                                       'bg-slate-50 text-slate-600'
@@ -367,7 +511,7 @@ const EmployeeDashboard = () => {
                             </td>
                             <td className="py-1.5 text-slate-400 font-medium">{item.dueDate}</td>
                             <td className="py-1.5">
-                              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${item.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' :
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' :
                                   item.status === 'In Progress' ? 'bg-blue-50 text-blue-600' :
                                     'bg-slate-50 text-slate-600'
                                 }`}>
@@ -383,7 +527,7 @@ const EmployeeDashboard = () => {
               </div>
 
               {/* Recent Announcements - Full Width */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 text-left">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                   <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2">
                     <Megaphone className="w-5 h-5 text-purple-500" strokeWidth={2.5} />
@@ -400,7 +544,7 @@ const EmployeeDashboard = () => {
                     placeholder="Search announcements..."
                     value={searchAnnouncement}
                     onChange={(e) => setSearchAnnouncement(e.target.value)}
-                    className="w-full pl-7 pr-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-[#0D47A1] focus:ring-1 focus:ring-[#0D47A1] transition"
+                    className="w-full pl-7 pr-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-[#0D47A1] focus:ring-1 focus:ring-[#0D47A1] transition text-slate-808"
                   />
                 </div>
 
@@ -410,17 +554,17 @@ const EmployeeDashboard = () => {
                       <tr className="border-b border-slate-100">
                         <th className="text-left font-semibold text-slate-500 py-1.5 text-[10px] uppercase tracking-wider">Title</th>
                         <th className="text-left font-semibold text-slate-500 py-1.5 text-[10px] uppercase tracking-wider">Date</th>
-                        <th className="text-left font-semibold text-slate-500 py-1.5 text-[10px] uppercase tracking-wider">Category</th>
-                        <th className="text-left font-semibold text-slate-500 py-1.5 text-[10px] uppercase tracking-wider">Description</th>
+                        <th className="text-left font-semibold text-slate-505 py-1.5 text-[10px] uppercase tracking-wider">Category</th>
+                        <th className="text-left font-semibold text-slate-505 py-1.5 text-[10px] uppercase tracking-wider">Description</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="font-semibold text-slate-705">
                       {filteredAnnouncements.map((item, i) => (
                         <tr key={i} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
-                          <td className="py-1.5 font-semibold text-slate-700 text-xs">{item.title}</td>
+                          <td className="py-1.5 text-xs text-slate-808">{item.title}</td>
                           <td className="py-1.5 text-slate-400 font-medium">{item.date}</td>
                           <td className="py-1.5">
-                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${item.category === 'HR' ? 'bg-purple-50 text-purple-600' :
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.category === 'HR' ? 'bg-purple-50 text-purple-600' :
                                 item.category === 'Policy' ? 'bg-blue-50 text-blue-600' :
                                   item.category === 'Event' ? 'bg-emerald-50 text-emerald-600' :
                                     'bg-slate-50 text-slate-600'
@@ -437,7 +581,7 @@ const EmployeeDashboard = () => {
               </div>
 
               {/* Upcoming Meetings - Full Width */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 text-left">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                   <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-rose-500" strokeWidth={2.5} />
@@ -450,14 +594,14 @@ const EmployeeDashboard = () => {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-slate-100">
-                        <th className="text-left font-semibold text-slate-500 py-1.5 text-[10px] uppercase tracking-wider">Meeting</th>
-                        <th className="text-left font-semibold text-slate-500 py-1.5 text-[10px] uppercase tracking-wider">Time</th>
-                        <th className="text-left font-semibold text-slate-500 py-1.5 text-[10px] uppercase tracking-wider">Attendees</th>
-                        <th className="text-left font-semibold text-slate-500 py-1.5 text-[10px] uppercase tracking-wider">Priority</th>
-                        <th className="text-left font-semibold text-slate-500 py-1.5 text-[10px] uppercase tracking-wider">Status</th>
+                        <th className="text-left font-semibold text-slate-505 py-1.5 text-[10px] uppercase tracking-wider">Meeting</th>
+                        <th className="text-left font-semibold text-slate-550 py-1.5 text-[10px] uppercase tracking-wider">Time</th>
+                        <th className="text-left font-semibold text-slate-550 py-1.5 text-[10px] uppercase tracking-wider">Attendees</th>
+                        <th className="text-left font-semibold text-slate-550 py-1.5 text-[10px] uppercase tracking-wider">Priority</th>
+                        <th className="text-left font-semibold text-slate-550 py-1.5 text-[10px] uppercase tracking-wider">Status</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="font-semibold text-slate-705">
                       {[
                         { meeting: 'Team Standup', time: 'Today, 3:00 PM', attendees: '8 members', priority: 'High', status: 'Scheduled' },
                         { meeting: 'Client Review', time: 'Tomorrow, 10:00 AM', attendees: '5 members', priority: 'Urgent', status: 'Scheduled' },
@@ -465,11 +609,11 @@ const EmployeeDashboard = () => {
                         { meeting: 'HR Session', time: 'Jul 12, 11:00 AM', attendees: '12 members', priority: 'Low', status: 'Scheduled' },
                       ].map((item, i) => (
                         <tr key={i} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
-                          <td className="py-1.5 font-semibold text-slate-700 text-xs">{item.meeting}</td>
+                          <td className="py-1.5 text-xs text-slate-808">{item.meeting}</td>
                           <td className="py-1.5 text-slate-400 font-medium">{item.time}</td>
                           <td className="py-1.5 text-slate-500 font-medium">{item.attendees}</td>
                           <td className="py-1.5">
-                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${item.priority === 'Urgent' ? 'bg-red-50 text-red-600' :
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.priority === 'Urgent' ? 'bg-red-50 text-red-600' :
                                 item.priority === 'High' ? 'bg-orange-50 text-orange-600' :
                                   item.priority === 'Medium' ? 'bg-blue-50 text-blue-600' :
                                     'bg-slate-50 text-slate-600'
@@ -478,7 +622,7 @@ const EmployeeDashboard = () => {
                             </span>
                           </td>
                           <td className="py-1.5">
-                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${item.status === 'Scheduled' ? 'bg-emerald-50 text-emerald-600' :
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.status === 'Scheduled' ? 'bg-emerald-50 text-emerald-600' :
                                 'bg-slate-50 text-slate-600'
                               }`}>
                               {item.status}

@@ -112,6 +112,8 @@ export default function JobApplicationPage() {
   const [countriesList, setCountriesList] = useState<string[]>([]);
   const [statesList, setStatesList] = useState<string[]>([]);
   const [citiesList, setCitiesList] = useState<string[]>([]);
+  const [semestersList, setSemestersList] = useState<string[]>([]);
+  const [graduationYearsList, setGraduationYearsList] = useState<string[]>([]);
 
   // Max DOB allowed (18 years ago from today)
   const maxDob = (() => {
@@ -340,6 +342,43 @@ export default function JobApplicationPage() {
     };
     loadMasterLocations();
   }, []);
+
+  // Fetch career master data (Semester and Graduation) only when Internship candidate type is selected
+  useEffect(() => {
+    if (candidateType.candType === "internship") {
+      const loadCareerMasterData = async () => {
+        try {
+          // Fetch only from 'common' tab as specified
+          const types = await masterDataAPI.getAllMasterTypes("common");
+
+          const semesterType = types.find(
+            (t: any) => t.name.toLowerCase() === "semester" || t.name.toLowerCase() === "semesters"
+          );
+          if (semesterType) {
+            const vals = await masterDataAPI.getMasterValues(semesterType.id);
+            const semesters = vals
+              .filter((v: any) => v.status === "Active" || v.status === "active")
+              .map((v: any) => v.value);
+            setSemestersList(semesters);
+          }
+
+          const gradType = types.find(
+            (t: any) => t.name.toLowerCase() === "graduation" || t.name.toLowerCase() === "graduations"
+          );
+          if (gradType) {
+            const vals = await masterDataAPI.getMasterValues(gradType.id);
+            const grads = vals
+              .filter((v: any) => v.status === "Active" || v.status === "active")
+              .map((v: any) => v.value);
+            setGraduationYearsList(grads);
+          }
+        } catch (err) {
+          console.error("Error loading career master data:", err);
+        }
+      };
+      loadCareerMasterData();
+    }
+  }, [candidateType.candType]);
 
   // Validation functions per step
   const validateStep = (step: number): boolean => {
@@ -945,6 +984,9 @@ export default function JobApplicationPage() {
           border-color: var(--accent) !important;
           box-shadow: 0 0 0 4px rgba(0, 118, 216, 0.1) !important;
         }
+        .application-form-container .shadow-sm {
+          box-shadow: none !important;
+        }
         @media print {
           /* Hide all surrounding page elements */
           body * {
@@ -975,7 +1017,7 @@ export default function JobApplicationPage() {
         }
       `}</style>
 
-      <div className="max-w-[1140px] mx-auto px-4">
+      <div className="max-w-[1280px] mx-auto px-4">
         {/* Back Link */}
         <button
           onClick={() => navigate(`/career/job/${job.slug}`)}
@@ -1025,51 +1067,53 @@ export default function JobApplicationPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left Column - Form Stepper (Scrollable) */}
-            <div className="lg:col-span-7">
-              {/* Sticky Header & Stepper Tracker (below website main navbar) */}
-              <div className="sticky top-[80px] z-20 bg-[#f6f7fb]/95 backdrop-blur-md pt-3 pb-3 border-b border-[#e3e5ee] mb-6 shadow-sm shadow-[#f6f7fb] no-print">
-                <header className="mb-4">
-                  <span className="float-right text-xs text-[#5b5f70] mt-2">
-                    Ref: <b className="bg-[#eef7ff] text-[#0076d8] px-2.5 py-0.5 rounded-full text-[11px] font-bold">#{job.id}</b>
-                  </span>
-                  <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#14161f] m-0">
-                    Apply for <span className="text-[#0076d8]">{job.job_title}</span>
-                  </h1>
-                  <div className="text-[11px] sm:text-xs text-[#5b5f70] mt-1">
-                    {job.department} • {job.job_type}
-                  </div>
-                </header>
+          <div className="space-y-6">
+            {/* Sticky Header & Stepper Tracker (below website main navbar) */}
+            <div className="sticky top-[80px] z-20 bg-white/95 backdrop-blur-md px-6 py-4 border border-[#e3e5ee] rounded-2xl mb-6 shadow-none no-print">
+              <header className="mb-4">
+                <span className="float-right text-xs text-[#5b5f70] mt-2">
+                  <span className="font-bold text-slate-800">Job ID: </span><b className="bg-[#eef7ff] text-[#0076d8] px-2.5 py-0.5 rounded-full text-[11px] font-extrabold">{job.id}</b>
+                </span>
+                <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#14161f] m-0">
+                  Apply for <span className="text-[#0076d8]">{job.job_title}</span>
+                </h1>
+                <div className="text-[11px] sm:text-xs text-[#5b5f70] mt-1">
+                  {job.department} • {job.job_type}
+                </div>
+              </header>
 
-                {/* Steps Progress Tracker */}
-                <div className="flex overflow-x-auto gap-0 pb-1.5 scrollbar-thin">
-                  {STEP_LABELS.map((label, idx) => {
-                    const stepNum = idx + 1;
-                    const isActive = currentStep === stepNum;
-                    const isDone = currentStep > stepNum;
-                    return (
-                      <div key={label} className="flex items-center flex-shrink-0">
-                        <div
-                          className={`flex items-center gap-1.5 text-[11px] font-bold ${isActive ? "text-[#0076d8]" : isDone ? "text-[#0f7a52]" : "text-[#b0b3c2]"
+              {/* Steps Progress Tracker */}
+              <div className="flex overflow-x-auto gap-0 pb-1.5 scrollbar-thin">
+                {STEP_LABELS.map((label, idx) => {
+                  const stepNum = idx + 1;
+                  const isActive = currentStep === stepNum;
+                  const isDone = currentStep > stepNum;
+                  return (
+                    <div key={label} className="flex items-center flex-shrink-0">
+                      <div
+                        className={`flex items-center gap-1.5 text-[11px] font-bold ${isActive ? "text-[#0076d8]" : isDone ? "text-[#0f7a52]" : "text-[#b0b3c2]"
+                          }`}
+                      >
+                        <span
+                          className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] leading-none text-white font-extrabold ${isActive ? "bg-[#0076d8]" : isDone ? "bg-[#0f7a52]" : "bg-[#e3e5ee]"
                             }`}
                         >
-                          <span
-                            className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] leading-none text-white font-extrabold ${isActive ? "bg-[#0076d8]" : isDone ? "bg-[#0f7a52]" : "bg-[#e3e5ee]"
-                              }`}
-                          >
-                            {isDone ? "✓" : stepNum}
-                          </span>
-                          <span className="whitespace-nowrap">{label}</span>
-                        </div>
-                        {stepNum < TOTAL_STEPS && (
-                          <div className="w-4 h-[1px] bg-[#e3e5ee] mx-2 flex-shrink-0" />
-                        )}
+                          {isDone ? "✓" : stepNum}
+                        </span>
+                        <span className="whitespace-nowrap">{label}</span>
                       </div>
-                    );
-                  })}
-                </div>
+                      {stepNum < TOTAL_STEPS && (
+                        <div className="w-4 h-[1px] bg-[#e3e5ee] mx-2 flex-shrink-0" />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              {/* Left Column - Form Stepper (Scrollable) */}
+              <div className="lg:col-span-8">
 
               {/* Error notifications */}
               {submitError && (
@@ -1700,24 +1744,30 @@ export default function JobApplicationPage() {
                             </div>
                             <div className="flex flex-col">
                               <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Semester *</label>
-                              <input
-                                type="text"
+                              <select
                                 value={candidateType.semester}
                                 onChange={e => setCandidateType({ ...candidateType, semester: e.target.value })}
-                                placeholder="e.g. 5th"
-                                className="px-3 py-2 border border-[#e3e5ee] rounded-lg text-xs sm:text-sm bg-white"
-                              />
+                                className="px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs sm:text-sm cursor-pointer outline-none focus:ring-1 focus:ring-[#0D47A1]"
+                              >
+                                <option value="">Select Semester</option>
+                                {semestersList.map(sem => (
+                                  <option key={sem} value={sem}>{sem}</option>
+                                ))}
+                              </select>
                               {stepErrors.semester && <span className="text-red-500 text-[10px] mt-1">{stepErrors.semester}</span>}
                             </div>
                             <div className="flex flex-col">
                               <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Expected Graduation Year *</label>
-                              <input
-                                type="number"
+                              <select
                                 value={candidateType.expectedGradYear}
                                 onChange={e => setCandidateType({ ...candidateType, expectedGradYear: e.target.value })}
-                                placeholder="e.g. 2027"
-                                className="px-3 py-2 border border-[#e3e5ee] rounded-lg text-xs sm:text-sm bg-white"
-                              />
+                                className="px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs sm:text-sm cursor-pointer outline-none focus:ring-1 focus:ring-[#0D47A1]"
+                              >
+                                <option value="">Select Graduation Year</option>
+                                {graduationYearsList.map(yr => (
+                                  <option key={yr} value={yr}>{yr}</option>
+                                ))}
+                              </select>
                               {stepErrors.expectedGradYear && <span className="text-red-500 text-[10px] mt-1">{stepErrors.expectedGradYear}</span>}
                             </div>
                             <div className="flex flex-col">
@@ -1842,7 +1892,7 @@ export default function JobApplicationPage() {
                                 {stepErrors[`edu_${idx}_inst`] && <span className="text-red-500 text-[10px] mt-1">{stepErrors[`edu_${idx}_inst`]}</span>}
                               </div>
 
-                               <div className="flex flex-col">
+                              <div className="flex flex-col">
                                 <label className="text-xs font-semibold mb-1">Branch / Stream <span className="text-xs font-normal text-[#5b5f70]">(optional)</span></label>
                                 <select
                                   value={getBranchSelectVal(edu.branch)}
@@ -2720,7 +2770,7 @@ export default function JobApplicationPage() {
             </div>
 
             {/* Right Column - Persistent Job Summary & Info Panel (Fixed/Sticky Sidebar) */}
-            <div className="lg:col-span-5 lg:sticky lg:top-24">
+            <div className="lg:col-span-4 lg:sticky lg:top-[200px]">
               <div className="space-y-6">
 
                 {/* Job Summary Card */}
@@ -2786,7 +2836,8 @@ export default function JobApplicationPage() {
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
       </div>
     </div>
   );
