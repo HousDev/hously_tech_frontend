@@ -59,6 +59,10 @@ const MeetingsCMS: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'scheduled' | 'completed' | 'cancelled'>('all');
   const [timeFilter, setTimeFilter] = useState<'all' | 'upcoming' | 'past' | 'today'>('all');
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(10);
+
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const weekDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
@@ -320,6 +324,28 @@ const MeetingsCMS: React.FC = () => {
     return matchSearch && matchType && matchStatus && matchTime;
   });
 
+  // Pagination calculations
+  const indexOfLastItem = itemsPerPage === 'all' ? filteredMeetings.length : currentPage * itemsPerPage;
+  const indexOfFirstItem = itemsPerPage === 'all' ? 0 : indexOfLastItem - itemsPerPage;
+  const currentMeetings = itemsPerPage === 'all' ? filteredMeetings : filteredMeetings.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = itemsPerPage === 'all' ? 1 : Math.ceil(filteredMeetings.length / itemsPerPage);
+
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
   const getMeetingsForDate = (date: Date) =>
     meetings.filter(m => {
       const d = new Date(m.start_time);
@@ -370,7 +396,7 @@ const MeetingsCMS: React.FC = () => {
   };
 
   return (
-    <div className="bg-transparent font-sans px-6 pt-6">
+    <div className="bg-transparent font-sans px-3 sm:px-6 pt-6">
       <Toaster position="top-right" />
       <style>{`
         @keyframes modalFadeIn {
@@ -447,7 +473,7 @@ const MeetingsCMS: React.FC = () => {
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0076d8]"></div>
         </div>
       ) : (
-        <div className="p-6">
+        <div className="py-4 px-0 sm:p-6">
           {/* TAB 1: CALENDAR VIEW */}
           {activeTab === 'calendar' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -607,44 +633,44 @@ const MeetingsCMS: React.FC = () => {
                       type="text"
                       placeholder="Search by meeting title, client name, email..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                       className="pl-8 pr-3 py-1.5 w-full bg-white/60 focus:bg-white border border-slate-200/60 rounded-lg text-[11px] font-semibold text-slate-800 placeholder-slate-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
                     />
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-1">
+                  <div className="grid grid-cols-3 md:flex md:items-center gap-2 w-full md:w-auto">
+                    <div className="flex items-center gap-1 w-full">
                       <select
                         value={typeFilter}
-                        onChange={(e) => setTypeFilter(e.target.value as any)}
-                        className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all outline-none font-semibold text-slate-700"
+                        onChange={(e) => { setTypeFilter(e.target.value as any); setCurrentPage(1); }}
+                        className="w-full px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all outline-none font-semibold text-slate-700"
                       >
-                        <option value="all">All Types</option>
+                        <option value="all">Types</option>
                         <option value="virtual">Virtual</option>
                         <option value="in_person">In-Person</option>
                       </select>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 w-full">
                       <select
                         value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value as any)}
-                        className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all outline-none font-semibold text-slate-700"
+                        onChange={(e) => { setStatusFilter(e.target.value as any); setCurrentPage(1); }}
+                        className="w-full px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all outline-none font-semibold text-slate-700"
                       >
-                        <option value="all">All Status</option>
+                        <option value="all">Status</option>
                         <option value="scheduled">Scheduled</option>
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>
                       </select>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 w-full">
                       <select
                         value={timeFilter}
-                        onChange={(e) => setTimeFilter(e.target.value as any)}
-                        className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all outline-none font-semibold text-slate-700"
+                        onChange={(e) => { setTimeFilter(e.target.value as any); setCurrentPage(1); }}
+                        className="w-full px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all outline-none font-semibold text-slate-700"
                       >
-                        <option value="all">All Time</option>
+                        <option value="all">Time</option>
                         <option value="upcoming">Upcoming</option>
                         <option value="today">Today</option>
                         <option value="past">Past</option>
@@ -677,8 +703,9 @@ const MeetingsCMS: React.FC = () => {
                   <p className="text-xs text-gray-400 mt-1">Try resetting your filters or search term</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto bg-white/40 backdrop-blur-md rounded-xl border border-white/20 shadow-sm overflow-hidden">
-                  <table className="min-w-full border-collapse border border-slate-300">
+                <div className="bg-white/40 backdrop-blur-md rounded-xl border border-white/20 shadow-sm overflow-hidden flex flex-col h-[465px]">
+                  <div className="overflow-x-auto overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                    <table className="min-w-[750px] md:min-w-full border-collapse border border-slate-300">
                     <thead className="bg-slate-200/50 backdrop-blur-md sticky top-0 z-20">
                       <tr>
                         <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-8 border-r border-b border-slate-300">
@@ -706,7 +733,7 @@ const MeetingsCMS: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-transparent">
-                      {filteredMeetings.map((meeting) => {
+                      {currentMeetings.map((meeting) => {
                         const isChecked = selectedMeetingIds.includes(meeting.id);
                         return (
                           <tr key={meeting.id} className="hover:bg-blue-50/50 bg-white/20 transition-all duration-200">
@@ -834,7 +861,116 @@ const MeetingsCMS: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
-              )}
+
+                {/* Pagination Controls */}
+                <div className="p-3.5 border-t border-slate-200/60 flex flex-col sm:flex-row items-center justify-between gap-3.5 flex-shrink-0 animate-fadeIn">
+                  <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
+                    {/* Left side - Showing info compact */}
+                    <div className="text-[10px] sm:text-xs text-gray-600 font-semibold whitespace-nowrap">
+                      <span>Showing </span>
+                      <span className="font-bold text-gray-800">{indexOfFirstItem + 1}</span>
+                      <span> - </span>
+                      <span className="font-bold text-gray-800">
+                        {Math.min(indexOfLastItem, filteredMeetings.length)}
+                      </span>
+                      <span> of </span>
+                      <span className="font-bold text-gray-800">{filteredMeetings.length}</span>
+                    </div>
+
+                    {/* Show per page selector */}
+                    <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-slate-600">
+                      <span>Show:</span>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setItemsPerPage(val === 'all' ? 'all' : Number(val));
+                          setCurrentPage(1);
+                        }}
+                        className="px-2 py-1 text-[10px] sm:text-xs border border-slate-200 rounded-lg bg-white cursor-pointer outline-none font-semibold text-slate-700 focus:ring-1 focus:ring-blue-500 transition-all"
+                      >
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="all">All</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {itemsPerPage !== 'all' && totalPages > 1 && (
+                    <div className="flex items-center gap-1">
+                      {/* Previous button */}
+                      <button
+                        type="button"
+                        onClick={prevPage}
+                        disabled={currentPage === 1}
+                        className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Page numbers - Desktop */}
+                      <div className="hidden sm:flex items-center gap-1">
+                        {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+                          let pageNumber;
+                          if (totalPages <= 3) {
+                            pageNumber = i + 1;
+                          } else if (currentPage <= 2) {
+                            pageNumber = i + 1;
+                          } else if (currentPage >= totalPages - 1) {
+                            pageNumber = totalPages - 2 + i;
+                          } else {
+                            pageNumber = currentPage - 1 + i;
+                          }
+
+                          return (
+                            <button
+                              key={pageNumber}
+                              type="button"
+                              onClick={() => goToPage(pageNumber)}
+                              className={`min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[10px] sm:text-xs rounded-md transition cursor-pointer ${currentPage === pageNumber
+                                ? 'bg-[#0D47A1] text-white font-medium shadow-sm border-transparent'
+                                : 'border border-gray-300 text-gray-700 hover:bg-gray-50 bg-white'
+                                }`}
+                            >
+                              {pageNumber}
+                            </button>
+                          );
+                        })}
+
+                        {totalPages > 3 && currentPage < totalPages - 1 && (
+                          <>
+                            <span className="text-gray-400 text-xs px-0.5">...</span>
+                            <button
+                              type="button"
+                              onClick={() => goToPage(totalPages)}
+                              className="min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[10px] sm:text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 bg-white transition cursor-pointer"
+                            >
+                              {totalPages}
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Mobile: Current page indicator */}
+                      <span className="sm:hidden text-[10px] font-medium text-gray-700 px-1">
+                        {currentPage}/{totalPages}
+                      </span>
+
+                      {/* Next button */}
+                      <button
+                        type="button"
+                        onClick={nextPage}
+                        disabled={currentPage === totalPages}
+                        className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             </div>
           )}
         </div>
@@ -847,9 +983,9 @@ const MeetingsCMS: React.FC = () => {
             className="fixed inset-0"
             onClick={() => setSelectedMeeting(null)}
           />
-          <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 overflow-hidden animate-modal-content">
+          <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 overflow-hidden animate-modal-content flex flex-col max-h-[92vh] sm:max-h-none">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-white">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-white flex-shrink-0">
               <div className="flex items-center space-x-2">
                 <CalendarIcon className="w-4 h-4 text-[#0D47A1]" />
                 <span className="font-extrabold text-xs uppercase tracking-wider text-slate-800">Meeting details</span>
@@ -862,8 +998,8 @@ const MeetingsCMS: React.FC = () => {
               </button>
             </div>
 
-            {/* Body - Compact 2-column layout (Non-scrollable) */}
-            <div className="p-5 overflow-hidden">
+            {/* Body - Compact 2-column layout (Scrollable) */}
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
                 {/* Left Column: Meeting Info & Client Details */}
@@ -1067,7 +1203,7 @@ const MeetingsCMS: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-slate-50 px-6 py-4 flex justify-between items-center border-t border-gray-100">
+            <div className="bg-slate-50 px-6 py-4 flex justify-between items-center border-t border-gray-100 flex-shrink-0">
               {selectedMeeting.meeting_type === 'virtual' ? (
                 <button
                   onClick={() => window.open(zoomLinkInput || 'https://zoom.us', '_blank')}
@@ -1096,10 +1232,10 @@ const MeetingsCMS: React.FC = () => {
             className="fixed inset-0"
             onClick={() => { setReschedulingMeeting(null); setIsTimeDropdownOpen(false); }}
           />
-          <div className="relative w-full sm:max-w-xs bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 overflow-hidden animate-modal-content">
+          <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 overflow-hidden animate-modal-content flex flex-col max-h-[92vh] sm:max-h-none">
 
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-white">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-white flex-shrink-0">
               <span className="font-extrabold text-xs uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
                 <CalendarIcon className="w-3.5 h-3.5 text-[#0D47A1]" />
                 Reschedule Meeting
@@ -1113,7 +1249,7 @@ const MeetingsCMS: React.FC = () => {
             </div>
 
             {/* Body */}
-            <div className="p-4 space-y-3 max-h-[75vh] overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-blue-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+            <div className="p-4 space-y-3 overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-blue-200 [&::-webkit-scrollbar-thumb]:rounded-full">
 
               {/* Meeting info */}
               <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
@@ -1171,7 +1307,7 @@ const MeetingsCMS: React.FC = () => {
             </div>
 
             {/* Footer */}
-            <div className="bg-slate-50 px-4 py-3 flex justify-end gap-2 border-t border-slate-100">
+            <div className="bg-slate-50 px-4 py-3 flex justify-end gap-2 border-t border-slate-100 flex-shrink-0">
               <button
                 onClick={() => { setReschedulingMeeting(null); setIsTimeDropdownOpen(false); }}
                 className="bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-50 transition cursor-pointer"

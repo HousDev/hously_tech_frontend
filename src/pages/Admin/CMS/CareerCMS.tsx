@@ -2462,7 +2462,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       />
 
       {/* Main Container */}
-      <div className={`bg-transparent font-sans flex flex-col flex-1 min-h-0 transition-all duration-300 outline-none focus:outline-none focus:ring-0 ${isSidebarOpen ? 'ml-0 sm:ml-0' : ''
+      <div className={`bg-transparent font-sans flex flex-col sm:flex-1 sm:min-h-0 transition-all duration-300 outline-none focus:outline-none focus:ring-0 ${isSidebarOpen ? 'ml-0 sm:ml-0' : ''
         }`}>
         <style>{`
           /* Globally disable outlines on focus to prevent black borders from browser focus reset */
@@ -2603,44 +2603,44 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                         />
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="flex items-center bg-white/60 border border-slate-200/60 p-0.5 rounded-lg shrink-0">
-                          <button onClick={() => setViewMode('grid')} className={`p-1 rounded ${viewMode === 'grid' ? 'bg-[#0D47A1] text-white shadow-sm' : 'text-gray-600'} cursor-pointer transition-all`}>
+                      <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <div className="flex items-center justify-center w-full sm:w-auto bg-white/60 border border-slate-200/60 p-0.5 rounded-lg shrink-0">
+                          <button onClick={() => setViewMode('grid')} className={`flex-1 sm:flex-none p-1 flex justify-center rounded ${viewMode === 'grid' ? 'bg-[#0D47A1] text-white shadow-sm' : 'text-gray-600'} cursor-pointer transition-all`}>
                             <Grid size={12} />
                           </button>
-                          <button onClick={() => setViewMode('list')} className={`p-1 rounded ${viewMode === 'list' ? 'bg-[#0D47A1] text-white shadow-sm' : 'text-gray-600'} cursor-pointer transition-all`}>
+                          <button onClick={() => setViewMode('list')} className={`flex-1 sm:flex-none p-1 flex justify-center rounded ${viewMode === 'list' ? 'bg-[#0D47A1] text-white shadow-sm' : 'text-gray-600'} cursor-pointer transition-all`}>
                             <List size={12} />
                           </button>
                         </div>
 
-                        <div className="flex items-center gap-0.5 bg-white/60 border border-slate-200/60 p-0.5 rounded-lg shrink-0">
-                          <button onClick={() => setStatusViewFilter('all')} className={`px-2 py-1 rounded text-[10px] font-bold ${statusViewFilter === 'all' ? 'bg-slate-200/80 text-slate-800 shadow-sm' : 'text-gray-600'} cursor-pointer`}>All</button>
-                          <button onClick={() => setStatusViewFilter('active')} className={`px-2 py-1 rounded text-[10px] font-bold ${statusViewFilter === 'active' ? 'bg-green-100 text-green-700' : 'text-gray-600'} cursor-pointer`}>Active</button>
-                          <button onClick={() => setStatusViewFilter('inactive')} className={`px-2 py-1 rounded text-[10px] font-bold ${statusViewFilter === 'inactive' ? 'bg-gray-200 text-gray-700' : 'text-gray-600'} cursor-pointer`}>Inactive</button>
+                        <div className="flex items-center justify-center gap-0.5 w-full sm:w-auto bg-white/60 border border-slate-200/60 p-0.5 rounded-lg shrink-0">
+                          <button onClick={() => setStatusViewFilter('all')} className={`flex-1 sm:flex-none px-2 py-1 rounded text-[10px] font-bold ${statusViewFilter === 'all' ? 'bg-slate-200/80 text-slate-800 shadow-sm' : 'text-gray-600'} cursor-pointer`}>All</button>
+                          <button onClick={() => setStatusViewFilter('active')} className={`flex-1 sm:flex-none px-2 py-1 rounded text-[10px] font-bold ${statusViewFilter === 'active' ? 'bg-green-100 text-green-700' : 'text-gray-600'} cursor-pointer`}>Active</button>
+                          <button onClick={() => setStatusViewFilter('inactive')} className={`flex-1 sm:flex-none px-2 py-1 rounded text-[10px] font-bold ${statusViewFilter === 'inactive' ? 'bg-gray-200 text-gray-700' : 'text-gray-600'} cursor-pointer`}>Inactive</button>
                         </div>
 
-                        <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none">
+                        <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="w-full sm:w-auto px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none">
                           <option value="all">All Depts</option>
                           {Array.from(new Set(jobs.map(job => job.department).filter((d): d is string => !!d))).map(d => (
                             <option key={d} value={d}>{d}</option>
                           ))}
                         </select>
 
-                        <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none">
+                        <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="w-full sm:w-auto px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none">
                           <option value="all">All Locs</option>
                           {Array.from(new Set(jobs.map(job => job.location).filter((l): l is string => !!l))).map(l => (
                             <option key={l} value={l}>{l}</option>
                           ))}
                         </select>
 
-                        <select value={jobTypeFilter} onChange={(e) => setJobTypeFilter(e.target.value)} className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none">
+                        <select value={jobTypeFilter} onChange={(e) => setJobTypeFilter(e.target.value)} className="w-full sm:w-auto px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none">
                           <option value="all">All Types</option>
                           {Array.from(new Set(jobs.map(job => job.job_type).filter((t): t is string => !!t))).map(t => (
                             <option key={t} value={t}>{t}</option>
                           ))}
                         </select>
 
-                        <select value={itemsPerPage} onChange={(e) => setItemsPerPage(Number(e.target.value))} className="px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none">
+                        <select value={itemsPerPage} onChange={(e) => setItemsPerPage(Number(e.target.value))} className="w-full sm:w-auto px-2 py-1.5 text-[10px] sm:text-xs border border-slate-200/60 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all font-semibold text-slate-700 outline-none">
                           <option value="6">Show 6</option>
                           <option value="12">Show 12</option>
                           <option value="24">Show 24</option>
@@ -2745,11 +2745,11 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
           )}
 
         {/* Content Area */}
-        <div className={`flex-col flex-1 min-h-0 ${isSidebarOpen && window.innerWidth < 640 ? 'hidden' : 'flex'}`}>
+        <div className={`flex-col sm:flex-1 sm:min-h-0 ${isSidebarOpen && window.innerWidth < 640 ? 'hidden' : 'flex'}`}>
           {activeTab === 'jobs' ? (
             viewMode === 'grid' ? (
-              <div className="flex flex-col flex-1 min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-slate-200/60 shadow-sm overflow-hidden p-4">
-                <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-4">
+              <div className="flex flex-col sm:flex-1 sm:min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-slate-200/60 shadow-sm sm:overflow-hidden p-4">
+                <div className="sm:flex-1 sm:overflow-y-auto sm:min-h-0 pr-1 pb-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                     {jobs.map((job) => (
                       <div
@@ -2870,9 +2870,9 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                 {renderPagination(false)}
               </div>
             ) : (
-              <div className="flex flex-col flex-1 min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
-                <div className="flex-1 overflow-y-auto min-h-0">
-                  <table className="min-w-full border-collapse border border-slate-300">
+              <div className="flex flex-col sm:flex-1 sm:min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-slate-200/60 shadow-sm">
+                <div className="flex-1 overflow-x-auto sm:overflow-y-auto sm:min-h-0">
+                  <table className="min-w-[700px] md:min-w-full border-collapse border border-slate-300">
                     <thead className="bg-slate-200/50 backdrop-blur-md sticky top-0 z-20">
                       <tr>
                         <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-8 border-r border-b border-slate-300">
@@ -2972,8 +2972,8 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
             )
           ) : (
             // Applications Table
-            <div className="flex flex-col flex-1 min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-slate-200/60 shadow-sm overflow-hidden outline-none focus:outline-none focus:ring-0">
-              <div className="flex-1 overflow-y-auto min-h-0 outline-none focus:outline-none focus:ring-0">
+            <div className="flex flex-col sm:flex-1 sm:min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-slate-200/60 shadow-sm sm:overflow-hidden outline-none focus:outline-none focus:ring-0">
+              <div className="flex-1 overflow-x-auto sm:overflow-y-auto sm:min-h-0 outline-none focus:outline-none focus:ring-0">
                 <table className="min-w-full border-collapse border border-slate-300 outline-none focus:outline-none focus:ring-0">
                   <thead className="bg-slate-200/50 backdrop-blur-md sticky top-0 z-20">
                     <tr>
@@ -3265,10 +3265,10 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       {showInterviewModal && selectedApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-modal-backdrop bg-slate-900/60 backdrop-blur-sm">
           <div className="fixed inset-0 cursor-default" onClick={() => setShowInterviewModal(false)} />
-          <div className="relative w-full max-w-xl bg-white rounded-xl shadow-2xl z-10 animate-modal-content flex flex-col max-h-[85vh] overflow-hidden">
+          <div className="relative w-full max-w-xl bg-white rounded-xl shadow-2xl z-10 animate-modal-content max-h-[90vh] overflow-y-auto sm:max-h-[85vh] sm:overflow-hidden flex flex-col">
 
             {/* Header (same gradient as job modal) */}
-            <div className="bg-gradient-to-r from-[#0D47A1] to-[#1976D2] rounded-t-xl sticky top-0 z-10">
+            <div className="bg-gradient-to-r from-[#0D47A1] to-[#1976D2] rounded-t-xl sm:sticky sm:top-0 sm:z-10">
               <div className="flex justify-between items-center p-4">
                 <div>
                   <h3 className="text-white font-bold text-lg">Enquiry Details</h3>
@@ -3283,7 +3283,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
             </div>
 
             {/* Tabs using modalTab state */}
-            <div className="border-b border-gray-200 px-4">
+            <div className="border-b border-gray-200 px-4 sm:sticky sm:top-[76px] sm:z-10 bg-white">
               <div className="flex gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden">
                 {['Overview', 'Interactions', 'Meetings', 'Follow Ups', 'Timeline'].map((tab) => {
                   const tabKey = tab.toLowerCase().replace(' ', '_');
@@ -3304,7 +3304,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
             </div>
 
             {/* Tab Content using modalTab */}
-            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+            <div className="p-5 space-y-5 sm:overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
               {/* OVERVIEW */}
               {modalTab === 'overview' && (
                 <div className="grid md:grid-cols-2 gap-6">
@@ -3633,7 +3633,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
             className="fixed inset-0"
             onClick={handleCloseModal}
           />
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 z-10 animate-modal-content">
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 z-10 animate-modal-content max-h-[90vh] overflow-y-auto sm:max-h-none sm:overflow-visible">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
               <div>
