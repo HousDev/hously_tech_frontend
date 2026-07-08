@@ -332,32 +332,58 @@ const Avatar = ({
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
+const ACCENT_CLASSES: Record<string, { cardBg: string; border: string; iconBg: string }> = {
+  blue: {
+    cardBg: "bg-blue-50/40",
+    border: "border-blue-100/60",
+    iconBg: "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]",
+  },
+  emerald: {
+    cardBg: "bg-emerald-50/40",
+    border: "border-emerald-100/60",
+    iconBg: "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]",
+  },
+  amber: {
+    cardBg: "bg-amber-50/40",
+    border: "border-amber-100/60",
+    iconBg: "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]",
+  },
+  purple: {
+    cardBg: "bg-purple-50/40",
+    border: "border-purple-100/60",
+    iconBg: "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]",
+  },
+};
+
 const StatCard = ({
   label,
   value,
   icon,
-  accent,
+  accent = "blue",
   sub,
 }: {
   label: string;
   value: string | number;
   icon: React.ReactNode;
-  accent: string;
+  accent?: "blue" | "emerald" | "amber" | "purple";
   sub?: string;
-}) => (
-  <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-2.5 sm:p-4 flex items-center gap-2 sm:gap-3">
-    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center ${accent} flex-shrink-0`}>
-      {icon}
+}) => {
+  const cfg = ACCENT_CLASSES[accent] || ACCENT_CLASSES.blue;
+  return (
+    <div className={`${cfg.cardBg} ${cfg.border} rounded-xl border shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-2.5 sm:p-4 flex items-center gap-2 sm:gap-3`}>
+      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center ${cfg.iconBg} flex-shrink-0`}>
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[8px] sm:text-[9px] font-extrabold text-slate-400 uppercase tracking-widest truncate">
+          {label}
+        </p>
+        <p className="text-sm sm:text-lg font-extrabold text-slate-800 leading-tight">{value}</p>
+        {sub && <p className="text-[8px] sm:text-[9px] text-slate-400 font-semibold truncate">{sub}</p>}
+      </div>
     </div>
-    <div className="min-w-0 flex-1">
-      <p className="text-[8px] sm:text-[9px] font-extrabold text-slate-400 uppercase tracking-widest truncate">
-        {label}
-      </p>
-      <p className="text-sm sm:text-lg font-extrabold text-slate-800 leading-tight">{value}</p>
-      {sub && <p className="text-[8px] sm:text-[9px] text-slate-400 font-semibold truncate">{sub}</p>}
-    </div>
-  </div>
-);
+  );
+};
 
 const EditingContext = React.createContext(false);
 
@@ -1790,39 +1816,39 @@ export default function EmployeesPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-4 min-h-full">
+    <div className="p-4 md:p-6 space-y-3.5 min-h-full">
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         <StatCard
           label="Total Employees"
           value={totalEmployees}
           icon={<Users size={18} className="text-blue-600" />}
-          accent="bg-blue-50"
+          accent="blue"
         />
         <StatCard
           label="Active"
           value={activeEmployees}
           icon={<UserCheck size={18} className="text-emerald-600" />}
-          accent="bg-emerald-50"
+          accent="emerald"
         />
         <StatCard
           label="On Leave"
           value={onLeaveEmployees}
           icon={<UserMinus size={18} className="text-amber-600" />}
-          accent="bg-amber-50"
+          accent="amber"
           sub="Currently on leave"
         />
         <StatCard
           label="This Month"
           value={thisMonthJoiners}
           icon={<Calendar size={18} className="text-purple-600" />}
-          accent="bg-purple-50"
+          accent="purple"
           sub="New joiners this month"
         />
       </div>
 
-      {/* Toolbar - Static on mobile, Sticky on desktop */}
-      <div className="static sm:sticky sm:top-0 z-20 bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+      {/* Toolbar - Visible on Mobile only */}
+      <div className="block md:hidden bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {selectedEmployees.size > 0 && (
             <div className="flex items-center gap-2 flex-wrap w-full justify-between sm:justify-start">
@@ -1869,8 +1895,59 @@ export default function EmployeesPage() {
       </div>
 
       {/* Table - Hidden on Mobile, Visible on Desktop */}
-      <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
+      <div className="hidden md:flex md:flex-col bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden h-[calc(100vh-270px)] min-h-[400px]">
+        {/* Desktop Card Header Toolbar */}
+        <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/20">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-extrabold text-[#0D47A1] uppercase tracking-wider bg-[#0D47A1]/5 px-2 py-1 rounded-md">
+              Employees Directory
+            </span>
+            {selectedEmployees.size > 0 && (
+              <div className="flex items-center gap-2 ml-3">
+                <button
+                  onClick={handleDeleteSelected}
+                  className="flex items-center gap-1 px-2 py-1 bg-red-500 text-white rounded-lg text-[10px] font-bold shadow-sm hover:opacity-90 transition cursor-pointer"
+                >
+                  <Trash2 size={11} /> Delete ({selectedEmployees.size})
+                </button>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  {selectedEmployees.size} selected
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleImport}
+              className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[11px] font-bold hover:bg-emerald-100 transition cursor-pointer"
+            >
+              <FileSpreadsheet size={11} /> Import
+            </button>
+            <button
+              onClick={handleExport}
+              className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-[11px] font-bold hover:bg-blue-100 transition cursor-pointer"
+            >
+              <Download size={11} /> Export
+            </button>
+            <button
+              onClick={() => setFilterOpen(true)}
+              className={`flex items-center justify-center gap-1 px-2.5 py-1.5 border rounded-lg text-[11px] font-bold transition cursor-pointer ${Object.values(filters).some(v => v !== "")
+                ? "bg-[#0D47A1]/10 border-[#0D47A1]/30 text-[#0D47A1]"
+                : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"
+                }`}
+            >
+              <Filter size={11} /> Filter
+              {Object.values(filters).some(v => v !== "") && (
+                <span className="w-3.5 h-3.5 bg-[#0D47A1] text-white rounded-full text-[8px] font-black flex items-center justify-center ml-0.5">
+                  {Object.values(filters).filter(v => v !== "").length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto flex-1">
           <table className="min-w-full border-collapse text-xs">
             <thead className="sticky top-0 z-10">
               <tr className="bg-slate-50 border-b border-slate-200">

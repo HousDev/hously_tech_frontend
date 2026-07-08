@@ -2,7 +2,7 @@
 
 
 // export default AdminDashboard;
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -153,6 +153,9 @@ const AdminDashboard = () => {
   const [careerNotifications, setCareerNotifications] = useState<any[]>([]);
   const [unreadCareerCount, setUnreadCareerCount] = useState(0);
 
+  // Leave notifications
+  const [leaveNotifications, setLeaveNotifications] = useState<any[]>([]);
+
   // Enquiry notifications
   const [enquiryNotifications, setEnquiryNotifications] = useState<EnquiryNotification[]>([]);
   const [unreadEnquiryCount, setUnreadEnquiryCount] = useState(0);
@@ -270,6 +273,16 @@ const AdminDashboard = () => {
     }
   };
 
+  // ─── Fetch leave notifications ────────────────────────────────────────────────
+  const fetchLeaveNotifications = useCallback(async () => {
+    try {
+      const data = await apiClient.get<any[]>('/leaves/notifications');
+      setLeaveNotifications(data ?? []);
+    } catch (error) {
+      console.error('Failed to fetch leave notifications:', error);
+    }
+  }, []);
+
   // ─── Fetch recent enquiries ───────────────────────────────────────────────────
   const fetchRecentEnquiries = async () => {
     try {
@@ -330,6 +343,26 @@ const AdminDashboard = () => {
     }
   };
 
+  // ─── Mark leave notification as read ─────────────────────────────────────────
+  const markLeaveNotificationAsRead = async (id: number) => {
+    try {
+      await apiClient.patch(`/leaves/notifications/${id}/read`);
+      fetchLeaveNotifications();
+    } catch (error) {
+      console.error('Failed to mark leave notification as read:', error);
+    }
+  };
+
+  // ─── Mark all leave notifications as read ────────────────────────────────────
+  const markAllLeaveNotificationsAsRead = async () => {
+    try {
+      await apiClient.patch('/leaves/notifications/read-all');
+      fetchLeaveNotifications();
+    } catch (error) {
+      console.error('Failed to mark all leave notifications as read:', error);
+    }
+  };
+
   // ─── Format date/time ────────────────────────────────────────────────────────
   const formatDateTime = (dateString: string) => {
     if (!dateString) return 'Unknown';
@@ -381,7 +414,16 @@ const AdminDashboard = () => {
   };
 
   // ─── Notification icon ───────────────────────────────────────────────────────
-  const getNotificationIcon = (type: string, isCareer: boolean) => {
+  const getNotificationIcon = (type: string, isCareer: boolean, isLeave?: boolean) => {
+    if (isLeave) {
+      switch (type) {
+        case 'leave_new': return '📋';
+        case 'leave_updated': return '🔄';
+        case 'leave_deleted': return '❌';
+        case 'leave_status_changed': return '🔔';
+        default: return '✉️';
+      }
+    }
     if (isCareer) {
       switch (type) {
         case 'new_application': return '📋';
@@ -410,29 +452,33 @@ const AdminDashboard = () => {
     const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
     const socket = io(SOCKET_URL, {
       auth: { token, userId: user.id },
-      transports: ['websocket'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
 
     socketRef.current = socket;
+    console.log(`[AdminDashboard Socket] Connecting for user: ${user.id} to ${SOCKET_URL}...`);
 
     socket.on('connect', () => {
+      console.log(`[AdminDashboard Socket] Connected successfully! Socket ID: ${socket.id}`);
       setSocketConnected(true);
     });
 
     socket.on('disconnect', () => {
+      console.log('[AdminDashboard Socket] Disconnected.');
       setSocketConnected(false);
     });
 
     socket.on('connect_error', (error) => {
-      console.error('WebSocket connection error:', error);
+      console.error('[AdminDashboard Socket] connection error:', error);
       setSocketConnected(false);
     });
 
     // Show toast for all notification types (enquiry, career, meeting)
     socket.on('new_notification', (notification) => {
+      console.log('[AdminDashboard Socket] Received new_notification:', notification);
       if (notification.type === 'new_meeting') {
         toast.success(` ${notification.title}`, { duration: 6000 });
       } else {
@@ -444,7 +490,25 @@ const AdminDashboard = () => {
     });
 
     socket.on('unread_count_update', (data) => {
+      console.log('[AdminDashboard Socket] Received unread_count_update:', data);
       setUnreadEnquiryCount(data.count);
+    });
+
+    socket.on('leave_new', (data) => {
+      console.log('[AdminDashboard Socket] Received leave_new:', data);
+      toast.success(`📋 New Leave Application from ${data.employee_name}`);
+      fetchLeaveNotifications();
+    });
+
+    socket.on('leave_updated', (data) => {
+      console.log('[AdminDashboard Socket] Received leave_updated:', data);
+      toast.success(`🔄 Leave Application updated: ${data.application_no}`);
+      fetchLeaveNotifications();
+    });
+
+    socket.on('leave_deleted', (data) => {
+      console.log('[AdminDashboard Socket] Received leave_deleted:', data);
+      fetchLeaveNotifications();
     });
 
     return () => {
@@ -455,7 +519,7 @@ const AdminDashboard = () => {
       if (careerFetchTimeoutRef.current) clearTimeout(careerFetchTimeoutRef.current);
       if (enquiryFetchTimeoutRef.current) clearTimeout(enquiryFetchTimeoutRef.current);
     };
-  }, [user]);
+  }, [user, fetchLeaveNotifications]);
 
   // ─── Main init effect ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -468,6 +532,7 @@ const AdminDashboard = () => {
     fetchRecentEnquiries();
     fetchDashboardStats();
     fetchCareerNotifications();
+    fetchLeaveNotifications();
 
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
@@ -487,6 +552,7 @@ const AdminDashboard = () => {
     ...enquiryNotifications.filter(n => !n.is_read && !n.career_application_id && !n.meeting_id),
     ...enquiryNotifications.filter(n => !n.is_read && n.meeting_id),   // meeting notifications
     ...careerNotifications.filter(n => !n.is_read && n.career_application_id),
+    ...leaveNotifications.filter(n => !n.is_read)
   ].length;
 
   // ─── Breadcrumbs ─────────────────────────────────────────────────────────────
@@ -1329,6 +1395,7 @@ const AdminDashboard = () => {
                             onClick={async () => {
                               await markAllNotificationsAsRead();
                               await markAllCareerNotificationsAsRead();
+                              await markAllLeaveNotificationsAsRead();
                             }}
                             className="text-xs text-blue-600 hover:text-blue-800"
                           >
@@ -1344,7 +1411,7 @@ const AdminDashboard = () => {
                       </div>
 
                       <div className="max-h-96 overflow-y-auto">
-                        {enquiryNotifications.length === 0 && careerNotifications.length === 0 ? (
+                        {enquiryNotifications.length === 0 && careerNotifications.length === 0 && leaveNotifications.length === 0 ? (
                           <div className="p-4 text-center">
                             <Bell className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                             <p className="text-gray-500 text-sm">No notifications</p>
@@ -1352,24 +1419,38 @@ const AdminDashboard = () => {
                         ) : (
                           <>
                             {/* ✅ Combine + sort + slice */}
-                            {[...enquiryNotifications, ...careerNotifications]
-                              .filter((notification, index, self) =>
-                                index === self.findIndex(n => n.id === notification.id)
-                              )
+                            {[
+                              ...enquiryNotifications,
+                              ...careerNotifications,
+                              ...leaveNotifications.map(l => ({ ...l, isLeave: true }))
+                            ]
+                              .filter((notification, index, self) => {
+                                const getUniqueKey = (n: any) => {
+                                  if (n.isLeave) return `leave_${n.id}`;
+                                  if (n.career_application_id !== null && n.career_application_id !== undefined) return `career_${n.id}`;
+                                  if (n.meeting_id !== null && n.meeting_id !== undefined) return `meeting_${n.id}`;
+                                  return `enquiry_${n.id}`;
+                                };
+                                return index === self.findIndex(n => getUniqueKey(n) === getUniqueKey(notification));
+                              })
                               .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                               .slice(0, 10)
                               .map((notification) => {
-                                const isCareer = notification.career_application_id !== null &&
+                                const isLeave = (notification as any).isLeave === true;
+                                const isCareer = !isLeave && notification.career_application_id !== null &&
                                   notification.career_application_id !== undefined;
-                                const isMeeting = notification.meeting_id !== null &&
+                                const isMeeting = !isLeave && notification.meeting_id !== null &&
                                   notification.meeting_id !== undefined;
                                 return (
                                   <div
-                                    key={`${isCareer ? 'career' : isMeeting ? 'meeting' : 'enquiry'}_${notification.id}`}
+                                    key={`${isLeave ? 'leave' : isCareer ? 'career' : isMeeting ? 'meeting' : 'enquiry'}_${notification.id}`}
                                     className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition ${!notification.is_read ? 'bg-blue-50' : ''
                                       }`}
                                     onClick={() => {
-                                      if (isCareer) {
+                                      if (isLeave) {
+                                        markLeaveNotificationAsRead(notification.id);
+                                        navigate('/dashboard/hrms/leaves');
+                                      } else if (isCareer) {
                                         markCareerNotificationAsRead(notification.id);
                                         navigate('/dashboard/career');
                                       } else if (isMeeting) {
@@ -1383,7 +1464,7 @@ const AdminDashboard = () => {
                                   >
                                     <div className="flex items-start">
                                       <div className="text-lg mr-2">
-                                        {getNotificationIcon(notification.type, isCareer)}
+                                        {getNotificationIcon(notification.type, isCareer, isLeave)}
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-start justify-between">
@@ -1403,13 +1484,13 @@ const AdminDashboard = () => {
                               })}
 
                             {/* Show "X more" only if combined total > 10 */}
-                            {(enquiryNotifications.length + careerNotifications.length) > 10 && (
+                            {(enquiryNotifications.length + careerNotifications.length + leaveNotifications.length) > 10 && (
                               <div className="p-3 text-center border-t border-gray-200">
                                 <button
                                   onClick={() => navigate('/admin/enquiries')}
                                   className="text-sm text-blue-600 hover:text-blue-800"
                                 >
-                                  View {(enquiryNotifications.length + careerNotifications.length) - 10} more notifications
+                                  View {(enquiryNotifications.length + careerNotifications.length + leaveNotifications.length) - 10} more notifications
                                 </button>
                               </div>
                             )}
