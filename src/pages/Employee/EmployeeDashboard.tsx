@@ -78,6 +78,37 @@ const EmployeeDashboard = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'attendance' | 'leave' | 'ticket'>('dashboard');
   const { user, logout } = useAuth();
 
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      setUserAvatar(user.avatar_url || (user as any).avatarUrl || null);
+      const fetchLatestProfile = async () => {
+        try {
+          const profile = await apiClient.get<any>('/auth/profile');
+          if (profile) {
+            const imgUrl = profile.avatar_url || profile.avatarUrl || null;
+            setUserAvatar(imgUrl);
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+              const parsedUser = JSON.parse(storedUser);
+              if (parsedUser.avatar_url !== profile.avatar_url || parsedUser.avatarUrl !== profile.avatarUrl) {
+                parsedUser.avatar_url = profile.avatar_url;
+                parsedUser.avatarUrl = profile.avatarUrl;
+                localStorage.setItem('user', JSON.stringify(parsedUser));
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('[EmployeeDashboard] Failed to fetch latest user profile for avatar:', err);
+        }
+      };
+      fetchLatestProfile();
+    } else {
+      setUserAvatar(null);
+    }
+  }, [user]);
+
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchTask, setSearchTask] = useState('');
@@ -356,11 +387,20 @@ const EmployeeDashboard = () => {
 
               <div className="relative" ref={userMenuRef}>
                 <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center space-x-2 p-1 rounded-lg hover:bg-slate-100 transition">
-                  <div className="w-8 h-8 bg-[#0D47A1] text-white rounded-full flex items-center justify-center">
-                    <span className="font-semibold text-sm">
-                      {user?.full_name ? user.full_name.split(' ').map(w => w.charAt(0)).slice(0, 2).join('').toUpperCase() : 'E'}
-                    </span>
-                  </div>
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt={user?.full_name || 'Profile'}
+                      className="w-8 h-8 rounded-full object-cover"
+                      onError={() => setUserAvatar(null)}
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-[#0D47A1] text-white rounded-full flex items-center justify-center">
+                      <span className="font-semibold text-sm">
+                        {user?.full_name ? user.full_name.split(' ').map(w => w.charAt(0)).slice(0, 2).join('').toUpperCase() : 'E'}
+                      </span>
+                    </div>
+                  )}
                   <div className="hidden sm:block">
                     <p className="text-xs font-semibold text-gray-800">{user?.full_name || 'Employee'}</p>
                     <p className="text-[10px] text-gray-500 capitalize">{user?.role || 'Staff'}</p>

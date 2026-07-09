@@ -145,6 +145,37 @@ const AdminDashboard = () => {
   // ✅ useAuth context - no more getCurrentUser / isAdmin / logout imports
   const { user, isAdmin, logout } = useAuth();
 
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      setUserAvatar(user.avatar_url || (user as any).avatarUrl || null);
+      const fetchLatestProfile = async () => {
+        try {
+          const profile = await apiClient.get<any>('/auth/profile');
+          if (profile) {
+            const imgUrl = profile.avatar_url || profile.avatarUrl || null;
+            setUserAvatar(imgUrl);
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+              const parsedUser = JSON.parse(storedUser);
+              if (parsedUser.avatar_url !== profile.avatar_url || parsedUser.avatarUrl !== profile.avatarUrl) {
+                parsedUser.avatar_url = profile.avatar_url;
+                parsedUser.avatarUrl = profile.avatarUrl;
+                localStorage.setItem('user', JSON.stringify(parsedUser));
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('[AdminDashboard] Failed to fetch latest user profile for avatar:', err);
+        }
+      };
+      fetchLatestProfile();
+    } else {
+      setUserAvatar(null);
+    }
+  }, [user]);
+
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -1569,30 +1600,48 @@ const AdminDashboard = () => {
                     onClick={() => setShowUserMenu(!showUserMenu)}
                     className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-200 transition"
                   >
-                    <div className="w-8 h-8 bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-full flex items-center justify-center">
-                      <span className="font-semibold text-sm">
-                        {user?.full_name
-                          ? user.full_name
-                            .split(' ')
-                            .map(word => word.charAt(0))
-                            .join('')
-                            .toUpperCase()
-                          : user?.username?.charAt(0).toUpperCase() || 'A'}
-                      </span>
-                    </div>
+                    {userAvatar ? (
+                      <img
+                        src={userAvatar}
+                        alt={user?.full_name || 'Profile'}
+                        className="w-8 h-8 rounded-full object-cover animate-fade-in"
+                        onError={() => setUserAvatar(null)}
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-full flex items-center justify-center">
+                        <span className="font-semibold text-sm">
+                          {user?.full_name
+                            ? user.full_name
+                              .split(' ')
+                              .map(word => word.charAt(0))
+                              .join('')
+                              .toUpperCase()
+                            : user?.username?.charAt(0).toUpperCase() || 'A'}
+                        </span>
+                      </div>
+                    )}
                   </button>
 
                   {showUserMenu && (
                     <div className="absolute right-0 top-12 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-[9999]">
                       <div className="p-4 border-b border-gray-200">
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-full flex items-center justify-center">
-                            <span className="font-semibold">
-                              {user?.full_name?.charAt(0).toUpperCase() ||
-                                user?.username?.charAt(0).toUpperCase() ||
-                                'A'}
-                            </span>
-                          </div>
+                          {userAvatar ? (
+                            <img
+                              src={userAvatar}
+                              alt={user?.full_name || 'Profile'}
+                              className="w-10 h-10 rounded-full object-cover"
+                              onError={() => setUserAvatar(null)}
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-full flex items-center justify-center">
+                              <span className="font-semibold">
+                                {user?.full_name?.charAt(0).toUpperCase() ||
+                                  user?.username?.charAt(0).toUpperCase() ||
+                                  'A'}
+                              </span>
+                            </div>
+                          )}
                           <div>
                             <p className="font-semibold text-gray-900">
                               {user?.full_name || user?.username || 'Admin User'}
