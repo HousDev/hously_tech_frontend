@@ -113,7 +113,7 @@ const Leave: React.FC = () => {
 
   // ─── Month navigator constraints ──────────────────────────────────────────────
   const today = useMemo(() => { const d = new Date(); d.setDate(1); d.setHours(0,0,0,0); return d; }, []);
-  const prevMonthLimit = useMemo(() => { const d = new Date(today); d.setMonth(d.getMonth() - 1); return d; }, [today]);
+  const prevMonthLimit = useMemo(() => { const d = new Date(today); d.setMonth(d.getMonth() - 24); return d; }, [today]);
   const canGoPrev = viewMonth.getTime() > prevMonthLimit.getTime();
   const canGoNext = viewMonth.getTime() < today.getTime();
   const goPrevMonth = () => { if (!canGoPrev) return; const d = new Date(viewMonth); d.setMonth(d.getMonth()-1); setViewMonth(d); setCurrentPage(1); };
@@ -166,6 +166,11 @@ const Leave: React.FC = () => {
 
   const fmtDate = (d: string) => {
     if (!d) return '–';
+    const parts = d.split('T')[0].split('-');
+    if (parts.length === 3) {
+      const [year, month, day] = parts;
+      return `${parseInt(month, 10)}/${parseInt(day, 10)}/${year}`;
+    }
     const dt = new Date(d);
     return `${dt.getMonth()+1}/${dt.getDate()}/${dt.getFullYear()}`;
   };
@@ -182,9 +187,10 @@ const Leave: React.FC = () => {
         leaveType: form.type, fromDate: form.startDate, toDate: form.endDate,
         days, isHalfDay: form.isHalfDay, reason: form.reason,
       });
-      // Only prepend if it matches the current viewMonth
-      const leaveMonth = new Date(newLeave.from_date).getMonth();
-      const leaveYear  = new Date(newLeave.from_date).getFullYear();
+      // Only prepend if it matches the current viewMonth without timezone shifts
+      const dateParts = newLeave.from_date.split('T')[0].split('-');
+      const leaveYear = parseInt(dateParts[0], 10);
+      const leaveMonth = parseInt(dateParts[1], 10) - 1;
       if (leaveMonth === viewMonth.getMonth() && leaveYear === viewMonth.getFullYear()) {
         setLeaves(prev => [newLeave, ...prev]);
       }
@@ -255,8 +261,8 @@ const Leave: React.FC = () => {
   const filtered = useMemo(() => leaves.filter(l => {
     if (filterType   !== 'all' && l.leave_type !== filterType)   return false;
     if (filterStatus !== 'all' && l.status     !== filterStatus) return false;
-    if (filterStartDate && new Date(l.from_date) < new Date(filterStartDate)) return false;
-    if (filterEndDate   && new Date(l.to_date)   > new Date(filterEndDate))   return false;
+    if (filterStartDate && l.from_date.split('T')[0] < filterStartDate) return false;
+    if (filterEndDate   && l.to_date.split('T')[0]   > filterEndDate)   return false;
     return true;
   }), [leaves, filterType, filterStatus, filterStartDate, filterEndDate]);
 

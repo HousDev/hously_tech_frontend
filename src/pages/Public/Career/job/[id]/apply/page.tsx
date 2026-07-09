@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { useParams, useNavigate } from "react-router-dom";
 import careerService, { type Job, type ApplicationFormData } from "../../../../../../services/career.service";
 import { settingsApi } from "../../../../../../lib/settingsApi";
@@ -1114,7 +1116,6 @@ export default function JobApplicationPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* Left Column - Form Stepper (Scrollable) */}
               <div className="lg:col-span-8">
-
                 {/* Error notifications */}
                 {submitError && (
                   <div className="mb-4 bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg flex items-center gap-2 text-xs sm:text-sm no-print">
@@ -1228,13 +1229,12 @@ export default function JobApplicationPage() {
                               <option value="">Select Gender</option>
                               <option value="male">Male</option>
                               <option value="female">Female</option>
-
-
+                              <option value="other">Other</option>
                             </select>
                             {stepErrors.gender && <span className="text-red-500 text-[10px] mt-1">{stepErrors.gender}</span>}
                           </div>
 
-                          {personalInfo.gender === "self" && (
+                          {personalInfo.gender === "other" && (
                             <div className="flex flex-col sm:col-span-2 bg-[#eef7ff] border-l-4 border-[#a1d1f7] p-3 rounded-r-lg">
                               <label className="text-xs font-semibold text-[#0076d8] mb-1">Self-described gender description</label>
                               <input
@@ -1742,7 +1742,7 @@ export default function JobApplicationPage() {
                                 )}
                               </div>
                               <div className="flex flex-col">
-                                <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Semester *</label>
+                                <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Semester <span className="text-red-500">*</span></label>
                                 <select
                                   value={candidateType.semester}
                                   onChange={e => setCandidateType({ ...candidateType, semester: e.target.value })}
@@ -1756,7 +1756,7 @@ export default function JobApplicationPage() {
                                 {stepErrors.semester && <span className="text-red-500 text-[10px] mt-1">{stepErrors.semester}</span>}
                               </div>
                               <div className="flex flex-col">
-                                <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Expected Graduation Year *</label>
+                                <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Expected Graduation Year <span className="text-red-500">*</span></label>
                                 <select
                                   value={candidateType.expectedGradYear}
                                   onChange={e => setCandidateType({ ...candidateType, expectedGradYear: e.target.value })}
@@ -1770,7 +1770,7 @@ export default function JobApplicationPage() {
                                 {stepErrors.expectedGradYear && <span className="text-red-500 text-[10px] mt-1">{stepErrors.expectedGradYear}</span>}
                               </div>
                               <div className="flex flex-col">
-                                <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Internship Duration *</label>
+                                <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Internship Duration <span className="text-red-500">*</span></label>
                                 <select
                                   value={candidateType.duration}
                                   onChange={e => setCandidateType({ ...candidateType, duration: e.target.value })}
@@ -1786,7 +1786,7 @@ export default function JobApplicationPage() {
                                 {stepErrors.duration && <span className="text-red-500 text-[10px] mt-1">{stepErrors.duration}</span>}
                               </div>
                               <div className="flex flex-col">
-                                <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Available From *</label>
+                                <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Available From <span className="text-red-500">*</span></label>
                                 <input
                                   type="date"
                                   value={candidateType.availableFrom}
@@ -1796,7 +1796,7 @@ export default function JobApplicationPage() {
                                 {stepErrors.availableFrom && <span className="text-red-500 text-[10px] mt-1">{stepErrors.availableFrom}</span>}
                               </div>
                               <div className="flex flex-col">
-                                <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Paid / Unpaid Preference *</label>
+                                <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Paid / Unpaid Preference <span className="text-red-500">*</span></label>
                                 <select
                                   value={candidateType.stipendPref}
                                   onChange={e => setCandidateType({ ...candidateType, stipendPref: e.target.value })}
@@ -1862,7 +1862,7 @@ export default function JobApplicationPage() {
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="flex flex-col">
-                                  <label className="text-xs font-semibold mb-1">Education Level *</label>
+                                  <label className="text-xs font-semibold mb-1">Education Level <span className="text-red-500">*</span></label>
                                   <select
                                     value={edu.eduLevel}
                                     onChange={e => handleEduChange(idx, "eduLevel", e.target.value)}
@@ -1880,7 +1880,7 @@ export default function JobApplicationPage() {
                                 </div>
 
                                 <div className="flex flex-col">
-                                  <label className="text-xs font-semibold mb-1">Institute *</label>
+                                  <label className="text-xs font-semibold mb-1">Institute <span className="text-red-500">*</span></label>
                                   <input
                                     type="text"
                                     value={edu.institute}
@@ -1892,7 +1892,7 @@ export default function JobApplicationPage() {
                                 </div>
 
                                 <div className="flex flex-col">
-                                  <label className="text-xs font-semibold mb-1">Branch / Stream <span className="text-xs font-normal text-[#5b5f70]">(optional)</span></label>
+                                  <label className="text-xs font-semibold mb-1">Degree <span className="text-xs font-normal text-[#5b5f70]">(optional)</span></label>
                                   <select
                                     value={getBranchSelectVal(edu.branch)}
                                     onChange={e => {
@@ -1901,7 +1901,7 @@ export default function JobApplicationPage() {
                                     }}
                                     className="px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs sm:text-sm cursor-pointer outline-none focus:ring-1 focus:ring-[#0D47A1]"
                                   >
-                                    <option value="">Select Branch</option>
+                                    <option value="">Select Degree</option>
                                     <option value="B.TECH">B.Tech</option>
                                     <option value="M.Tech">M.Tech</option>
                                     <option value="Diploma">Diploma</option>
@@ -1925,7 +1925,7 @@ export default function JobApplicationPage() {
                                 </div>
 
                                 <div className="flex flex-col">
-                                  <label className="text-xs font-semibold mb-1">Specialization <span className="text-xs font-normal text-[#5b5f70]">(optional)</span></label>
+                                  <label className="text-xs font-semibold mb-1">Specialization/Stream <span className="text-xs font-normal text-[#5b5f70]">(optional)</span></label>
                                   <select
                                     disabled={!edu.branch}
                                     value={getSpecSelectVal(edu.branch, edu.specialization)}
@@ -1963,7 +1963,7 @@ export default function JobApplicationPage() {
 
                               {!edu.currStudy ? (
                                 <div className="flex flex-col mt-2 max-w-xs">
-                                  <label className="text-xs font-semibold mb-1">Passout Year *</label>
+                                  <label className="text-xs font-semibold mb-1">Passout Year <span className="text-red-500">*</span></label>
                                   <input
                                     type="number"
                                     value={edu.passoutYear}
@@ -1975,7 +1975,7 @@ export default function JobApplicationPage() {
                               ) : (
                                 <div className="grid grid-cols-2 gap-4 mt-2">
                                   <div className="flex flex-col">
-                                    <label className="text-xs font-semibold mb-1">Semester *</label>
+                                    <label className="text-xs font-semibold mb-1">Semester <span className="text-red-500">*</span></label>
                                     <input
                                       type="text"
                                       value={edu.semester}
@@ -1986,7 +1986,7 @@ export default function JobApplicationPage() {
                                     {stepErrors[`edu_${idx}_sem`] && <span className="text-red-500 text-[10px] mt-1">{stepErrors[`edu_${idx}_sem`]}</span>}
                                   </div>
                                   <div className="flex flex-col">
-                                    <label className="text-xs font-semibold mb-1">Expected Graduation Year *</label>
+                                    <label className="text-xs font-semibold mb-1">Expected Graduation Year <span className="text-red-500">*</span></label>
                                     <input
                                       type="number"
                                       value={edu.expGrad}
@@ -2181,7 +2181,7 @@ export default function JobApplicationPage() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="flex flex-col">
-                            <label className="text-xs font-semibold mb-1.5">Employment Status *</label>
+                            <label className="text-xs font-semibold mb-1.5">Employment Status <span className="text-red-500">*</span></label>
                             <select
                               value={availability.employmentStatus}
                               onChange={e => setAvailability({ ...availability, employmentStatus: e.target.value })}
@@ -2196,7 +2196,7 @@ export default function JobApplicationPage() {
                           </div>
 
                           <div className="flex flex-col">
-                            <label className="text-xs font-semibold mb-1.5">Earliest Joining Date *</label>
+                            <label className="text-xs font-semibold mb-1.5">Earliest Joining Date <span className="text-red-500">*</span></label>
                             <input
                               type="date"
                               value={availability.earliestJoiningDate}
@@ -2207,7 +2207,7 @@ export default function JobApplicationPage() {
                           </div>
 
                           <div className="flex flex-col">
-                            <label className="text-xs font-semibold mb-1.5">Preferred Work Mode *</label>
+                            <label className="text-xs font-semibold mb-1.5">Preferred Work Mode <span className="text-red-500">*</span></label>
                             <select
                               value={availability.preferredWorkMode}
                               onChange={e => setAvailability({ ...availability, preferredWorkMode: e.target.value })}
@@ -2222,7 +2222,7 @@ export default function JobApplicationPage() {
                           </div>
 
                           <div className="flex flex-col">
-                            <label className="text-xs font-semibold mb-1.5">Willing to Relocate *</label>
+                            <label className="text-xs font-semibold mb-1.5">Willing to Relocate <span className="text-red-500">*</span></label>
                             <select
                               value={availability.willingToRelocate}
                               onChange={e => setAvailability({ ...availability, willingToRelocate: e.target.value })}
@@ -2237,12 +2237,38 @@ export default function JobApplicationPage() {
                           </div>
 
                           <div className="flex flex-col sm:col-span-2">
-                            <label className="text-xs font-semibold mb-1.5">Preferred Interview Time <span className="text-[10px] font-normal text-[#5b5f70]">(optional)</span></label>
-                            <input
-                              type="time"
-                              value={availability.preferredInterviewTime}
-                              onChange={e => setAvailability({ ...availability, preferredInterviewTime: e.target.value })}
-                              className="px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs sm:text-sm"
+                            <label className="text-xs font-semibold mb-1.5">
+                              Preferred Interview Time{" "}
+                              <span className="text-[10px] font-normal text-[#5b5f70]">
+                                (optional)
+                              </span>
+                            </label>
+
+                            <DatePicker
+                              selected={
+                                availability.preferredInterviewTime
+                                  ? new Date(`1970-01-01T${availability.preferredInterviewTime}`)
+                                  : null
+                              }
+                              onChange={(time: Date | null) =>
+                                setAvailability({
+                                  ...availability,
+                                  preferredInterviewTime: time
+                                    ? time.toLocaleTimeString("en-US", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      hour12: true,
+                                    })
+                                    : "",
+                                })
+                              }
+                              showTimeSelect
+                              showTimeSelectOnly
+                              timeIntervals={15}
+                              timeCaption="Time"
+                              dateFormat="hh:mm aa"
+                              placeholderText="Select Time"
+                              className="w-full px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs sm:text-sm"
                             />
                           </div>
                         </div>
@@ -2252,14 +2278,14 @@ export default function JobApplicationPage() {
                         <button
                           type="button"
                           onClick={() => handlePrevStep(5)}
-                          className="px-6 py-2.5 border border-[#e3e5ee] bg-white text-[#5b5f70] hover:bg-slate-50 transition-colors rounded-xl font-bold text-xs sm:text-sm"
+                          className="px-6 py-2.5 border border-[#e3e5ee] bg-white text-[#5b5f70] hover:bg-slate-50 transition-colors rounded-xl font-bold text-xs sm:text-sm cursor-pointer"
                         >
                           ← Back
                         </button>
                         <button
                           type="button"
                           onClick={() => handleNextStep(5)}
-                          className="px-6 py-2.5 bg-[#0076d8] hover:bg-[#005eb0] text-white rounded-xl font-bold transition-all shadow-md text-xs sm:text-sm"
+                          className="px-6 py-2.5 bg-[#0076d8] hover:bg-[#005eb0] text-white rounded-xl font-bold transition-all shadow-md text-xs sm:text-sm cursor-pointer"
                         >
                           Continue →
                         </button>
@@ -2299,7 +2325,7 @@ export default function JobApplicationPage() {
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); handleRemoveResume(); }}
-                                  className="block text-[11px] text-red-550 hover:text-red-700 font-bold mx-auto mt-2 underline"
+                                  className="block text-[11px] text-red-550 hover:text-red-700 font-bold mx-auto mt-2 underline cursor-pointer"
                                 >
                                   Remove file
                                 </button>
@@ -2332,14 +2358,14 @@ export default function JobApplicationPage() {
                         <button
                           type="button"
                           onClick={() => handlePrevStep(6)}
-                          className="px-6 py-2.5 border border-[#e3e5ee] bg-white text-[#5b5f70] hover:bg-slate-50 transition-colors rounded-xl font-bold text-xs sm:text-sm"
+                          className="px-6 py-2.5 border border-[#e3e5ee] bg-white text-[#5b5f70] hover:bg-slate-50 transition-colors rounded-xl font-bold text-xs sm:text-sm cursor-pointer"
                         >
                           ← Back
                         </button>
                         <button
                           type="button"
                           onClick={() => handleNextStep(6)}
-                          className="px-6 py-2.5 bg-[#0076d8] hover:bg-[#005eb0] text-white rounded-xl font-bold transition-all shadow-md text-xs sm:text-sm"
+                          className="px-6 py-2.5 bg-[#0076d8] hover:bg-[#005eb0] text-white rounded-xl font-bold transition-all shadow-md text-xs sm:text-sm cursor-pointer"
                         >
                           Continue to Review →
                         </button>
@@ -2359,7 +2385,7 @@ export default function JobApplicationPage() {
                         <button
                           type="button"
                           onClick={handlePrint}
-                          className="px-3.5 py-1.5 bg-[#0076d8] hover:bg-[#005eb0] text-white rounded-lg text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition-all"
+                          className="px-3.5 py-1.5 bg-[#0076d8] hover:bg-[#005eb0] text-white rounded-lg text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
                         >
                           <Printer className="w-3.5 h-3.5" />
                           <span>Print / Download PDF</span>
@@ -2452,7 +2478,7 @@ export default function JobApplicationPage() {
                                 <tr className="border-b border-slate-100">
                                   <td className="py-1.5 font-semibold text-[#5b5f70]">Gender / DOB</td>
                                   <td className="py-1.5 font-bold text-slate-800 capitalize">
-                                    {personalInfo.gender === "self" ? personalInfo.selfGender : personalInfo.gender} {personalInfo.dob ? `(Born: ${personalInfo.dob})` : ""}
+                                    {personalInfo.gender === "other" ? personalInfo.selfGender : personalInfo.gender} {personalInfo.dob ? `(Born: ${personalInfo.dob})` : ""}
                                   </td>
                                 </tr>
                                 <tr className="border-b border-slate-100">
@@ -2751,7 +2777,7 @@ export default function JobApplicationPage() {
                         <button
                           type="submit"
                           disabled={isSubmitting}
-                          className="flex-1 py-2.5 bg-[#0076d8] hover:bg-[#005eb0] text-white rounded-xl font-bold text-xs sm:text-sm transition-all hover:shadow-md flex items-center justify-center gap-1.5"
+                          className="flex-1 py-2.5 bg-[#0076d8] hover:bg-[#005eb0] text-white rounded-xl font-bold text-xs sm:text-sm transition-all hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           {isSubmitting ? (
                             <>

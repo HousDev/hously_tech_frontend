@@ -37,6 +37,7 @@ interface AttendanceRecord {
   workingHours?: string;
   overtime?: string;
   lateByMinutes?: number;
+  lateTime?: string;
   checkInSelfie?: string | null;
   checkOutSelfie?: string | null;
 }
@@ -617,8 +618,12 @@ const TodayView = ({
                     <td className="px-3 py-2.5 font-semibold capitalize text-slate-500">{r.checkInType || "—"}</td>
                     <td className="px-3 py-2.5 text-slate-600 font-semibold">{r.location || "—"}</td>
                     <td className="px-3 py-2.5 text-slate-600 font-semibold">{r.workingHours || "—"}</td>
-                    <td className="px-3 py-2.5"><span className={r.lateByMinutes ? "text-amber-600 font-bold" : "text-slate-400"}>{r.lateByMinutes ? `${r.lateByMinutes}m` : "—"}</span></td>
-                    <td className="px-3 py-2.5 text-slate-400">{r.overtime || "—"}</td>
+                    <td className="px-3 py-2.5">
+                      <span className={r.lateTime && r.lateTime !== "—" ? "text-amber-600 font-bold" : "text-slate-400"}>
+                        {r.lateTime || "—"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-slate-700 font-bold">{r.overtime || "—"}</td>
                     <td className="px-3 py-2.5">
                       <StatusBadge status={r.status} />
                     </td>
@@ -679,16 +684,16 @@ const TodayView = ({
                         {r.checkInType ? `${r.checkInType.toUpperCase()} (${r.location || "—"})` : "—"}
                       </span>
                     </div>
-                    {r.lateByMinutes ? (
+                    {r.lateTime && r.lateTime !== "—" ? (
                       <div className="flex flex-col">
                         <span className="text-amber-500 font-bold uppercase tracking-wider text-[8px]">Late By</span>
-                        <span className="text-amber-600 font-extrabold mt-0.5">{r.lateByMinutes}m</span>
+                        <span className="text-amber-600 font-extrabold mt-0.5">{r.lateTime}</span>
                       </div>
                     ) : null}
-                    {r.overtime ? (
+                    {r.overtime && r.overtime !== "—" ? (
                       <div className="flex flex-col">
-                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Overtime</span>
-                        <span className="text-slate-655 font-extrabold mt-0.5">{r.overtime}</span>
+                        <span className="text-slate-450 font-bold uppercase tracking-wider text-[8px]">Overtime</span>
+                        <span className="text-slate-700 font-extrabold mt-0.5">{r.overtime}</span>
                       </div>
                     ) : null}
                   </div>
@@ -1504,6 +1509,28 @@ const EmployeeAttendanceView = ({
                 </div>
               </div>
 
+              {/* Late */}
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={16} className="text-amber-500 flex-shrink-0" />
+                <div>
+                  <span className="text-[10px] text-slate-400 block uppercase leading-none font-bold mb-0.5">Late :</span>
+                  <span className="text-slate-800 font-extrabold block">
+                    {selectedLog.record && (selectedLog.record as any).lateTime ? (selectedLog.record as any).lateTime : "—"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Overtime */}
+              <div className="flex items-center gap-2">
+                <TrendingUp size={16} className="text-indigo-500 flex-shrink-0" />
+                <div>
+                  <span className="text-[10px] text-slate-400 block uppercase leading-none font-bold mb-0.5">Overtime :</span>
+                  <span className="text-slate-800 font-extrabold block">
+                    {selectedLog.record && selectedLog.record.overtime ? selectedLog.record.overtime : "—"}
+                  </span>
+                </div>
+              </div>
+
               {/* Status */}
               <div className="flex items-center gap-2">
                 <Smile size={16} className="text-amber-500 flex-shrink-0" />
@@ -1769,6 +1796,12 @@ export default function AttendancePage() {
     fetchAdminLogs().finally(() => setLoadingLogs(false));
   }, [selectedDate]);
 
+  // Keep socket callback ref updated to prevent stale closures
+  const fetchAdminLogsRef = useRef(fetchAdminLogs);
+  useEffect(() => {
+    fetchAdminLogsRef.current = fetchAdminLogs;
+  }, [fetchAdminLogs]);
+
   // Real-time socket updates!
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -1790,7 +1823,7 @@ export default function AttendancePage() {
 
       socket.on('attendanceUpdate', (info) => {
         console.log('⚡ Live attendance update received:', info);
-        fetchAdminLogs();
+        fetchAdminLogsRef.current();
         setSocketTrigger(prev => prev + 1);
       });
 
@@ -1800,7 +1833,7 @@ export default function AttendancePage() {
     } catch (err) {
       console.error('Socket setup error:', err);
     }
-  }, [selectedDate]);
+  }, []);
 
   const getRecordsForDate = (dateStr: string) => {
     if (dateStr === selectedDate) {

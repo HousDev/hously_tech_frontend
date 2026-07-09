@@ -93,19 +93,16 @@ export const employeeApi = {
   },
 
   uploadAvatar: async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append("image", file);
-    
-    const res = await api.post<ApiResponse<{ url: string; fullUrl: string }>>(
-      "/upload/team-image",
-      formData
-    );
-
-    if (!res.data.success) {
-      throw new Error(res.data.message || "Avatar upload failed");
-    }
-
-    return res.data.data!.fullUrl;
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result as string);
+      };
+      reader.onerror = () => {
+        reject(new Error("Failed to read file as Base64"));
+      };
+      reader.readAsDataURL(file);
+    });
   }
 };
 
