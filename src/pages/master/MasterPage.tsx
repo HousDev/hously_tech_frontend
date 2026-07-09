@@ -417,8 +417,7 @@ export default function MasterDataPage() {
   };
 
   const filteredValues = selectedMaster?.values
-    ?.filter(value => value.value.toLowerCase().includes(searchTerm.toLowerCase()))
-    .sort((a, b) => a.value.localeCompare(b.value, undefined, { numeric: true })) || [];
+    ?.filter(value => value.value.toLowerCase().includes(searchTerm.toLowerCase())) || [];
 
   const filteredMasterItems = items.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase())

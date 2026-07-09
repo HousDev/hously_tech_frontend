@@ -38,6 +38,22 @@ const SPECIALIZATION_MAP: Record<string, string[]> = {
   'OTHER': ['other']
 };
 
+const parseTimeStr = (timeStr: string): Date | null => {
+  if (!timeStr) return null;
+  const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return null;
+  let [_, hoursStr, minutesStr, ampm] = match;
+  let hours = parseInt(hoursStr, 10);
+  const minutes = parseInt(minutesStr, 10);
+  if (ampm.toUpperCase() === 'PM' && hours < 12) {
+    hours += 12;
+  } else if (ampm.toUpperCase() === 'AM' && hours === 12) {
+    hours = 0;
+  }
+  const date = new Date(1970, 0, 1, hours, minutes, 0, 0);
+  return isNaN(date.getTime()) ? null : date;
+};
+
 export default function JobApplicationPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -116,6 +132,7 @@ export default function JobApplicationPage() {
   const [citiesList, setCitiesList] = useState<string[]>([]);
   const [semestersList, setSemestersList] = useState<string[]>([]);
   const [graduationYearsList, setGraduationYearsList] = useState<string[]>([]);
+  const [languagesList, setLanguagesList] = useState<string[]>([]);
 
   // Max DOB allowed (18 years ago from today)
   const maxDob = (() => {
@@ -291,7 +308,7 @@ export default function JobApplicationPage() {
     fetchSettings();
   }, [id]);
 
-  // Load Country, State, and City from common master values using masterDataAPI
+  // Load location and career master values on mount using masterDataAPI
   useEffect(() => {
     const loadMasterLocations = async () => {
       try {
@@ -338,49 +355,62 @@ export default function JobApplicationPage() {
             .map((v: any) => v.value);
         }
         setCitiesList(citiesData);
+
+        // 4. Load Graduation Years
+        const gradType = types.find(
+          (t: any) => t.name.toLowerCase() === "graduation" || t.name.toLowerCase() === "graduations"
+        );
+        let gradsData: string[] = [];
+        if (gradType) {
+          const vals = await masterDataAPI.getMasterValues(gradType.id);
+          gradsData = vals
+            .filter((v: any) => v.status === "Active" || v.status === "active")
+            .map((v: any) => v.value);
+        }
+        if (gradsData.length === 0) {
+          const currYear = new Date().getFullYear();
+          gradsData = Array.from({ length: 16 }, (_, i) => String(currYear - 10 + i));
+        }
+        setGraduationYearsList(gradsData);
+
+        // 5. Load Semesters
+        const semesterType = types.find(
+          (t: any) => t.name.toLowerCase() === "semester" || t.name.toLowerCase() === "semesters"
+        );
+        let semestersData: string[] = [];
+        if (semesterType) {
+          const vals = await masterDataAPI.getMasterValues(semesterType.id);
+          semestersData = vals
+            .filter((v: any) => v.status === "Active" || v.status === "active")
+            .map((v: any) => v.value);
+        }
+        if (semestersData.length === 0) {
+          semestersData = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"];
+        }
+        setSemestersList(semestersData);
+
+        // 6. Load Languages Known
+        const langType = types.find(
+          (t: any) => t.name.toLowerCase() === "languages" || t.name.toLowerCase() === "language"
+        );
+        let languagesData: string[] = [];
+        if (langType) {
+          const vals = await masterDataAPI.getMasterValues(langType.id);
+          languagesData = vals
+            .filter((v: any) => v.status === "Active" || v.status === "active")
+            .map((v: any) => v.value);
+        }
+        if (languagesData.length === 0) {
+          languagesData = ["English", "Hindi", "Spanish", "French", "German"];
+        }
+        setLanguagesList(languagesData);
+
       } catch (err) {
-        console.error("Error loading location master data:", err);
+        console.error("Error loading master data:", err);
       }
     };
     loadMasterLocations();
   }, []);
-
-  // Fetch career master data (Semester and Graduation) only when Internship candidate type is selected
-  useEffect(() => {
-    if (candidateType.candType === "internship") {
-      const loadCareerMasterData = async () => {
-        try {
-          // Fetch only from 'common' tab as specified
-          const types = await masterDataAPI.getAllMasterTypes("common");
-
-          const semesterType = types.find(
-            (t: any) => t.name.toLowerCase() === "semester" || t.name.toLowerCase() === "semesters"
-          );
-          if (semesterType) {
-            const vals = await masterDataAPI.getMasterValues(semesterType.id);
-            const semesters = vals
-              .filter((v: any) => v.status === "Active" || v.status === "active")
-              .map((v: any) => v.value);
-            setSemestersList(semesters);
-          }
-
-          const gradType = types.find(
-            (t: any) => t.name.toLowerCase() === "graduation" || t.name.toLowerCase() === "graduations"
-          );
-          if (gradType) {
-            const vals = await masterDataAPI.getMasterValues(gradType.id);
-            const grads = vals
-              .filter((v: any) => v.status === "Active" || v.status === "active")
-              .map((v: any) => v.value);
-            setGraduationYearsList(grads);
-          }
-        } catch (err) {
-          console.error("Error loading career master data:", err);
-        }
-      };
-      loadCareerMasterData();
-    }
-  }, [candidateType.candType]);
 
   // Validation functions per step
   const validateStep = (step: number): boolean => {
@@ -1964,36 +1994,46 @@ export default function JobApplicationPage() {
                               {!edu.currStudy ? (
                                 <div className="flex flex-col mt-2 max-w-xs">
                                   <label className="text-xs font-semibold mb-1">Passout Year <span className="text-red-500">*</span></label>
-                                  <input
-                                    type="number"
+                                  <select
                                     value={edu.passoutYear}
                                     onChange={e => handleEduChange(idx, "passoutYear", e.target.value)}
-                                    className="px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs"
-                                  />
+                                    className="px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs cursor-pointer outline-none focus:ring-1 focus:ring-[#0D47A1]"
+                                  >
+                                    <option value="">Select Passout Year</option>
+                                    {graduationYearsList.map(yr => (
+                                      <option key={yr} value={yr}>{yr}</option>
+                                    ))}
+                                  </select>
                                   {stepErrors[`edu_${idx}_year`] && <span className="text-red-500 text-[10px] mt-1">{stepErrors[`edu_${idx}_year`]}</span>}
                                 </div>
                               ) : (
                                 <div className="grid grid-cols-2 gap-4 mt-2">
                                   <div className="flex flex-col">
                                     <label className="text-xs font-semibold mb-1">Semester <span className="text-red-500">*</span></label>
-                                    <input
-                                      type="text"
+                                    <select
                                       value={edu.semester}
                                       onChange={e => handleEduChange(idx, "semester", e.target.value)}
-                                      placeholder="e.g. 5th"
-                                      className="px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs"
-                                    />
+                                      className="px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs cursor-pointer outline-none focus:ring-1 focus:ring-[#0D47A1]"
+                                    >
+                                      <option value="">Select Semester</option>
+                                      {semestersList.map(sem => (
+                                        <option key={sem} value={sem}>{sem}</option>
+                                      ))}
+                                    </select>
                                     {stepErrors[`edu_${idx}_sem`] && <span className="text-red-500 text-[10px] mt-1">{stepErrors[`edu_${idx}_sem`]}</span>}
                                   </div>
                                   <div className="flex flex-col">
                                     <label className="text-xs font-semibold mb-1">Expected Graduation Year <span className="text-red-500">*</span></label>
-                                    <input
-                                      type="number"
+                                    <select
                                       value={edu.expGrad}
                                       onChange={e => handleEduChange(idx, "expGrad", e.target.value)}
-                                      placeholder="e.g. 2027"
-                                      className="px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs"
-                                    />
+                                      className="px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs cursor-pointer outline-none focus:ring-1 focus:ring-[#0D47A1]"
+                                    >
+                                      <option value="">Select Graduation Year</option>
+                                      {graduationYearsList.map(yr => (
+                                        <option key={yr} value={yr}>{yr}</option>
+                                      ))}
+                                    </select>
                                     {stepErrors[`edu_${idx}_expGrad`] && <span className="text-red-500 text-[10px] mt-1">{stepErrors[`edu_${idx}_expGrad`]}</span>}
                                   </div>
                                 </div>
@@ -2139,13 +2179,16 @@ export default function JobApplicationPage() {
 
                           <div className="flex flex-col">
                             <label className="text-[12.5px] font-semibold text-[#14161f] mb-1.5">Languages Known <span className="text-[#5b5f70] font-normal">(optional)</span></label>
-                            <input
-                              type="text"
+                            <select
                               value={skillsPortfolio.languages}
                               onChange={e => setSkillsPortfolio({ ...skillsPortfolio, languages: e.target.value })}
-                              placeholder="e.g. English, Hindi, Marathi"
-                              className="px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs sm:text-sm"
-                            />
+                              className="px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs sm:text-sm cursor-pointer outline-none focus:ring-1 focus:ring-[#0D47A1]"
+                            >
+                              <option value="">Select Language</option>
+                              {languagesList.map(lang => (
+                                <option key={lang} value={lang}>{lang}</option>
+                              ))}
+                            </select>
                           </div>
                         </div>
                       </div>
@@ -2245,11 +2288,7 @@ export default function JobApplicationPage() {
                             </label>
 
                             <DatePicker
-                              selected={
-                                availability.preferredInterviewTime
-                                  ? new Date(`1970-01-01T${availability.preferredInterviewTime}`)
-                                  : null
-                              }
+                              selected={parseTimeStr(availability.preferredInterviewTime)}
                               onChange={(time: Date | null) =>
                                 setAvailability({
                                   ...availability,
@@ -2264,11 +2303,11 @@ export default function JobApplicationPage() {
                               }
                               showTimeSelect
                               showTimeSelectOnly
-                              timeIntervals={15}
+                              timeIntervals={30}
                               timeCaption="Time"
                               dateFormat="hh:mm aa"
                               placeholderText="Select Time"
-                              className="w-full px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs sm:text-sm"
+                              className="w-full px-3 py-2 border border-[#e3e5ee] bg-white rounded-lg text-xs sm:text-sm cursor-pointer"
                             />
                           </div>
                         </div>
