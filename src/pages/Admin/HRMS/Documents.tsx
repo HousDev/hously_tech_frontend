@@ -550,7 +550,7 @@ export const getFullImageUrl = (url: string | null) => {
 
 // Static seed data removed — templates and documents are now loaded from the database API
 
-export const renderTemplateContent = (htmlString: string, logo: string | null, seal: string | null, sig: string | null) => {
+export const renderTemplateContent = (htmlString: string, logo: string | null, _seal: string | null, _sig: string | null) => {
   let html = htmlString || '';
   if (logo) {
     const logoPath = getFullImageUrl(logo);
@@ -830,7 +830,6 @@ export default function HRMSDocuments() {
           <DocumentDashboard
             documents={documents}
             setDocuments={setDocuments}
-            templatesCount={templates.length}
             triggerToast={triggerToast}
             templates={templates}
           />
@@ -876,12 +875,11 @@ export default function HRMSDocuments() {
 interface DashboardProps {
   documents: GeneratedDocument[];
   setDocuments: React.Dispatch<React.SetStateAction<GeneratedDocument[]>>;
-  templatesCount: number;
   triggerToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
   templates: DocumentTemplate[];
 }
 
-function DocumentDashboard({ documents, setDocuments, templatesCount, triggerToast, templates }: DashboardProps) {
+function DocumentDashboard({ documents, setDocuments, triggerToast, templates }: DashboardProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
