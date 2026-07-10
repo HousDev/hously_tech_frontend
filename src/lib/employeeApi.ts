@@ -51,6 +51,7 @@ export interface EmployeeRecord {
   noticePeriod?: number;
   salary?: number;
   salaryType?: "Monthly" | "Weekly" | "Hourly";
+  designationRole?: string;
   punchInTime?: string;
   laptopAssigned?: "Yes" | "No";
   systemLoginId?: string;

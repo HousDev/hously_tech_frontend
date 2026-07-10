@@ -565,6 +565,7 @@ const EmployeeProfile = ({
     noticePeriod: employee.noticePeriod ?? 30,
     salary: employee.salary ?? 0,
     salaryType: employee.salaryType || "Monthly",
+    designationRole: employee.designationRole || "",
     punchInTime: employee.punchInTime || "10:00:00",
     laptopAssigned: employee.laptopAssigned || "No",
     systemLoginId: employee.systemLoginId || "",
@@ -635,6 +636,7 @@ const EmployeeProfile = ({
         noticePeriod: Number(formData.noticePeriod) ?? 30,
         salary: Number(formData.salary) ?? 0.00,
         salaryType: formData.salaryType as any,
+        designationRole: formData.designationRole || undefined,
         punchInTime: formData.punchInTime || undefined,
         laptopAssigned: formData.laptopAssigned as any,
         systemLoginId: formData.systemLoginId || undefined,
@@ -981,6 +983,20 @@ const EmployeeProfile = ({
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InputField
+                label="Date of Joining"
+                value={formData.joinDate}
+                onChange={(v: string) => setFormData({ ...formData, joinDate: v })}
+                type="date"
+                icon={<CalendarIcon size={14} />}
+              />
+              <InputField
+                label="Designation"
+                value={formData.designationRole}
+                onChange={(v: string) => setFormData({ ...formData, designationRole: v })}
+                placeholder="e.g. Senior Engineer, HR Manager"
+                icon={<BriefcaseIcon size={14} />}
+              />
               <InputField
                 label="Employee Type"
                 value={formData.employeeType}
