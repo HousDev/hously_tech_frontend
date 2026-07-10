@@ -1299,11 +1299,10 @@ const JobApplicants: React.FC = () => {
                 <button
                   key={tab.id}
                   onClick={() => setCandidatePopupTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-bold transition whitespace-nowrap cursor-pointer outline-none focus:outline-none focus:ring-0 border-b-2 ${
-                    candidatePopupTab === tab.id
-                      ? 'text-[#0D47A1] border-[#0D47A1] bg-[#0D47A1]/5'
-                      : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-bold transition whitespace-nowrap cursor-pointer outline-none focus:outline-none focus:ring-0 border-b-2 ${candidatePopupTab === tab.id
+                    ? 'text-[#0D47A1] border-[#0D47A1] bg-[#0D47A1]/5'
+                    : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'
+                    }`}
                 >
                   {tab.icon} <span>{tab.label}</span>
                 </button>
@@ -1413,7 +1412,7 @@ const JobApplicants: React.FC = () => {
                       <ProfileField label="College/School" value={viewingCandidateApp?.college} icon={<GraduationCap size={13} />} />
                       <ProfileField label="University Board" value={viewingCandidateApp?.university} icon={<GraduationCap size={13} />} />
                       <ProfileField label="Degree / Course" value={viewingCandidateApp?.degree} icon={<GraduationCap size={13} />} />
-                      <ProfileField label="Branch / Specialization" value={viewingCandidateApp?.branch} icon={<GraduationCap size={13} />} />
+                      <ProfileField label="Degree / Specialization" value={viewingCandidateApp?.branch} icon={<GraduationCap size={13} />} />
                       <ProfileField label="Current Semester" value={viewingCandidateApp?.semester} icon={<Clock size={13} />} />
                       <ProfileField label="Expected Graduation Year" value={viewingCandidateApp?.expected_grad_year} icon={<Calendar size={13} />} />
                       <ProfileField label="Internship Duration" value={viewingCandidateApp?.duration} icon={<Clock size={13} />} />
@@ -1720,7 +1719,7 @@ const JobApplicants: React.FC = () => {
                   Experience
                 </th>
                 <th className="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-44 border-r border-slate-200">
-                  Branch / Specialization
+                  Degree / Specialization
                 </th>
                 <th className="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-24 border-r border-slate-200">
                   Status

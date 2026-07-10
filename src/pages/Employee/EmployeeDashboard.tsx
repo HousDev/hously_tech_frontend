@@ -28,6 +28,7 @@ import Ticket from './Ticket';
 import toast, { Toaster } from 'react-hot-toast';
 import { apiClient } from '../../lib/api';
 import { useLeaveSocket } from '../../hooks/useLeaveSocket';
+import { useTicketSocket } from '../../hooks/useTicketSocket';
 
 interface NotificationItem {
   id: number;
@@ -115,6 +116,7 @@ const EmployeeDashboard = () => {
   const [searchAnnouncement, setSearchAnnouncement] = useState('');
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [ticketNotifications, setTicketNotifications] = useState<any[]>([]);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -130,9 +132,19 @@ const EmployeeDashboard = () => {
     }
   }, []);
 
+  const fetchTicketNotifications = useCallback(async () => {
+    try {
+      const data = await apiClient.get<any[]>('/tickets/notifications');
+      setTicketNotifications(data ?? []);
+    } catch (err) {
+      console.error('Failed to fetch employee ticket notifications:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchNotifications();
-  }, [fetchNotifications]);
+    fetchTicketNotifications();
+  }, [fetchNotifications, fetchTicketNotifications]);
 
   useLeaveSocket((event, data) => {
     console.log(`[EmployeeDashboard] useLeaveSocket callback: event="${event}"`, data);
@@ -141,6 +153,16 @@ const EmployeeDashboard = () => {
     }
     if (event === 'leave_deleted') {
       fetchNotifications();
+    }
+  });
+
+  useTicketSocket((event, data) => {
+    console.log(`[EmployeeDashboard] useTicketSocket callback: event="${event}"`, data);
+    fetchTicketNotifications();
+    if (event === 'ticket_status_changed') {
+      if (user && data.updatedBy !== user.id) {
+        toast.success(`🎫 Ticket status updated: ${data.subject} is now ${data.status}`);
+      }
     }
   });
 
@@ -184,6 +206,24 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const markTicketNotificationRead = async (id: number) => {
+    try {
+      await apiClient.patch(`/tickets/notifications/${id}/read`);
+      fetchTicketNotifications();
+    } catch (err) {
+      console.error('Failed to mark ticket notification read:', err);
+    }
+  };
+
+  const markAllTicketNotificationsRead = async () => {
+    try {
+      await apiClient.patch('/tickets/notifications/read-all');
+      fetchTicketNotifications();
+    } catch (err) {
+      console.error('Failed to mark all ticket notifications read:', err);
+    }
+  };
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'attendance', label: 'Attendance', icon: Calendar },
@@ -191,7 +231,8 @@ const EmployeeDashboard = () => {
     { id: 'ticket', label: 'Ticket', icon: ListTodo },
   ];
 
-  const unreadCount = notifications.filter(n => !n.is_read || (n.is_read as any) === '0').length;
+  const unreadCount = notifications.filter(n => !n.is_read || (n.is_read as any) === '0').length +
+                      ticketNotifications.filter(n => !n.is_read || (n.is_read as any) === '0').length;
 
   // KPI Cards
   const kpiCards = [
@@ -342,7 +383,10 @@ const EmployeeDashboard = () => {
                       <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Notifications</h3>
                       {unreadCount > 0 && (
                         <button
-                          onClick={markAllNotificationsRead}
+                          onClick={async () => {
+                            await markAllNotificationsRead();
+                            await markAllTicketNotificationsRead();
+                          }}
                           className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer bg-transparent border-0"
                         >
                           Mark all read
@@ -350,35 +394,48 @@ const EmployeeDashboard = () => {
                       )}
                     </div>
                     <div className="max-h-72 overflow-y-auto">
-                      {notifications.length === 0 ? (
+                      {notifications.length === 0 && ticketNotifications.length === 0 ? (
                         <div className="p-8 text-center text-slate-400">
                           <Bell size={24} className="mx-auto text-slate-300 mb-2" />
                           <p className="text-xs font-semibold">No notifications yet</p>
                         </div>
                       ) : (
-                        notifications.map((n) => {
-                          const fmtTime = formatRelativeTime(n.created_at);
-                          return (
-                            <div
-                              key={n.id}
-                              onClick={() => {
-                                markNotificationRead(n.id);
-                                setActiveTab('leave');
-                                setShowNotifications(false);
-                              }}
-                              className={`p-3 border-b border-gray-50 hover:bg-slate-50 transition cursor-pointer select-none ${(!n.is_read || (n.is_read as any) === '0') ? 'bg-blue-50/25 border-l-2 border-blue-500' : ''}`}
-                            >
-                              <div className="flex items-start gap-2">
-                                <span className="text-sm mt-0.5">🔔</span>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-xs font-bold text-slate-800">{n.title}</p>
-                                  <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{n.message}</p>
-                                  <p className="text-[9px] text-slate-400 mt-1 font-semibold">{fmtTime}</p>
+                        [
+                          ...notifications,
+                          ...ticketNotifications.map(t => ({ ...t, isTicket: true }))
+                        ]
+                          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                          .map((n) => {
+                            const fmtTime = formatRelativeTime(n.created_at);
+                            const isTicket = (n as any).isTicket === true;
+                            return (
+                              <div
+                                key={isTicket ? `ticket_${n.id}` : `leave_${n.id}`}
+                                onClick={() => {
+                                  if (isTicket) {
+                                    markTicketNotificationRead(n.id);
+                                    setActiveTab('ticket');
+                                  } else {
+                                    markNotificationRead(n.id);
+                                    setActiveTab('leave');
+                                  }
+                                  setShowNotifications(false);
+                                }}
+                                className={`p-3 border-b border-gray-50 hover:bg-slate-50 transition cursor-pointer select-none ${(!n.is_read || (n.is_read as any) === '0') ? 'bg-blue-50/25 border-l-2 border-blue-500' : ''}`}
+                              >
+                                <div className="flex items-start gap-2">
+                                  <span className="text-sm mt-0.5">{isTicket ? '🎫' : '🔔'}</span>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-bold text-slate-800">
+                                      {n.title.replace(/^[🎫📅📋📥🔄📝👤💼📢🔔❌?\s]+/, '').trim()}
+                                    </p>
+                                    <p className="text-[11px] text-slate-550 mt-0.5 leading-relaxed">{n.message}</p>
+                                    <p className="text-[9px] text-slate-400 mt-1 font-semibold">{fmtTime}</p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })
+                            );
+                          })
                       )}
                     </div>
                   </div>
