@@ -285,6 +285,22 @@ export default function HRMSTickets() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [tempFilters, setTempFilters] = useState<{ [key: string]: string }>({
+    id: "",
+    subject: "",
+    employee: "",
+    category: "",
+    priority: "",
+    status: "",
+    assignedTo: "",
+  });
+
+  useEffect(() => {
+    if (isFilterOpen) {
+      setTempFilters(searchFilters);
+    }
+  }, [isFilterOpen, searchFilters]);
+
   const [popupType, setPopupType] = useState<"view" | "edit" | "delete" | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
 
@@ -929,7 +945,7 @@ export default function HRMSTickets() {
           </button>
         </div>
         <div className="p-5 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
-          {Object.keys(searchFilters).map((key) => (
+          {Object.keys(tempFilters).map((key) => (
             <div key={key} className="flex flex-col">
               <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">
                 Filter by {key === "assignedTo" ? "Assigned" : key}
@@ -939,23 +955,33 @@ export default function HRMSTickets() {
                 <input
                   type="text"
                   placeholder={`Search ${key}...`}
-                  value={searchFilters[key]}
-                  onChange={(e) => handleSearch(key, e.target.value)}
+                  value={tempFilters[key]}
+                  onChange={(e) => setTempFilters(prev => ({ ...prev, [key]: e.target.value }))}
                   className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition font-semibold text-slate-700"
                 />
               </div>
             </div>
           ))}
         </div>
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
+        <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0 flex gap-2.5">
           <button
             onClick={() => {
-              setSearchFilters({ id: "", subject: "", employee: "", category: "", priority: "", status: "", assignedTo: "" });
+              const cleared = { id: "", subject: "", employee: "", category: "", priority: "", status: "", assignedTo: "" };
+              setTempFilters(cleared);
+              setSearchFilters(cleared);
+            }}
+            className="flex-1 py-2 border border-slate-200 hover:bg-slate-100 text-slate-500 rounded-xl transition text-xs font-bold text-center cursor-pointer"
+          >
+            Clear All
+          </button>
+          <button
+            onClick={() => {
+              setSearchFilters(tempFilters);
               setIsFilterOpen(false);
             }}
-            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition text-xs font-extrabold shadow-md shadow-blue-100 cursor-pointer"
+            className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition text-xs font-bold text-center cursor-pointer shadow-sm"
           >
-            Reset Filters
+            Apply Filters
           </button>
         </div>
       </div>

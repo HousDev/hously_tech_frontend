@@ -54,5 +54,8 @@ export const documentApi = {
     unwrap(api.post<ApiResponse<GeneratedDocumentRecord>>('/generated-documents', payload)),
 
   deleteDocument: (id: string): Promise<void> =>
-    unwrap(api.delete<ApiResponse<void>>(`/generated-documents/${id}`))
+    unwrap(api.delete<ApiResponse<void>>(`/generated-documents/${id}`)),
+
+  sendDocumentEmail: (payload: { email: string; subject: string; body: string; pdfBase64: string; filename: string }): Promise<{ success: boolean; message: string }> =>
+    unwrap(api.post<ApiResponse<{ success: boolean; message: string }>>('/generated-documents/send-email', payload))
 };

@@ -19,15 +19,15 @@ import {
   IdCard, CreditCard as CreditCardIcon, IndianRupee
 } from "lucide-react";
 import { masterDataAPI } from "../../../lib/masterApi";
-import { 
-  employeeApi, 
-  type EmployeeRecord, 
-  type EmployeeStatus, 
-  type EmployeeGender, 
-  type BloodGroup, 
-  type MaritalStatus, 
-  type Nationality, 
-  type WeekOffDays 
+import {
+  employeeApi,
+  type EmployeeRecord,
+  type EmployeeStatus,
+  type EmployeeGender,
+  type BloodGroup,
+  type MaritalStatus,
+  type Nationality,
+  type WeekOffDays
 } from "../../../lib/employeeApi";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -416,9 +416,8 @@ const InputField = ({
           <select
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className={`w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 bg-white ${
-              error ? "border-red-300 focus:ring-red-200" : "border-slate-200"
-            } ${icon ? "pl-9" : ""}`}
+            className={`w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 bg-white ${error ? "border-red-300 focus:ring-red-200" : "border-slate-200"
+              } ${icon ? "pl-9" : ""}`}
             disabled={!isEditing}
           >
             <option value="">Select {label}</option>
@@ -436,9 +435,8 @@ const InputField = ({
               const selected = Array.from(e.target.selectedOptions, option => option.value);
               onChange(selected);
             }}
-            className={`w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 bg-white ${
-              error ? "border-red-300 focus:ring-red-200" : "border-slate-200"
-            } ${icon ? "pl-9" : ""}`}
+            className={`w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 bg-white ${error ? "border-red-300 focus:ring-red-200" : "border-slate-200"
+              } ${icon ? "pl-9" : ""}`}
             disabled={!isEditing}
             style={{ minHeight: "80px" }}
           >
@@ -454,9 +452,8 @@ const InputField = ({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            className={`w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 ${
-              error ? "border-red-300 focus:ring-red-200" : "border-slate-200"
-            } ${icon ? "pl-9" : ""}`}
+            className={`w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 ${error ? "border-red-300 focus:ring-red-200" : "border-slate-200"
+              } ${icon ? "pl-9" : ""}`}
             disabled={!isEditing}
           />
         )}
@@ -578,6 +575,65 @@ const EmployeeProfile = ({
     ifscCode: employee.ifscCode || "",
     upiId: employee.upiId || "",
   });
+
+  // Sync formData whenever the parent updates the employee prop
+  // (happens after save → fetchEmployees() → new prop injected)
+  useEffect(() => {
+    setFormData({
+      firstName: employee.firstName,
+      middleName: employee.middleName || "",
+      lastName: employee.lastName,
+      email: employee.email,
+      phone: employee.phone,
+      gender: employee.gender || "",
+      department: employee.department,
+      role: employee.role,
+      bloodGroup: employee.bloodGroup || "",
+      joinDate: employee.joinDate,
+      allottedProjects: employee.allottedProjects || [],
+      company: employee.company || "",
+      attendanceLocation: employee.attendanceLocation || "",
+      status: employee.status,
+      dateOfBirth: employee.dateOfBirth || "",
+      emergencyContact: employee.emergencyContact || "",
+      emergencyContactName: employee.emergencyContactName || "",
+      address: employee.address || "",
+      maritalStatus: employee.maritalStatus || "",
+      nationality: employee.nationality || "",
+      aadharNumber: employee.aadharNumber || "",
+      panNumber: employee.panNumber || "",
+      permanentAddress: employee.permanentAddress || "",
+      currentAddress: employee.currentAddress || "",
+      city: employee.city || "",
+      state: employee.state || "",
+      pincode: employee.pincode || "",
+      highestQualification: employee.highestQualification || "",
+      university: employee.university || "",
+      passingYear: employee.passingYear || "",
+      percentage: employee.percentage || "",
+      weekOffDays: employee.weekOffDays || [],
+      employeeType: employee.employeeType || "Permanent",
+      workMode: employee.workMode || "Office",
+      probationPeriod: employee.probationPeriod ?? 3,
+      dateOfLeaving: employee.dateOfLeaving || "",
+      noticePeriod: employee.noticePeriod ?? 30,
+      salary: employee.salary ?? 0,
+      salaryType: employee.salaryType || "Monthly",
+      designationRole: employee.designationRole || "",
+      punchInTime: employee.punchInTime || "10:00:00",
+      laptopAssigned: employee.laptopAssigned || "No",
+      systemLoginId: employee.systemLoginId || "",
+      systemPassword: employee.systemPassword || "",
+      officeEmailId: employee.officeEmailId || "",
+      officeEmailPassword: employee.officeEmailPassword || "",
+      accountHolderName: employee.accountHolderName || "",
+      bankName: employee.bankName || "",
+      accountNumber: employee.accountNumber || "",
+      ifscCode: employee.ifscCode || "",
+      upiId: employee.upiId || "",
+    });
+    setAvatarPreview(employee.avatarUrl || null);
+  }, [employee]);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
@@ -1424,7 +1480,7 @@ const SideFilter = ({
   onClose,
   filters,
   setFilters,
-  onReset,
+  onReset: _onReset,
   departments,
   roles,
 }: {
@@ -1436,6 +1492,14 @@ const SideFilter = ({
   departments: string[];
   roles: string[];
 }) => {
+  const [tempFilters, setTempFilters] = useState<FilterState>(filters);
+
+  useEffect(() => {
+    if (open) {
+      setTempFilters(filters);
+    }
+  }, [open, filters]);
+
   const selCls =
     "w-full px-3 py-2 text-xs border border-slate-200 rounded-xl font-semibold text-slate-700 outline-none cursor-pointer bg-white focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] transition-all appearance-none";
 
@@ -1471,8 +1535,8 @@ const SideFilter = ({
             </label>
             <div className="relative">
               <select
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                value={tempFilters.status}
+                onChange={(e) => setTempFilters({ ...tempFilters, status: e.target.value })}
                 className={selCls}
               >
                 <option value="">All Status</option>
@@ -1494,8 +1558,8 @@ const SideFilter = ({
             </label>
             <div className="relative">
               <select
-                value={filters.department}
-                onChange={(e) => setFilters({ ...filters, department: e.target.value })}
+                value={tempFilters.department}
+                onChange={(e) => setTempFilters({ ...tempFilters, department: e.target.value })}
                 className={selCls}
               >
                 <option value="">All Departments</option>
@@ -1518,8 +1582,8 @@ const SideFilter = ({
             </label>
             <div className="relative">
               <select
-                value={filters.role}
-                onChange={(e) => setFilters({ ...filters, role: e.target.value })}
+                value={tempFilters.role}
+                onChange={(e) => setTempFilters({ ...tempFilters, role: e.target.value })}
                 className={selCls}
               >
                 <option value="">All Roles</option>
@@ -1539,13 +1603,21 @@ const SideFilter = ({
 
         <div className="px-5 py-4 border-t border-slate-100 flex gap-2">
           <button
-            onClick={onReset}
+            onClick={() => {
+              const cleared = { status: "", department: "", role: "" };
+              setTempFilters(cleared);
+              setFilters(cleared);
+              onClose();
+            }}
             className="flex-1 py-2 text-xs font-bold border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition flex items-center justify-center gap-1 cursor-pointer"
           >
             <RefreshCw size={11} /> Reset
           </button>
           <button
-            onClick={onClose}
+            onClick={() => {
+              setFilters(tempFilters);
+              onClose();
+            }}
             className="flex-1 py-2 text-xs font-bold bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-xl hover:opacity-90 transition cursor-pointer"
           >
             Apply
@@ -1821,7 +1893,15 @@ export default function EmployeesPage() {
           setViewEmployee(null);
           setEditEmployee(null);
         }}
-        onSaveSuccess={() => {
+        onSaveSuccess={async () => {
+          // Re-fetch fresh employee data from DB and update the view
+          try {
+            const freshEmp = await employeeApi.getById(emp.id);
+            if (freshEmp) {
+              if (viewEmployee) setViewEmployee(freshEmp);
+              if (editEmployee) setEditEmployee(freshEmp);
+            }
+          } catch (_) {/* non-critical */ }
           fetchEmployees();
         }}
         isEdit={!!editEmployee}
@@ -2216,9 +2296,8 @@ export default function EmployeesPage() {
             return (
               <div
                 key={employee.id}
-                className={`bg-white rounded-2xl border p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col gap-3 transition-colors ${
-                  isChecked ? "border-[#0D47A1] bg-[#0D47A1]/5" : "border-slate-100"
-                }`}
+                className={`bg-white rounded-2xl border p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col gap-3 transition-colors ${isChecked ? "border-[#0D47A1] bg-[#0D47A1]/5" : "border-slate-100"
+                  }`}
               >
                 {/* Header Row */}
                 <div className="flex items-start gap-2.5">

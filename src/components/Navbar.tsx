@@ -15,7 +15,7 @@ import {
   FaTwitter,
   FaYoutube,
 } from "react-icons/fa";
-import { isAdmin, getCurrentUser, logout } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
 import { settingsApi } from "../lib/settingsApi";
 
 interface NavbarUser {
@@ -36,7 +36,7 @@ interface LogoSettings {
   favicon: string;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
+const Navbar: React.FC<NavbarProps> = ({ onLoginClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -51,9 +51,9 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const { user, isAuthenticated, logout, isAdmin } = useAuth();
   const isHomePage = location.pathname === "/homes";
-  const isUserAdmin = isAdmin();
-  const currentUser = user || getCurrentUser();
+  const currentUser = user;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -113,8 +113,12 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
   ];
 
   const handleAdminClick = () => {
-    if (isUserAdmin) {
-      navigate("/dashboard");
+    if (isAuthenticated) {
+      if (isAdmin()) {
+        navigate("/dashboard");
+      } else {
+        navigate("/employee");
+      }
     } else {
       onLoginClick();
     }
@@ -122,7 +126,6 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
 
   const handleLogout = () => {
     logout();
-    window.location.reload();
   };
 
   // Get the appropriate logo based on scroll state and page
@@ -269,7 +272,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
                 Admin Access
               </h3>
               <div className="space-y-3">
-                {isUserAdmin ? (
+                {isAdmin() ? (
                   <>
                     <Link
                       to="/dashboard"
@@ -427,7 +430,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
             {/* Right Side - Always visible buttons */}
             <div className="hidden lg:flex items-center space-x-4">
               {/* Admin Login/Profile Button - Always visible */}
-              {isUserAdmin ? (
+              {isAuthenticated ? (
                 <div className="relative">
                   <button
                     onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
@@ -447,7 +450,11 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-[50] border border-gray-100">
                         <button
                           onClick={() => {
-                            navigate("/dashboard");
+                            if (isAdmin()) {
+                              navigate("/dashboard");
+                            } else {
+                              navigate("/employee");
+                            }
                             setIsProfileDropdownOpen(false);
                           }}
                           className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition flex items-center space-x-2"
@@ -473,7 +480,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
                 <button
                   onClick={handleAdminClick}
                   className="p-2.5 rounded-lg transition hover:bg-gray-100 text-gray-700"
-                  title="Admin Login"
+                  title="Login"
                 >
                   <CgProfile size={20} />
                 </button>
@@ -535,59 +542,63 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLoginClick }) => {
                   );
                 })}
 
-                {/* Admin Login/Profile Mobile - Modern Card Style */}
-                {isUserAdmin ? (
-                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 rounded-full bg-blue-100">
-                        <CgProfile size={20} className="text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm text-gray-800">
-                          {currentUser?.username || 'Admin'}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Administrator
-                        </p>
-                      </div>
-                    </div>
+                 {/* Admin/Employee Profile Mobile - Modern Card Style */}
+                 {isAuthenticated ? (
+                   <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100">
+                     <div className="flex items-center gap-3 mb-3">
+                       <div className="p-2 rounded-full bg-blue-100">
+                         <CgProfile size={20} className="text-blue-600" />
+                       </div>
+                       <div>
+                         <p className="font-semibold text-sm text-gray-800">
+                           {currentUser?.full_name || currentUser?.username || 'User'}
+                         </p>
+                         <p className="text-xs text-gray-500">
+                           {isAdmin() ? 'Administrator' : 'Employee'}
+                         </p>
+                       </div>
+                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => {
-                          setIsOpen(false);
-                          navigate("/dashboard");
-                        }}
-                        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all transform hover:scale-105 bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg"
-                      >
-                        <Settings size={16} />
-                        <span className="text-sm">Dashboard</span>
-                      </button>
+                     <div className="grid grid-cols-2 gap-2">
+                       <button
+                         onClick={() => {
+                           setIsOpen(false);
+                           if (isAdmin()) {
+                             navigate("/dashboard");
+                           } else {
+                             navigate("/employee");
+                           }
+                         }}
+                         className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all transform hover:scale-105 bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg"
+                       >
+                         <Settings size={16} />
+                         <span className="text-sm">Dashboard</span>
+                       </button>
 
-                      <button
-                        onClick={() => {
-                          setIsOpen(false);
-                          handleLogout();
-                        }}
-                        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all transform hover:scale-105 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
-                      >
-                        <LogOut size={16} />
-                        <span className="text-sm">Logout</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setIsOpen(false);
-                      handleAdminClick();
-                    }}
-                    className="flex items-center justify-center gap-3 w-full mt-4 px-6 py-3.5 rounded-xl font-semibold transition-all transform hover:scale-105 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl"
-                  >
-                    <CgProfile size={22} />
-                    <span>Admin Login</span>
-                  </button>
-                )}
+                       <button
+                         onClick={() => {
+                           setIsOpen(false);
+                           handleLogout();
+                         }}
+                         className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all transform hover:scale-105 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
+                       >
+                         <LogOut size={16} />
+                         <span className="text-sm">Logout</span>
+                       </button>
+                     </div>
+                   </div>
+                 ) : (
+                   <button
+                     onClick={() => {
+                       setIsOpen(false);
+                       handleAdminClick();
+                     }}
+                     className="flex items-center justify-center gap-3 w-full mt-4 px-6 py-3.5 rounded-xl font-semibold transition-all transform hover:scale-105 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl"
+                   >
+                     <CgProfile size={22} />
+                     <span>Login</span>
+                   </button>
+                 )}
 
                 <button
                   onClick={() => {

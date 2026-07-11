@@ -626,7 +626,18 @@ function AppContent() {
   useEffect(() => {
     if (loading) return;
     setIsChecking(false);
-  }, [loading]);
+
+    // MNC Level auto-login: if already logged in and landing on welcome "/" or "/homes", redirect to dashboard
+    if (isAuthenticated) {
+      if (location.pathname === "/" || location.pathname === "/homes") {
+        if (isAdmin()) {
+          navigate("/dashboard");
+        } else {
+          navigate("/employee");
+        }
+      }
+    }
+  }, [loading, isAuthenticated, location.pathname, navigate]);
 
   const handleSectorClick = (sectorId: string) => {
     if (sectorId === "real-estate" || sectorId === "finance") {
@@ -649,7 +660,7 @@ function AppContent() {
         autoClose: 2000,
       });
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        navigate('/dashboard');
       }, 1000);
     } else {
       toast.success('Welcome Back!', {
@@ -657,7 +668,7 @@ function AppContent() {
         autoClose: 2000,
       });
       setTimeout(() => {
-        window.location.href = '/employee';
+        navigate('/employee');
       }, 1000);
     }
   };

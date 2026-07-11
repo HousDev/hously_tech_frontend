@@ -18,6 +18,8 @@ import {
   Megaphone,
   Search,
   ChevronDown,
+  FileText,
+  Receipt,
 } from 'lucide-react';
 import { FiExternalLink } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
@@ -25,10 +27,13 @@ import houslyLogo from '../../assets/images/hously-logo.png';
 import Attendance from './Attendance';
 import Leave from './Leave';
 import Ticket from './Ticket';
+import Expenses from './Expenses';
 import toast, { Toaster } from 'react-hot-toast';
 import { apiClient } from '../../lib/api';
 import { useLeaveSocket } from '../../hooks/useLeaveSocket';
 import { useTicketSocket } from '../../hooks/useTicketSocket';
+import { useExpenseSocket } from '../../hooks/useExpenseSocket';
+import { playNotificationSound } from '../../lib/sound';
 
 interface NotificationItem {
   id: number;
@@ -69,14 +74,14 @@ const formatRelativeTime = (dateStr: string) => {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays}d ago`;
-  
+
   return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
 };
 
 const EmployeeDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'attendance' | 'leave' | 'ticket'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'attendance' | 'leave' | 'ticket' | 'expenses'>('dashboard');
   const { user, logout } = useAuth();
 
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
@@ -117,6 +122,7 @@ const EmployeeDashboard = () => {
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [ticketNotifications, setTicketNotifications] = useState<any[]>([]);
+  const [expenseNotifications, setExpenseNotifications] = useState<any[]>([]);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -141,14 +147,25 @@ const EmployeeDashboard = () => {
     }
   }, []);
 
+  const fetchExpenseNotifications = useCallback(async () => {
+    try {
+      const data = await apiClient.get<any[]>('/expenses/notifications');
+      setExpenseNotifications(data ?? []);
+    } catch (err) {
+      console.error('Failed to fetch employee expense notifications:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchNotifications();
     fetchTicketNotifications();
-  }, [fetchNotifications, fetchTicketNotifications]);
+    fetchExpenseNotifications();
+  }, [fetchNotifications, fetchTicketNotifications, fetchExpenseNotifications]);
 
   useLeaveSocket((event, data) => {
     console.log(`[EmployeeDashboard] useLeaveSocket callback: event="${event}"`, data);
     if (event === 'leave_status_changed') {
+      playNotificationSound();
       fetchNotifications();
     }
     if (event === 'leave_deleted') {
@@ -161,8 +178,18 @@ const EmployeeDashboard = () => {
     fetchTicketNotifications();
     if (event === 'ticket_status_changed') {
       if (user && data.updatedBy !== user.id) {
+        playNotificationSound();
         toast.success(`🎫 Ticket status updated: ${data.subject} is now ${data.status}`);
       }
+    }
+  });
+
+  useExpenseSocket((event, data) => {
+    console.log(`[EmployeeDashboard] useExpenseSocket callback: event="${event}"`, data);
+    fetchExpenseNotifications();
+    if (event === 'expense_status_changed') {
+      playNotificationSound();
+      toast.success(`💵 Expense status updated: ${data.claim_no} is now ${data.status}`);
     }
   });
 
@@ -224,15 +251,35 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const markExpenseNotificationRead = async (id: number) => {
+    try {
+      await apiClient.patch(`/expenses/notifications/${id}/read`);
+      fetchExpenseNotifications();
+    } catch (err) {
+      console.error('Failed to mark expense notification read:', err);
+    }
+  };
+
+  const markAllExpenseNotificationsRead = async () => {
+    try {
+      await apiClient.patch('/expenses/notifications/read-all');
+      fetchExpenseNotifications();
+    } catch (err) {
+      console.error('Failed to mark all expense notifications read:', err);
+    }
+  };
+
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'attendance', label: 'Attendance', icon: Calendar },
-    { id: 'leave', label: 'Leave', icon: Briefcase },
-    { id: 'ticket', label: 'Ticket', icon: ListTodo },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'text-blue-500' },
+    { id: 'attendance', label: 'Attendance', icon: Calendar, color: 'text-amber-500' },
+    { id: 'leave', label: 'Leave', icon: Briefcase, color: 'text-rose-500' },
+    { id: 'ticket', label: 'Ticket', icon: ListTodo, color: 'text-purple-500' },
+    { id: 'expenses', icon: Receipt, label: 'Expenses', color: 'text-emerald-500' },
   ];
 
   const unreadCount = notifications.filter(n => !n.is_read || (n.is_read as any) === '0').length +
-                      ticketNotifications.filter(n => !n.is_read || (n.is_read as any) === '0').length;
+    ticketNotifications.filter(n => !n.is_read || (n.is_read as any) === '0').length +
+    expenseNotifications.filter(n => !n.is_read || (n.is_read as any) === '0').length;
 
   // KPI Cards
   const kpiCards = [
@@ -281,14 +328,16 @@ const EmployeeDashboard = () => {
     dashboard: 'Dashboard',
     attendance: 'Attendance',
     leave: 'Leave Management',
-    ticket: 'Helpdesk Tickets'
+    ticket: 'Helpdesk Tickets',
+    expenses: 'Expenses Management'
   }[activeTab];
 
   const headerSubtitle = {
     dashboard: 'Overview of your activities, tasks, and meetings',
     attendance: 'Track your daily punch-in, punch-out, and logs',
     leave: 'Apply for leaves and track your leave balances',
-    ticket: 'Raise support tickets and view their progress'
+    ticket: 'Raise support tickets and view their progress',
+    expenses: 'Track your expenses and view their progress'
   }[activeTab];
 
   return (
@@ -318,7 +367,7 @@ const EmployeeDashboard = () => {
               <button
                 key={item.id}
                 onClick={() => {
-                  setActiveTab(item.id as 'dashboard' | 'attendance' | 'leave' | 'ticket');
+                  setActiveTab(item.id as 'dashboard' | 'attendance' | 'leave' | 'ticket' | 'expenses');
                   setMobileSidebarOpen(false);
                 }}
                 className={`flex items-center w-full rounded-lg transition-all duration-200 px-3 py-2.5 text-left cursor-pointer
@@ -386,6 +435,7 @@ const EmployeeDashboard = () => {
                           onClick={async () => {
                             await markAllNotificationsRead();
                             await markAllTicketNotificationsRead();
+                            await markAllExpenseNotificationsRead();
                           }}
                           className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer bg-transparent border-0"
                         >
@@ -394,7 +444,7 @@ const EmployeeDashboard = () => {
                       )}
                     </div>
                     <div className="max-h-72 overflow-y-auto">
-                      {notifications.length === 0 && ticketNotifications.length === 0 ? (
+                      {notifications.length === 0 && ticketNotifications.length === 0 && expenseNotifications.length === 0 ? (
                         <div className="p-8 text-center text-slate-400">
                           <Bell size={24} className="mx-auto text-slate-300 mb-2" />
                           <p className="text-xs font-semibold">No notifications yet</p>
@@ -402,19 +452,24 @@ const EmployeeDashboard = () => {
                       ) : (
                         [
                           ...notifications,
-                          ...ticketNotifications.map(t => ({ ...t, isTicket: true }))
+                          ...ticketNotifications.map(t => ({ ...t, isTicket: true })),
+                          ...expenseNotifications.map(e => ({ ...e, isExpense: true }))
                         ]
                           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                           .map((n) => {
                             const fmtTime = formatRelativeTime(n.created_at);
                             const isTicket = (n as any).isTicket === true;
+                            const isExpense = (n as any).isExpense === true;
                             return (
                               <div
-                                key={isTicket ? `ticket_${n.id}` : `leave_${n.id}`}
+                                key={isTicket ? `ticket_${n.id}` : isExpense ? `expense_${n.id}` : `leave_${n.id}`}
                                 onClick={() => {
                                   if (isTicket) {
                                     markTicketNotificationRead(n.id);
                                     setActiveTab('ticket');
+                                  } else if (isExpense) {
+                                    markExpenseNotificationRead(n.id);
+                                    setActiveTab('expenses');
                                   } else {
                                     markNotificationRead(n.id);
                                     setActiveTab('leave');
@@ -424,7 +479,7 @@ const EmployeeDashboard = () => {
                                 className={`p-3 border-b border-gray-50 hover:bg-slate-50 transition cursor-pointer select-none ${(!n.is_read || (n.is_read as any) === '0') ? 'bg-blue-50/25 border-l-2 border-blue-500' : ''}`}
                               >
                                 <div className="flex items-start gap-2">
-                                  <span className="text-sm mt-0.5">{isTicket ? '🎫' : '🔔'}</span>
+                                  <span className="text-sm mt-0.5">{isTicket ? '🎫' : isExpense ? '💵' : '🔔'}</span>
                                   <div className="min-w-0 flex-1">
                                     <p className="text-xs font-bold text-slate-800">
                                       {n.title.replace(/^[🎫📅📋📥🔄📝👤💼📢🔔❌?\s]+/, '').trim()}
@@ -489,12 +544,14 @@ const EmployeeDashboard = () => {
         </header>
 
         {/* Content Area */}
-        <main className="p-4 md:p-6 overflow-y-auto" style={{ height: 'calc(100vh - 64px)' }}>
+        <main className={`p-4 md:p-6 ${activeTab === 'expenses' ? 'md:overflow-hidden' : 'overflow-y-auto'}`} style={{ height: 'calc(100vh - 64px)' }}>
           {activeTab === 'attendance' && <Attendance />}
 
           {activeTab === 'leave' && <Leave />}
 
           {activeTab === 'ticket' && <Ticket />}
+
+          {activeTab === 'expenses' && <Expenses />}
 
           {activeTab === 'dashboard' && (
             <div className="max-w-full space-y-6">
@@ -599,9 +656,9 @@ const EmployeeDashboard = () => {
                             <td className="py-1.5 text-xs text-slate-808">{item.task}</td>
                             <td className="py-1.5">
                               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.priority === 'Urgent' ? 'bg-red-50 text-red-600' :
-                                  item.priority === 'High' ? 'bg-orange-50 text-orange-600' :
-                                    item.priority === 'Medium' ? 'bg-blue-50 text-blue-600' :
-                                      'bg-slate-50 text-slate-600'
+                                item.priority === 'High' ? 'bg-orange-50 text-orange-600' :
+                                  item.priority === 'Medium' ? 'bg-blue-50 text-blue-600' :
+                                    'bg-slate-50 text-slate-600'
                                 }`}>
                                 {item.priority}
                               </span>
@@ -609,8 +666,8 @@ const EmployeeDashboard = () => {
                             <td className="py-1.5 text-slate-400 font-medium">{item.dueDate}</td>
                             <td className="py-1.5">
                               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' :
-                                  item.status === 'In Progress' ? 'bg-blue-50 text-blue-600' :
-                                    'bg-slate-50 text-slate-600'
+                                item.status === 'In Progress' ? 'bg-blue-50 text-blue-600' :
+                                  'bg-slate-50 text-slate-600'
                                 }`}>
                                 {item.status}
                               </span>
@@ -662,9 +719,9 @@ const EmployeeDashboard = () => {
                           <td className="py-1.5 text-slate-400 font-medium">{item.date}</td>
                           <td className="py-1.5">
                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.category === 'HR' ? 'bg-purple-50 text-purple-600' :
-                                item.category === 'Policy' ? 'bg-blue-50 text-blue-600' :
-                                  item.category === 'Event' ? 'bg-emerald-50 text-emerald-600' :
-                                    'bg-slate-50 text-slate-600'
+                              item.category === 'Policy' ? 'bg-blue-50 text-blue-600' :
+                                item.category === 'Event' ? 'bg-emerald-50 text-emerald-600' :
+                                  'bg-slate-50 text-slate-600'
                               }`}>
                               {item.category}
                             </span>
@@ -711,16 +768,16 @@ const EmployeeDashboard = () => {
                           <td className="py-1.5 text-slate-500 font-medium">{item.attendees}</td>
                           <td className="py-1.5">
                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.priority === 'Urgent' ? 'bg-red-50 text-red-600' :
-                                item.priority === 'High' ? 'bg-orange-50 text-orange-600' :
-                                  item.priority === 'Medium' ? 'bg-blue-50 text-blue-600' :
-                                    'bg-slate-50 text-slate-600'
+                              item.priority === 'High' ? 'bg-orange-50 text-orange-600' :
+                                item.priority === 'Medium' ? 'bg-blue-50 text-blue-600' :
+                                  'bg-slate-50 text-slate-600'
                               }`}>
                               {item.priority}
                             </span>
                           </td>
                           <td className="py-1.5">
                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.status === 'Scheduled' ? 'bg-emerald-50 text-emerald-600' :
-                                'bg-slate-50 text-slate-600'
+                              'bg-slate-50 text-slate-600'
                               }`}>
                               {item.status}
                             </span>

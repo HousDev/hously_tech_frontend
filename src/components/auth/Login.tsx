@@ -59,25 +59,25 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
         
         if (isUserAdmin) {
           toast.success('Admin login successful!');
+          onSuccess();
           setTimeout(() => {
             navigate('/dashboard');
-            onSuccess();
           }, 1000);
         } else {
           toast.success('Login successful!');
+          onSuccess();
           setTimeout(() => {
             navigate('/employee');
-            onSuccess();
           }, 1000);
         }
       } else {
         setError(result.message || 'Login failed');
         toast.error(result.message || 'Login failed');
+        setLoading(false);
       }
     } catch (err) {
       setError('Login failed. Please try again.');
       toast.error('Login failed');
-    } finally {
       setLoading(false);
     }
   };
