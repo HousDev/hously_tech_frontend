@@ -92,6 +92,23 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
     assignedTo: ''
   });
   const [isSideFilterOpen, setIsSideFilterOpen] = useState(false);
+  const [tempFilters, setTempFilters] = useState({
+    status: 'all',
+    priority: 'all',
+    search: '',
+    dateRange: 'all',
+    hasFollowUp: 'all',
+    ignoreDate: false,
+    startDate: '',
+    endDate: ''
+  });
+
+  useEffect(() => {
+    if (isSideFilterOpen) {
+      setTempFilters(filters);
+    }
+  }, [isSideFilterOpen, filters]);
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createPayload, setCreatePayload] = useState({
     fullName: '',
@@ -2574,10 +2591,9 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Status</label>
               <select
-                value={filters.status}
+                value={tempFilters.status}
                 onChange={(e) => {
-                  setFilters({ ...filters, status: e.target.value });
-                  setCurrentPage(1);
+                  setTempFilters({ ...tempFilters, status: e.target.value });
                 }}
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none cursor-pointer"
               >
@@ -2594,10 +2610,9 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Priority</label>
               <select
-                value={filters.priority}
+                value={tempFilters.priority}
                 onChange={(e) => {
-                  setFilters({ ...filters, priority: e.target.value });
-                  setCurrentPage(1);
+                  setTempFilters({ ...tempFilters, priority: e.target.value });
                 }}
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none cursor-pointer"
               >
@@ -2617,11 +2632,10 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
                   <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">From</label>
                   <input
                     type="date"
-                    disabled={filters.ignoreDate}
-                    value={filters.startDate}
+                    disabled={tempFilters.ignoreDate}
+                    value={tempFilters.startDate}
                     onChange={(e) => {
-                      setFilters({ ...filters, startDate: e.target.value });
-                      setCurrentPage(1);
+                      setTempFilters({ ...tempFilters, startDate: e.target.value });
                     }}
                     className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg bg-white outline-none disabled:opacity-50 disabled:bg-slate-50"
                   />
@@ -2630,11 +2644,10 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
                   <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">To</label>
                   <input
                     type="date"
-                    disabled={filters.ignoreDate}
-                    value={filters.endDate}
+                    disabled={tempFilters.ignoreDate}
+                    value={tempFilters.endDate}
                     onChange={(e) => {
-                      setFilters({ ...filters, endDate: e.target.value });
-                      setCurrentPage(1);
+                      setTempFilters({ ...tempFilters, endDate: e.target.value });
                     }}
                     className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg bg-white outline-none disabled:opacity-50 disabled:bg-slate-50"
                   />
@@ -2650,10 +2663,9 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
               </div>
               <input
                 type="checkbox"
-                checked={filters.ignoreDate}
+                checked={tempFilters.ignoreDate}
                 onChange={(e) => {
-                  setFilters({ ...filters, ignoreDate: e.target.checked });
-                  setCurrentPage(1);
+                  setTempFilters({ ...tempFilters, ignoreDate: e.target.checked });
                 }}
                 className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
               />
@@ -2663,7 +2675,7 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
           <div className="border-t border-slate-100 pt-4 mt-6 flex gap-2">
             <button
               onClick={() => {
-                setFilters({
+                const cleared = {
                   status: 'all',
                   priority: 'all',
                   search: '',
@@ -2672,7 +2684,9 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
                   ignoreDate: false,
                   startDate: '',
                   endDate: ''
-                });
+                };
+                setFilters(cleared);
+                setTempFilters(cleared);
                 setColumnFilters({
                   id: '',
                   name: '',
@@ -2691,7 +2705,11 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
               Clear All
             </button>
             <button
-              onClick={() => setIsSideFilterOpen(false)}
+              onClick={() => {
+                setFilters(tempFilters);
+                setCurrentPage(1);
+                setIsSideFilterOpen(false);
+              }}
               className="flex-1 py-2 text-xs font-bold bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
             >
               Apply

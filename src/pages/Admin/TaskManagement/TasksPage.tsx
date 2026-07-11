@@ -804,7 +804,7 @@ const SideFilter = ({
   onClose,
   filters,
   setFilters,
-  onReset,
+  onReset: _onReset,
   employees,
 }: {
   open: boolean;
@@ -814,6 +814,14 @@ const SideFilter = ({
   onReset: () => void;
   employees: Employee[];
 }) => {
+  const [tempFilters, setTempFilters] = useState<FilterState>(filters);
+
+  useEffect(() => {
+    if (open) {
+      setTempFilters(filters);
+    }
+  }, [open, filters]);
+
   const selCls =
     "w-full px-3 py-2 text-xs border border-slate-200 rounded-xl font-semibold text-slate-700 outline-none cursor-pointer bg-white focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] transition-all appearance-none";
 
@@ -849,8 +857,8 @@ const SideFilter = ({
             </label>
             <div className="relative">
               <select
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                value={tempFilters.status}
+                onChange={(e) => setTempFilters({ ...tempFilters, status: e.target.value })}
                 className={selCls}
               >
                 <option value="">All Status</option>
@@ -869,8 +877,8 @@ const SideFilter = ({
             </label>
             <div className="relative">
               <select
-                value={filters.priority}
-                onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+                value={tempFilters.priority}
+                onChange={(e) => setTempFilters({ ...tempFilters, priority: e.target.value })}
                 className={selCls}
               >
                 <option value="">All Priority</option>
@@ -889,8 +897,8 @@ const SideFilter = ({
             </label>
             <div className="relative">
               <select
-                value={filters.assignee}
-                onChange={(e) => setFilters({ ...filters, assignee: e.target.value })}
+                value={tempFilters.assignee}
+                onChange={(e) => setTempFilters({ ...tempFilters, assignee: e.target.value })}
                 className={selCls}
               >
                 <option value="">All Employees</option>
@@ -907,13 +915,21 @@ const SideFilter = ({
 
         <div className="px-5 py-4 border-t border-slate-100 flex gap-2">
           <button
-            onClick={onReset}
+            onClick={() => {
+              const cleared = { status: "", priority: "", assignee: "" };
+              setTempFilters(cleared);
+              setFilters(cleared);
+              onClose();
+            }}
             className="flex-1 py-2 text-xs font-bold border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition flex items-center justify-center gap-1 cursor-pointer"
           >
             <RefreshCw size={11} /> Reset
           </button>
           <button
-            onClick={onClose}
+            onClick={() => {
+              setFilters(tempFilters);
+              onClose();
+            }}
             className="flex-1 py-2 text-xs font-bold bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-xl hover:opacity-90 transition cursor-pointer"
           >
             Apply

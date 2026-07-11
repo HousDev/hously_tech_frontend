@@ -364,6 +364,38 @@ const JobApplicants: React.FC = () => {
   const [ignoreDate, setIgnoreDate] = useState(false);
   const [isSideFilterOpen, setIsSideFilterOpen] = useState(false);
 
+  const [tempStatusFilter, setTempStatusFilter] = useState('all');
+  const [tempPositionFilter, setTempPositionFilter] = useState('all');
+  const [tempExperienceFilter, setTempExperienceFilter] = useState('all');
+  const [tempGenderFilter, setTempGenderFilter] = useState('all');
+  const [tempCityFilter, setTempCityFilter] = useState('all');
+  const [tempStateFilter, setTempStateFilter] = useState('all');
+  const [tempEduBranchFilter, setTempEduBranchFilter] = useState('all');
+  const [tempEduSpecFilter, setTempEduSpecFilter] = useState('all');
+  const [tempStartDate, setTempStartDate] = useState('');
+  const [tempEndDate, setTempEndDate] = useState('');
+  const [tempIgnoreDate, setTempIgnoreDate] = useState(false);
+
+  useEffect(() => {
+    if (isSideFilterOpen) {
+      setTempStatusFilter(statusFilter);
+      setTempPositionFilter(positionFilter);
+      setTempExperienceFilter(experienceFilter);
+      setTempGenderFilter(genderFilter);
+      setTempCityFilter(cityFilter);
+      setTempStateFilter(stateFilter);
+      setTempEduBranchFilter(eduBranchFilter);
+      setTempEduSpecFilter(eduSpecFilter);
+      setTempStartDate(startDate);
+      setTempEndDate(endDate);
+      setTempIgnoreDate(ignoreDate);
+    }
+  }, [
+    isSideFilterOpen, statusFilter, positionFilter, experienceFilter,
+    genderFilter, cityFilter, stateFilter, eduBranchFilter,
+    eduSpecFilter, startDate, endDate, ignoreDate
+  ]);
+
   // Column search filters
   const [columnFilters, setColumnFilters] = useState({
     applicant: '',
@@ -2275,8 +2307,8 @@ const JobApplicants: React.FC = () => {
               <div className="space-y-2">
                 <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Status</label>
                 <select
-                  value={statusFilter}
-                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                  value={tempStatusFilter}
+                  onChange={(e) => { setTempStatusFilter(e.target.value); }}
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer"
                 >
                   <option value="all">All Status</option>
@@ -2291,8 +2323,8 @@ const JobApplicants: React.FC = () => {
               <div className="space-y-2">
                 <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Position</label>
                 <select
-                  value={positionFilter}
-                  onChange={(e) => { setPositionFilter(e.target.value); setCurrentPage(1); }}
+                  value={tempPositionFilter}
+                  onChange={(e) => { setTempPositionFilter(e.target.value); }}
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer"
                 >
                   <option value="all">All Positions</option>
@@ -2305,8 +2337,8 @@ const JobApplicants: React.FC = () => {
               <div className="space-y-2">
                 <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Experience Level</label>
                 <select
-                  value={experienceFilter}
-                  onChange={(e) => { setExperienceFilter(e.target.value); setCurrentPage(1); }}
+                  value={tempExperienceFilter}
+                  onChange={(e) => { setTempExperienceFilter(e.target.value); }}
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer"
                 >
                   {experienceFilterOptions.map(opt => (
@@ -2318,8 +2350,8 @@ const JobApplicants: React.FC = () => {
               <div className="space-y-2">
                 <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Gender</label>
                 <select
-                  value={genderFilter}
-                  onChange={(e) => { setGenderFilter(e.target.value); setCurrentPage(1); }}
+                  value={tempGenderFilter}
+                  onChange={(e) => { setTempGenderFilter(e.target.value); }}
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer"
                 >
                   <option value="all">All Gender</option>
@@ -2332,8 +2364,8 @@ const JobApplicants: React.FC = () => {
               <div className="space-y-2">
                 <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">City / Location</label>
                 <select
-                  value={cityFilter}
-                  onChange={(e) => { setCityFilter(e.target.value); setCurrentPage(1); }}
+                  value={tempCityFilter}
+                  onChange={(e) => { setTempCityFilter(e.target.value); }}
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer"
                 >
                   <option value="all">All Cities</option>
@@ -2346,11 +2378,10 @@ const JobApplicants: React.FC = () => {
               <div className="space-y-2">
                 <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Education Branch</label>
                 <select
-                  value={eduBranchFilter}
+                  value={tempEduBranchFilter}
                   onChange={(e) => {
-                    setEduBranchFilter(e.target.value);
-                    setEduSpecFilter('all');
-                    setCurrentPage(1);
+                    setTempEduBranchFilter(e.target.value);
+                    setTempEduSpecFilter('all');
                   }}
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer"
                 >
@@ -2371,13 +2402,13 @@ const JobApplicants: React.FC = () => {
               <div className="space-y-2">
                 <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Specialization</label>
                 <select
-                  disabled={eduBranchFilter === 'all'}
-                  value={eduSpecFilter}
-                  onChange={(e) => { setEduSpecFilter(e.target.value); setCurrentPage(1); }}
+                  disabled={tempEduBranchFilter === 'all'}
+                  value={tempEduSpecFilter}
+                  onChange={(e) => { setTempEduSpecFilter(e.target.value); }}
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] bg-white font-medium text-slate-700 outline-none cursor-pointer disabled:opacity-50"
                 >
                   <option value="all">All Specializations</option>
-                  {(SPECIALIZATION_MAP[eduBranchFilter] || []).map(spec => (
+                  {(SPECIALIZATION_MAP[tempEduBranchFilter] || []).map(spec => (
                     <option key={spec} value={spec}>{spec}</option>
                   ))}
                 </select>
@@ -2390,8 +2421,8 @@ const JobApplicants: React.FC = () => {
                     <input
                       type="checkbox"
                       id="ignoreDate"
-                      checked={ignoreDate}
-                      onChange={(e) => setIgnoreDate(e.target.checked)}
+                      checked={tempIgnoreDate}
+                      onChange={(e) => setTempIgnoreDate(e.target.checked)}
                       className="h-3.5 w-3.5 text-[#0D47A1] focus:ring-[#0D47A1] rounded cursor-pointer"
                     />
                     <label htmlFor="ignoreDate" className="text-[10px] font-bold text-slate-600 cursor-pointer uppercase select-none">Ignore Date</label>
@@ -2403,9 +2434,9 @@ const JobApplicants: React.FC = () => {
                     <label className="text-[9px] font-extrabold text-slate-400 uppercase">From</label>
                     <input
                       type="date"
-                      disabled={ignoreDate}
-                      value={startDate}
-                      onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
+                      disabled={tempIgnoreDate}
+                      value={tempStartDate}
+                      onChange={(e) => { setTempStartDate(e.target.value); }}
                       className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] bg-white font-semibold text-slate-700 outline-none disabled:opacity-50"
                     />
                   </div>
@@ -2413,9 +2444,9 @@ const JobApplicants: React.FC = () => {
                     <label className="text-[9px] font-extrabold text-slate-400 uppercase">To</label>
                     <input
                       type="date"
-                      disabled={ignoreDate}
-                      value={endDate}
-                      onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
+                      disabled={tempIgnoreDate}
+                      value={tempEndDate}
+                      onChange={(e) => { setTempEndDate(e.target.value); }}
                       className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#0D47A1] bg-white font-semibold text-slate-700 outline-none disabled:opacity-50"
                     />
                   </div>
@@ -2440,12 +2471,37 @@ const JobApplicants: React.FC = () => {
                   setIgnoreDate(false);
                   setCurrentPage(1);
                   setColumnFilters({ applicant: '', position: 'all', experience: 'all', status: 'all', mobile: '', branch: '' });
+
+                  setTempStatusFilter('all');
+                  setTempPositionFilter('all');
+                  setTempExperienceFilter('all');
+                  setTempGenderFilter('all');
+                  setTempCityFilter('all');
+                  setTempStateFilter('all');
+                  setTempEduBranchFilter('all');
+                  setTempEduSpecFilter('all');
+                  setTempStartDate('');
+                  setTempEndDate('');
+                  setTempIgnoreDate(false);
                 }}
                 className="flex-1 py-2 text-xs font-bold border border-slate-200 hover:border-slate-300 text-slate-600 bg-white rounded-xl hover:bg-slate-50 transition cursor-pointer"
               >Clear All</button>
               <button
                 type="button"
-                onClick={() => setIsSideFilterOpen(false)}
+                onClick={() => {
+                  setStatusFilter(tempStatusFilter);
+                  setPositionFilter(tempPositionFilter);
+                  setExperienceFilter(tempExperienceFilter);
+                  setGenderFilter(tempGenderFilter);
+                  setCityFilter(tempCityFilter);
+                  setEduBranchFilter(tempEduBranchFilter);
+                  setEduSpecFilter(tempEduSpecFilter);
+                  setStartDate(tempStartDate);
+                  setEndDate(tempEndDate);
+                  setIgnoreDate(tempIgnoreDate);
+                  setCurrentPage(1);
+                  setIsSideFilterOpen(false);
+                }}
                 className="flex-1 py-2 text-xs font-bold bg-[#0D47A1] hover:bg-[#1976D2] text-white rounded-xl transition shadow cursor-pointer"
               >Apply Filters</button>
             </div>

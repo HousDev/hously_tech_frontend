@@ -9,6 +9,7 @@ import {
   X,
   Eye,
   Download,
+  Mail,
   Trash2,
   Edit,
   MoreVertical,
@@ -498,6 +499,7 @@ interface Employee {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   department: string;
   avatarUrl?: string;
   designationRole?: string;
@@ -507,6 +509,7 @@ interface Employee {
   salary?: number;
   salaryType?: string;
   joinDate?: string;
+  dateOfLeaving?: string;
 }
 
 interface GeneratedDocument {
@@ -548,6 +551,24 @@ export const getFullImageUrl = (url: string | null) => {
   return `${base}${url}`;
 };
 
+export const getPercentX = (val: number | undefined | null, defaultValue: number) => {
+  if (val === undefined || val === null) return defaultValue;
+  if (val > 100) return Number(((val / 672) * 100).toFixed(2));
+  return val;
+};
+
+export const getPercentY = (val: number | undefined | null, defaultValue: number) => {
+  if (val === undefined || val === null) return defaultValue;
+  if (val > 100) return Number(((val / 1000) * 100).toFixed(2));
+  return val;
+};
+
+export const getPercentWidth = (val: number | undefined | null, defaultValue: number) => {
+  if (val === undefined || val === null) return defaultValue;
+  if (val > 100) return Number(((val / 672) * 100).toFixed(2));
+  return val;
+};
+
 // Static seed data removed — templates and documents are now loaded from the database API
 
 export const renderTemplateContent = (htmlString: string, logo: string | null, _seal: string | null, _sig: string | null) => {
@@ -586,13 +607,55 @@ interface EmployeeData {
   pincode?: string;
   email?: string;
   employeeId?: string;
+  dateOfLeaving?: string;
 }
 
 const getRenderedHtml = (type: string, empData: EmployeeData, templatesList: DocumentTemplate[] = []) => {
   let html = '';
   const customTpl = templatesList.find(t => t.name === type || t.category === type);
   if (customTpl && customTpl.content) {
-    html = customTpl.content;
+    let rawContent = customTpl.content;
+    if (!rawContent.toLowerCase().includes('class="a4-page"') && !rawContent.toLowerCase().includes("class='a4-page'")) {
+      // Wrap in standard A4 document wrapper so layout and overlays render identically to template editor
+      rawContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${customTpl.name}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 0;
+    }
+    @media print {
+      body {
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+        -webkit-print-color-adjust: exact;
+      }
+      .a4-page {
+        width: 210mm !important;
+        height: 297mm !important;
+        margin: 0 !important;
+        padding: 25mm 20mm !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        box-sizing: border-box;
+        page-break-inside: avoid !important;
+      }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #ffffff;">
+  <div class="a4-page" style="background-color: #ffffff; width: 210mm; height: 297mm; max-width: 100%; font-family: 'Inter', sans-serif; color: #334155; line-height: 1.8; font-size: 13px; position: relative; overflow: hidden; padding: 25mm 20mm; box-sizing: border-box; margin: 0 auto; border: 1px solid #f1f5f9; border-radius: 8px; display: flex; flex-direction: column; justify-content: flex-start;">
+    ${rawContent}
+  </div>
+</body>
+</html>`;
+    }
+    html = rawContent;
   } else {
     if (type === 'Offer Letter') html = offerLetterHtml;
     else if (type === 'Pay Slip') html = paySlipHtml;
@@ -617,6 +680,14 @@ const getRenderedHtml = (type: string, empData: EmployeeData, templatesList: Doc
     ? new Date(empData.joinDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     : (empData.joinDate || 'June 25, 2026');
 
+  // Format leaving date
+  const leavingDateDisplay = empData.dateOfLeaving
+    ? new Date(empData.dateOfLeaving).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : '';
+
+  // Format current date (Today)
+  const currentDateDisplay = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
   const defaults: Record<string, string> = {
     employee_name: empData.name || 'Employee Name',
     employee_address: dynamicAddress,
@@ -640,7 +711,9 @@ const getRenderedHtml = (type: string, empData: EmployeeData, templatesList: Doc
     date: empData.joinDate || 'June 10, 2026',
     effective_date: empData.joinDate || 'June 10, 2026',
     employee_id: empData.employeeId || 'EMP001',
-    month_year: empData.joinDate ? new Date(empData.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'June 2026'
+    month_year: empData.joinDate ? new Date(empData.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'June 2026',
+    issue_date: currentDateDisplay,
+    date_of_leaving: leavingDateDisplay
   };
 
   // Format acceptance date for offer letter (8 days after join date)
@@ -665,21 +738,43 @@ const getRenderedHtml = (type: string, empData: EmployeeData, templatesList: Doc
 
     let overlays = '';
     if (customTpl.sealUrl) {
+      const sealX = getPercentX(customTpl.sealX, 15);
+      const sealY = getPercentY(customTpl.sealY, 75);
+      const sealW = getPercentWidth(customTpl.sealWidth, 10);
       overlays += `
-        <div style="position: absolute; left: ${customTpl.sealX ?? 100}px; top: ${customTpl.sealY ?? 700}px; z-index: 50; mix-blend-mode: multiply; pointer-events: none;">
-          <img src="${getFullImageUrl(customTpl.sealUrl)}" style="width: ${customTpl.sealWidth ?? 80}px; height: auto; object-fit: contain;" />
+        <div style="position: absolute; left: ${sealX}%; top: ${sealY}%; z-index: 50; mix-blend-mode: multiply; pointer-events: none; width: ${sealW}%;">
+          <img src="${getFullImageUrl(customTpl.sealUrl)}" style="width: 100%; height: auto; object-fit: contain;" />
         </div>
       `;
     }
     if (customTpl.sigUrl) {
+      const sigX = getPercentX(customTpl.sigX, 50);
+      const sigY = getPercentY(customTpl.sigY, 75);
+      const sigW = getPercentWidth(customTpl.sigWidth, 15);
       overlays += `
-        <div style="position: absolute; left: ${customTpl.sigX ?? 350}px; top: ${customTpl.sigY ?? 700}px; z-index: 50; mix-blend-mode: multiply; pointer-events: none;">
-          <img src="${getFullImageUrl(customTpl.sigUrl)}" style="width: ${customTpl.sigWidth ?? 120}px; height: auto; object-fit: contain;" />
+        <div style="position: absolute; left: ${sigX}%; top: ${sigY}%; z-index: 50; mix-blend-mode: multiply; pointer-events: none; width: ${sigW}%;">
+          <img src="${getFullImageUrl(customTpl.sigUrl)}" style="width: 100%; height: auto; object-fit: contain;" />
         </div>
       `;
     }
     if (overlays) {
-      html = `<div style="position: relative; width: 100%; height: 100%; min-height: 297mm;">${html}${overlays}</div>`;
+      const bodyCloseIndex = html.toLowerCase().lastIndexOf('</body>');
+      if (bodyCloseIndex !== -1) {
+        const preBodyHtml = html.substring(0, bodyCloseIndex);
+        const lastDivIndex = preBodyHtml.lastIndexOf('</div>');
+        if (lastDivIndex !== -1) {
+          html = preBodyHtml.substring(0, lastDivIndex) + overlays + preBodyHtml.substring(lastDivIndex) + html.substring(bodyCloseIndex);
+        } else {
+          html = preBodyHtml + overlays + html.substring(bodyCloseIndex);
+        }
+      } else {
+        const lastDivIndex = html.lastIndexOf('</div>');
+        if (lastDivIndex !== -1) {
+          html = html.substring(0, lastDivIndex) + overlays + html.substring(lastDivIndex);
+        } else {
+          html = html + overlays;
+        }
+      }
     }
   }
 
@@ -883,9 +978,159 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
+  const [downloadingDocId, setDownloadingDocId] = useState<string | null>(null);
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [viewDoc, setViewDoc] = useState<GeneratedDocument | null>(null);
   const [deleteDoc, setDeleteDoc] = useState<GeneratedDocument | null>(null);
-  const [downloadingDocId, setDownloadingDocId] = useState<string | null>(null);
+
+  const handleShareEmail = (doc: GeneratedDocument) => {
+    if (sendingEmailId) return;
+    setSendingEmailId(doc.id);
+
+    const emp = employees.find(e => e.id === doc.employeeId);
+    if (!emp || !emp.email) {
+      triggerToast("Employee email address not found on record.", "error");
+      setSendingEmailId(null);
+      return;
+    }
+
+    const htmlContent = getRenderedHtml(
+      doc.type,
+      {
+        name: emp?.name || '',
+        department: emp?.department || '',
+        jobTitle: emp?.designationRole || undefined,
+        salary: emp?.salary !== undefined ? String(emp.salary) : undefined,
+        joinDate: emp?.joinDate || doc.date,
+        city: emp?.city || undefined,
+        state: emp?.state || undefined,
+        pincode: emp?.pincode || undefined,
+        email: emp?.email || undefined,
+        employeeId: emp?.id || undefined,
+        dateOfLeaving: emp?.dateOfLeaving || undefined
+      },
+      templates
+    );
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.left = '0';
+    iframe.style.top = '0';
+    iframe.style.width = '210mm';
+    iframe.style.height = '297mm';
+    iframe.style.zIndex = '-99999';
+    iframe.style.border = '0';
+    iframe.style.opacity = '1';
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentWindow?.document;
+    if (iframeDoc) {
+      iframeDoc.open();
+      iframeDoc.write(htmlContent);
+      iframeDoc.close();
+    }
+
+    const fileName = `${doc.name.replace(/\s+/g, "_")}.pdf`;
+
+    const waitForImages = (iframeBody: HTMLElement): Promise<void> => {
+      const imgs = Array.from(iframeBody.querySelectorAll('img'));
+      const promises = imgs.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        });
+      });
+      return Promise.all(promises).then(() => { });
+    };
+
+    const executeEmailSend = async () => {
+      const iframeBody = iframe.contentWindow?.document.body;
+      if (!iframeBody) {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+        setSendingEmailId(null);
+        return;
+      }
+
+      iframeBody.style.margin = '0';
+      iframeBody.style.padding = '0';
+      iframeBody.style.overflow = 'hidden';
+      iframeBody.style.height = '296.5mm';
+
+      const targetElement = (iframeBody.querySelector('.a4-page') as HTMLElement) || iframeBody;
+      if (targetElement !== iframeBody) {
+        targetElement.style.margin = '0';
+        targetElement.style.border = 'none';
+        targetElement.style.boxShadow = 'none';
+        targetElement.style.borderRadius = '0';
+        targetElement.style.height = '296.5mm';
+      }
+
+      try {
+        await waitForImages(iframeBody);
+
+        const opt = {
+          margin: 0,
+          filename: fileName,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, scrollY: 0, scrollX: 0 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: 'avoid-all' }
+        };
+
+        triggerToast("Generating PDF and sending email...", "info");
+
+        // @ts-ignore
+        const pdfBase64 = await window.html2pdf().from(targetElement).set(opt).outputPdf('datauristring');
+
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+
+        const subject = `Official Document: ${doc.name}`;
+        const body = `Dear ${emp.name || 'Employee'},\n\nPlease find your generated document "${doc.name}" attached below.\n\nBest Regards,\nHR Team\nHously Fintech Realty`;
+
+        await documentApi.sendDocumentEmail({
+          email: emp.email,
+          subject,
+          body,
+          pdfBase64,
+          filename: fileName
+        });
+
+        triggerToast(`Document sent successfully to ${emp.email}!`, "success");
+      } catch (err: any) {
+        console.error('PDF Generation or Email sending failed:', err);
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+        triggerToast(`Failed to send email.`, "error");
+      } finally {
+        setSendingEmailId(null);
+      
+      }
+    };
+
+    // Load html2pdf dynamically from CDN if not loaded
+    // @ts-ignore
+    if (window.html2pdf) {
+      executeEmailSend();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      script.onload = executeEmailSend;
+      script.onerror = () => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+        setSendingEmailId(null);
+        triggerToast('Failed to load PDF engine.', 'error');
+      };
+      document.body.appendChild(script);
+    }
+  };
 
   // Filters Drawer States
   const [filterEmployee, setFilterEmployee] = useState('');
@@ -894,6 +1139,24 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [ignoreDate, setIgnoreDate] = useState(true);
+
+  const [tempFilterEmployee, setTempFilterEmployee] = useState('');
+  const [tempFilterDept, setTempFilterDept] = useState('');
+  const [tempFilterType, setTempFilterType] = useState('');
+  const [tempFilterDateFrom, setTempFilterDateFrom] = useState('');
+  const [tempFilterDateTo, setTempFilterDateTo] = useState('');
+  const [tempIgnoreDate, setTempIgnoreDate] = useState(true);
+
+  useEffect(() => {
+    if (isFilterOpen) {
+      setTempFilterEmployee(filterEmployee);
+      setTempFilterDept(filterDept);
+      setTempFilterType(filterType);
+      setTempFilterDateFrom(filterDateFrom);
+      setTempFilterDateTo(filterDateTo);
+      setTempIgnoreDate(ignoreDate);
+    }
+  }, [isFilterOpen, filterEmployee, filterDept, filterType, filterDateFrom, filterDateTo, ignoreDate]);
 
   // Generation Modal States
   const [genDocType, setGenDocType] = useState('Offer Letter');
@@ -911,6 +1174,7 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
             id: emp.employeeId,
             name: fullName,
             email: emp.email,
+            phone: emp.phone,
             department: emp.department || '',
             avatarUrl: emp.avatarUrl,
             designationRole: emp.designationRole || '',
@@ -919,7 +1183,8 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
             pincode: emp.pincode || '',
             salary: emp.salary,
             salaryType: emp.salaryType,
-            joinDate: emp.joinDate || ''
+            joinDate: emp.joinDate || '',
+            dateOfLeaving: emp.dateOfLeaving || ''
           };
         });
         setEmployees(formatted);
@@ -947,6 +1212,14 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
     setFilterDateFrom('');
     setFilterDateTo('');
     setIgnoreDate(true);
+
+    setTempFilterEmployee('');
+    setTempFilterDept('');
+    setTempFilterType('');
+    setTempFilterDateFrom('');
+    setTempFilterDateTo('');
+    setTempIgnoreDate(true);
+
     triggerToast("Filters cleared.", "info");
   };
 
@@ -1041,7 +1314,8 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
         state: emp?.state || undefined,
         pincode: emp?.pincode || undefined,
         email: emp?.email || undefined,
-        employeeId: emp?.id || undefined
+        employeeId: emp?.id || undefined,
+        dateOfLeaving: emp?.dateOfLeaving || undefined
       },
       templates
     );
@@ -1255,7 +1529,8 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
                               state: matchingEmp?.state || undefined,
                               pincode: matchingEmp?.pincode || undefined,
                               email: matchingEmp?.email || undefined,
-                              employeeId: matchingEmp?.id || undefined
+                              employeeId: matchingEmp?.id || undefined,
+                              dateOfLeaving: matchingEmp?.dateOfLeaving || undefined
                             },
                             templates
                           )
@@ -1302,7 +1577,7 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
                     </div>
                   </div>
 
-                  {/* Bottom bar icons (eye, download, delete) - Align right, default colors */}
+                  {/* Bottom bar icons (eye, download, share, delete) - Align right, default colors */}
                   <div className="mt-3.5 pt-2 border-t border-slate-50 flex items-center justify-end gap-1">
                     <button
                       onClick={() => setViewDoc(doc)}
@@ -1310,6 +1585,23 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
                       title="View Details"
                     >
                       <Eye size={14} />
+                    </button>
+
+                    {/* Email PDF Button */}
+                    <button
+                      onClick={() => handleShareEmail(doc)}
+                      disabled={sendingEmailId === doc.id}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition cursor-pointer disabled:opacity-50"
+                      title="Email PDF to Employee"
+                    >
+                      {sendingEmailId === doc.id ? (
+                        <svg className="animate-spin h-3.5 w-3.5 text-blue-500" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      ) : (
+                        <Mail size={14} />
+                      )}
                     </button>
 
                     <button
@@ -1390,7 +1682,8 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
                             state: emp?.state || undefined,
                             pincode: emp?.pincode || undefined,
                             email: emp?.email || undefined,
-                            employeeId: emp?.id || undefined
+                            employeeId: emp?.id || undefined,
+                            dateOfLeaving: emp?.dateOfLeaving || undefined
                           },
                           templates
                         );
@@ -1583,8 +1876,8 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
                     <input
                       type="text"
                       placeholder="Search employee..."
-                      value={filterEmployee}
-                      onChange={(e) => setFilterEmployee(e.target.value)}
+                      value={tempFilterEmployee}
+                      onChange={(e) => setTempFilterEmployee(e.target.value)}
                       className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
                     />
                   </div>
@@ -1592,8 +1885,8 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
                   <div>
                     <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Department</label>
                     <select
-                      value={filterDept}
-                      onChange={(e) => setFilterDept(e.target.value)}
+                      value={tempFilterDept}
+                      onChange={(e) => setTempFilterDept(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none"
                     >
                       <option value="">All Departments</option>
@@ -1608,8 +1901,8 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
                   <div>
                     <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Document Type</label>
                     <select
-                      value={filterType}
-                      onChange={(e) => setFilterType(e.target.value)}
+                      value={tempFilterType}
+                      onChange={(e) => setTempFilterType(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none"
                     >
                       <option value="">All Types</option>
@@ -1626,8 +1919,8 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
                       <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-blue-600 select-none">
                         <input
                           type="checkbox"
-                          checked={ignoreDate}
-                          onChange={(e) => setIgnoreDate(e.target.checked)}
+                          checked={tempIgnoreDate}
+                          onChange={(e) => setTempIgnoreDate(e.target.checked)}
                           className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
                         />
                         Ignore date
@@ -1639,9 +1932,9 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
                         <span className="text-[9px] text-gray-400 font-bold block mb-1">From Date</span>
                         <input
                           type="date"
-                          disabled={ignoreDate}
-                          value={filterDateFrom}
-                          onChange={(e) => setFilterDateFrom(e.target.value)}
+                          disabled={tempIgnoreDate}
+                          value={tempFilterDateFrom}
+                          onChange={(e) => setTempFilterDateFrom(e.target.value)}
                           className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs outline-none disabled:opacity-50 disabled:bg-slate-100"
                         />
                       </div>
@@ -1649,9 +1942,9 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
                         <span className="text-[9px] text-gray-400 font-bold block mb-1">To Date</span>
                         <input
                           type="date"
-                          disabled={ignoreDate}
-                          value={filterDateTo}
-                          onChange={(e) => setFilterDateTo(e.target.value)}
+                          disabled={tempIgnoreDate}
+                          value={tempFilterDateTo}
+                          onChange={(e) => setTempFilterDateTo(e.target.value)}
                           className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs outline-none disabled:opacity-50 disabled:bg-slate-100"
                         />
                       </div>
@@ -1660,7 +1953,18 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
                 </div>
 
                 <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-2">
-                  <button onClick={() => setIsFilterOpen(false)} className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer">
+                  <button
+                    onClick={() => {
+                      setFilterEmployee(tempFilterEmployee);
+                      setFilterDept(tempFilterDept);
+                      setFilterType(tempFilterType);
+                      setFilterDateFrom(tempFilterDateFrom);
+                      setFilterDateTo(tempFilterDateTo);
+                      setIgnoreDate(tempIgnoreDate);
+                      setIsFilterOpen(false);
+                    }}
+                    className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
+                  >
                     Apply Filter
                   </button>
                   <button onClick={handleResetFilters} className="w-full py-2 border border-slate-200 bg-white hover:bg-slate-50 rounded-xl text-xs font-bold text-gray-500 cursor-pointer">
@@ -1732,6 +2036,32 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
     }
   }, [viewState, editorMode, logoUrl]);
 
+  useEffect(() => {
+    if ((viewState === 'edit' || viewState === 'create') && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const canvasWidth = canvas.clientWidth || 672;
+      const canvasHeight = canvas.clientHeight || 840;
+
+      if (viewState === 'edit' && editingTemplate) {
+        setSealPos({
+          x: (getPercentX(editingTemplate.sealX, 15) * canvasWidth) / 100,
+          y: (getPercentY(editingTemplate.sealY, 75) * canvasHeight) / 100
+        });
+        setSigPos({
+          x: (getPercentX(editingTemplate.sigX, 50) * canvasWidth) / 100,
+          y: (getPercentY(editingTemplate.sigY, 75) * canvasHeight) / 100
+        });
+        setSealWidth((getPercentWidth(editingTemplate.sealWidth, 10) * canvasWidth) / 100);
+        setSigWidth((getPercentWidth(editingTemplate.sigWidth, 15) * canvasWidth) / 100);
+      } else if (viewState === 'create') {
+        setSealPos({ x: 0.15 * canvasWidth, y: 0.75 * canvasHeight });
+        setSigPos({ x: 0.50 * canvasWidth, y: 0.75 * canvasHeight });
+        setSealWidth(0.10 * canvasWidth);
+        setSigWidth(0.15 * canvasWidth);
+      }
+    }
+  }, [viewState, editingTemplate, canvasRef.current]);
+
   const handleSigUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSigError('');
     if (e.target.files && e.target.files[0]) {
@@ -1779,7 +2109,7 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
         }
       }
 
-      const newWidth = Math.max(30, startWidth + (dx / scale));
+      const newWidth = Math.max(20, startWidth + (dx / scale));
       if (type === 'seal') {
         setSealWidth(newWidth);
       } else {
@@ -1891,10 +2221,10 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
     setLogoError('');
     setSealError('');
     setSigError('');
-    setSealPos({ x: 100, y: 700 });
-    setSigPos({ x: 350, y: 700 });
-    setSealWidth(80);
-    setSigWidth(120);
+    setSealPos({ x: 15, y: 75 });
+    setSigPos({ x: 50, y: 75 });
+    setSealWidth(10);
+    setSigWidth(15);
     setShowSealOnPage(false);
     setShowSigOnPage(false);
     setTemplateHtml(blankTemplateHtml);
@@ -1916,10 +2246,16 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
     setLogoError('');
     setSealError('');
     setSigError('');
-    setSealPos({ x: tpl.sealX ?? 100, y: tpl.sealY ?? 700 });
-    setSigPos({ x: tpl.sigX ?? 350, y: tpl.sigY ?? 700 });
-    setSealWidth(tpl.sealWidth ?? 80);
-    setSigWidth(tpl.sigWidth ?? 120);
+    setSealPos({
+      x: getPercentX(tpl.sealX, 15),
+      y: getPercentY(tpl.sealY, 75)
+    });
+    setSigPos({
+      x: getPercentX(tpl.sigX, 50),
+      y: getPercentY(tpl.sigY, 75)
+    });
+    setSealWidth(getPercentWidth(tpl.sealWidth, 10));
+    setSigWidth(getPercentWidth(tpl.sigWidth, 15));
     setShowSealOnPage(!!tpl.sealUrl);
     setShowSigOnPage(!!tpl.sigUrl);
     const defaultHtml = tpl.content || (tpl.category === 'Offer Letter' ? offerLetterHtml
@@ -1960,23 +2296,52 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
 
     let baseHtml = renderTemplateContent(templateHtml, logoUrl, null, null);
 
+    const canvas = document.getElementById('a4-editor-canvas');
+    const canvasWidth = canvas?.clientWidth || 672;
+    const canvasHeight = canvas?.clientHeight || 840;
+
     let overlays = '';
-    if (sealUrl) {
+    if (sealUrl && showSealOnPage) {
+      const sealX = Number(((sealPos.x / canvasWidth) * 100).toFixed(2));
+      const sealY = Number(((sealPos.y / canvasHeight) * 100).toFixed(2));
+      const sealW = Number(((sealWidth / canvasWidth) * 100).toFixed(2));
       overlays += `
-        <div style="position: absolute; left: ${sealPos.x}px; top: ${sealPos.y}px; z-index: 50; mix-blend-mode: multiply; pointer-events: none;">
-          <img src="${getFullImageUrl(sealUrl)}" style="width: ${sealWidth}px; height: auto; object-fit: contain;" />
+        <div style="position: absolute; left: ${sealX}%; top: ${sealY}%; z-index: 50; mix-blend-mode: multiply; pointer-events: none; width: ${sealW}%;">
+          <img src="${getFullImageUrl(sealUrl)}" style="width: 100%; height: auto; object-fit: contain;" />
         </div>
       `;
     }
-    if (sigUrl) {
+    if (sigUrl && showSigOnPage) {
+      const sigX = Number(((sigPos.x / canvasWidth) * 100).toFixed(2));
+      const sigY = Number(((sigPos.y / canvasHeight) * 100).toFixed(2));
+      const sigW = Number(((sigWidth / canvasWidth) * 100).toFixed(2));
       overlays += `
-        <div style="position: absolute; left: ${sigPos.x}px; top: ${sigPos.y}px; z-index: 50; mix-blend-mode: multiply; pointer-events: none;">
-          <img src="${getFullImageUrl(sigUrl)}" style="width: ${sigWidth}px; height: auto; object-fit: contain;" />
+        <div style="position: absolute; left: ${sigX}%; top: ${sigY}%; z-index: 50; mix-blend-mode: multiply; pointer-events: none; width: ${sigW}%;">
+          <img src="${getFullImageUrl(sigUrl)}" style="width: 100%; height: auto; object-fit: contain;" />
         </div>
       `;
     }
 
-    const renderedHtml = `<div style="position: relative; width: 210mm; height: 297mm; overflow: hidden; margin: 0 auto;">${baseHtml}${overlays}</div>`;
+    let printedHtml = baseHtml;
+    if (overlays) {
+      const bodyCloseIndex = printedHtml.toLowerCase().lastIndexOf('</body>');
+      if (bodyCloseIndex !== -1) {
+        const preBodyHtml = printedHtml.substring(0, bodyCloseIndex);
+        const lastDivIndex = preBodyHtml.lastIndexOf('</div>');
+        if (lastDivIndex !== -1) {
+          printedHtml = preBodyHtml.substring(0, lastDivIndex) + overlays + preBodyHtml.substring(lastDivIndex) + printedHtml.substring(bodyCloseIndex);
+        } else {
+          printedHtml = preBodyHtml + overlays + printedHtml.substring(bodyCloseIndex);
+        }
+      } else {
+        const lastDivIndex = printedHtml.lastIndexOf('</div>');
+        if (lastDivIndex !== -1) {
+          printedHtml = printedHtml.substring(0, lastDivIndex) + overlays + printedHtml.substring(lastDivIndex);
+        } else {
+          printedHtml = printedHtml + overlays;
+        }
+      }
+    }
 
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
@@ -2003,7 +2368,7 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
             </style>
           </head>
           <body>
-            ${renderedHtml}
+            ${printedHtml}
           </body>
         </html>
       `);
@@ -2044,6 +2409,10 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
       const finalSealUrl = await uploadDocResource(sealFile, sealUrl);
       const finalSigUrl = await uploadDocResource(sigFile, sigUrl);
 
+      const canvas = document.getElementById('a4-editor-canvas');
+      const canvasWidth = canvas?.clientWidth || 672;
+      const canvasHeight = canvas?.clientHeight || 840;
+
       const payload = {
         name: formName,
         category: formCategory,
@@ -2054,12 +2423,12 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
         logoUrl: finalLogoUrl || null,
         sealUrl: showSealOnPage ? finalSealUrl : null,
         sigUrl: showSigOnPage ? finalSigUrl : null,
-        sealX: sealPos.x,
-        sealY: sealPos.y,
-        sealWidth: sealWidth,
-        sigX: sigPos.x,
-        sigY: sigPos.y,
-        sigWidth: sigWidth
+        sealX: Number(((sealPos.x / canvasWidth) * 100).toFixed(2)),
+        sealY: Number(((sealPos.y / canvasHeight) * 100).toFixed(2)),
+        sealWidth: Number(((sealWidth / canvasWidth) * 100).toFixed(2)),
+        sigX: Number(((sigPos.x / canvasWidth) * 100).toFixed(2)),
+        sigY: Number(((sigPos.y / canvasHeight) * 100).toFixed(2)),
+        sigWidth: Number(((sigWidth / canvasWidth) * 100).toFixed(2))
       };
 
       const saved = await documentApi.createTemplate(payload as any);
@@ -2084,6 +2453,10 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
       const finalSealUrl = await uploadDocResource(sealFile, sealUrl);
       const finalSigUrl = await uploadDocResource(sigFile, sigUrl);
 
+      const canvas = document.getElementById('a4-editor-canvas');
+      const canvasWidth = canvas?.clientWidth || 672;
+      const canvasHeight = canvas?.clientHeight || 840;
+
       const payload = {
         name: formName,
         category: formCategory,
@@ -2092,12 +2465,12 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
         logoUrl: finalLogoUrl || null,
         sealUrl: showSealOnPage ? finalSealUrl : null,
         sigUrl: showSigOnPage ? finalSigUrl : null,
-        sealX: sealPos.x,
-        sealY: sealPos.y,
-        sealWidth: sealWidth,
-        sigX: sigPos.x,
-        sigY: sigPos.y,
-        sigWidth: sigWidth
+        sealX: Number(((sealPos.x / canvasWidth) * 100).toFixed(2)),
+        sealY: Number(((sealPos.y / canvasHeight) * 100).toFixed(2)),
+        sealWidth: Number(((sealWidth / canvasWidth) * 100).toFixed(2)),
+        sigX: Number(((sigPos.x / canvasWidth) * 100).toFixed(2)),
+        sigY: Number(((sigPos.y / canvasHeight) * 100).toFixed(2)),
+        sigWidth: Number(((sigWidth / canvasWidth) * 100).toFixed(2))
       };
 
       await documentApi.updateTemplate(editingTemplate.id as number, payload as any);
@@ -2664,13 +3037,16 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
                       <select
                         onChange={(e) => {
                           if (e.target.value) {
-                            triggerToast(`Variable {{${e.target.value}}} copied.`, 'info');
+                            navigator.clipboard.writeText(`{{${e.target.value}}}`);
+                            triggerToast(`Variable {{${e.target.value}}} copied to clipboard!`, 'success');
                             e.target.value = '';
                           }
                         }}
                         className="bg-white border border-slate-200 rounded px-2 py-0.5 outline-none text-slate-500 font-medium"
                       >
                         <option value="">Insert variable...</option>
+                        <option value="issue_date">issue_date (Today)</option>
+                        <option value="date_of_leaving">date_of_leaving</option>
                         {formCategory === 'Offer Letter' && (
                           <>
                             <option value="employee_name">employee_name</option>

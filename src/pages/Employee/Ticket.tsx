@@ -363,7 +363,7 @@ export default function EmployeeTickets() {
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="w-full h-[calc(100vh-115px)] md:h-[calc(100vh-130px)] flex flex-col overflow-hidden bg-gray-50/50 p-1">
+    <div className="w-full h-[calc(100vh-115px)] md:h-[calc(100vh-130px)] flex flex-col overflow-hidden  p-1">
 
       {/* ── Stats Row ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-2">

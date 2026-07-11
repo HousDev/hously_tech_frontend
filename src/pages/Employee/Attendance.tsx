@@ -109,6 +109,7 @@ const Attendance: React.FC = () => {
   const [selectedShift, setSelectedShift] = useState<string>('General (9AM–6PM)');
   const [assignedBranch, setAssignedBranch] = useState<{ name: string; address: string; latitude: number; longitude: number } | null>(null);
   const [securitySettings, setSecuritySettings] = useState<any>(null);
+  const [weekOffDays, setWeekOffDays] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Biometric scanner state simulation
@@ -151,6 +152,9 @@ const Attendance: React.FC = () => {
       setCheckInTime(statusData.checkInTime);
       setAssignedBranch(statusData.assignedBranch);
       setSecuritySettings(statusData.securitySettings);
+      if ((statusData as any).weekOffDays) {
+        setWeekOffDays((statusData as any).weekOffDays);
+      }
 
       const logsData = await attendanceApi.getLogs();
       setLogs(logsData);
@@ -366,6 +370,13 @@ const Attendance: React.FC = () => {
   };
 
   // Calendar Day Colors
+  // Day-of-week names matching what backend stores
+  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  // Is today a weekly off day for this employee?
+  const todayDayName = DAY_NAMES[today.getDay()];
+  const isWeeklyOff = weekOffDays.length > 0 && weekOffDays.includes(todayDayName);
+
   const getDayStatusColor = (dayNum: number) => {
     const formattedDay = `${calendarDate.getFullYear()}-${String(calendarDate.getMonth() + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
     const log = logs.find(l => l.date === formattedDay);
@@ -375,41 +386,46 @@ const Attendance: React.FC = () => {
     const isActiveToday = isCheckedIn && formattedDay === todayStr;
 
     if (isActiveToday) {
-      return 'bg-emerald-500 text-white border-emerald-600 font-extrabold shadow-sm';
+      return 'bg-emerald-600 text-white border-emerald-700 font-semibold shadow-xs';
+    }
+
+    const d = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), dayNum);
+    const dayName = DAY_NAMES[d.getDay()];
+
+    // Check if this calendar day is a weekly off for this employee
+    if (weekOffDays.length > 0 && weekOffDays.includes(dayName)) {
+      return 'bg-slate-200 text-slate-600 border-slate-300 font-medium';
     }
 
     if (!log) {
-      const d = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), dayNum);
-      const dayOfWeek = d.getDay();
-      if (dayOfWeek === 0) return 'bg-slate-50 text-slate-404 border-slate-105';
-      if (d > today) return 'bg-white text-slate-300 border-slate-105';
-      return 'bg-rose-50 text-rose-600 border-rose-105 font-semibold';
+      if (d > today) return 'bg-white text-slate-400 border-slate-200';
+      return 'bg-rose-200 text-rose-800 border-rose-300 font-medium';
     }
 
     const s = log.status?.toLowerCase();
 
     if (s === 'on_leave' || s === 'on leave') {
-      return 'bg-purple-50 text-purple-700 border-purple-200 font-semibold';
+      return 'bg-purple-200 text-purple-800 border-purple-300 font-medium';
     }
 
     if (s === 'absent') {
-      return 'bg-rose-50 text-rose-600 border-rose-105 font-semibold';
+      return 'bg-rose-200 text-rose-800 border-rose-300 font-medium';
     }
 
     if (s === 'week_off' || s === 'week off') {
-      return 'bg-slate-50 text-slate-404 border-slate-105';
+      return 'bg-slate-200 text-slate-600 border-slate-300';
     }
 
     if (s === 'holiday') {
-      return 'bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold';
+      return 'bg-indigo-200 text-indigo-800 border-indigo-300 font-medium';
     }
 
     if (s === 'half_day' || s === 'half day') {
-      return 'bg-sky-50 text-sky-700 border-sky-200 font-semibold';
+      return 'bg-sky-200 text-sky-800 border-sky-300 font-medium';
     }
 
     // Recorded present/late/etc -> GREEN
-    return 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200 font-extrabold shadow-xs';
+    return 'bg-emerald-200 text-emerald-800 border-emerald-300 hover:bg-emerald-300/40 font-semibold';
   };
 
   // Open biometric punch popup
@@ -776,122 +792,132 @@ const Attendance: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {/* Card 1: Present Days */}
         <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-xs flex flex-col justify-between min-h-[105px]">
-          <span className="text-slate-405 text-xs font-semibold">Present Days</span>
+          <span className="text-slate-500 text-xs font-semibold">Present Days</span>
           <div className="flex items-center justify-between mt-2 mb-1">
-            <span className="text-2xl font-black text-emerald-606">{totalPresent}</span>
+            <span className="text-xl font-bold text-emerald-600">{totalPresent}</span>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-600">
               <UserCheck className="w-4 h-4" />
             </div>
           </div>
-          <span className="text-slate-404 text-[10px] font-semibold">
+          <span className="text-slate-400 text-[10px] font-semibold">
             {Math.round((totalPresent / (totalPresent + totalAbsent || 1)) * 100)}% present
           </span>
         </div>
 
         {/* Card 2: Absent Days */}
         <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-xs flex flex-col justify-between min-h-[105px]">
-          <span className="text-slate-405 text-xs font-semibold">Absent Days</span>
+          <span className="text-slate-500 text-xs font-semibold">Absent Days</span>
           <div className="flex items-center justify-between mt-2 mb-1">
-            <span className="text-2xl font-black text-rose-606">{totalAbsent}</span>
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 text-rose-655">
+            <span className="text-xl font-bold text-rose-600">{totalAbsent}</span>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 text-rose-600">
               <X className="w-4 h-4" />
             </div>
           </div>
-          <span className="text-slate-404 text-[10px] font-semibold">
+          <span className="text-slate-400 text-[10px] font-semibold">
             {Math.round((totalAbsent / (totalPresent + totalAbsent || 1)) * 100)}% absent
           </span>
         </div>
 
         {/* Card 3: Half Days */}
         <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-xs flex flex-col justify-between min-h-[105px]">
-          <span className="text-slate-405 text-xs font-semibold">Half Days</span>
+          <span className="text-slate-500 text-xs font-semibold">Half Days</span>
           <div className="flex items-center justify-between mt-2 mb-1">
-            <span className="text-2xl font-black text-amber-606">{totalHalfDays}</span>
+            <span className="text-xl font-bold text-amber-600">{totalHalfDays}</span>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-amber-50 text-amber-600">
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <span className="text-slate-404 text-[10px] font-semibold">{totalHalfDays} Half Days</span>
+          <span className="text-slate-400 text-[10px] font-semibold">{totalHalfDays} Half Days</span>
         </div>
 
         {/* Card 4: Paid Leaves Days */}
         <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-xs flex flex-col justify-between min-h-[105px]">
-          <span className="text-slate-405 text-xs font-semibold">Paid Leaves Days</span>
+          <span className="text-slate-500 text-xs font-semibold">Paid Leaves Days</span>
           <div className="flex items-center justify-between mt-2 mb-1">
-            <span className="text-2xl font-black text-purple-606">{totalLeaves}</span>
+            <span className="text-xl font-bold text-purple-600">{totalLeaves}</span>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-purple-50 text-purple-600">
-              <span className="font-extrabold text-sm">₹</span>
+              <span className="font-bold text-sm">₹</span>
             </div>
           </div>
-          <span className="text-slate-404 text-[10px] font-semibold">{totalLeaves} Paid Leaves Days</span>
+          <span className="text-slate-400 text-[10px] font-semibold">{totalLeaves} Paid Leaves Days</span>
         </div>
 
         {/* Card 5: Week Off Days */}
         <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-xs flex flex-col justify-between min-h-[105px]">
-          <span className="text-slate-405 text-xs font-semibold">Week Off Days</span>
+          <span className="text-slate-500 text-xs font-semibold">Week Off Days</span>
           <div className="flex items-center justify-between mt-2 mb-1">
-            <span className="text-2xl font-black text-slate-707">{totalWeekOffs}</span>
+            <span className="text-xl font-bold text-slate-700">{totalWeekOffs}</span>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-50 text-slate-600">
               <Calendar className="w-4 h-4" />
             </div>
           </div>
-          <span className="text-slate-404 text-[10px] font-semibold">Week Off Days</span>
+          <span className="text-slate-400 text-[10px] font-semibold">Week Off Days</span>
         </div>
 
         {/* Card 6: Late Arrivals Days */}
         <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-xs flex flex-col justify-between min-h-[105px]">
-          <span className="text-slate-405 text-xs font-semibold">Late Arrivals Days</span>
+          <span className="text-slate-500 text-xs font-semibold">Late Arrivals Days</span>
           <div className="flex items-center justify-between mt-2 mb-1">
-            <span className="text-2xl font-black text-orange-606">{totalLate}</span>
+            <span className="text-xl font-bold text-orange-600">{totalLate}</span>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-orange-50 text-orange-600">
               <AlertCircle className="w-4 h-4" />
             </div>
           </div>
-          <span className="text-slate-404 text-[10px] font-semibold">
+          <span className="text-slate-400 text-[10px] font-semibold">
             {Math.round((totalLate / (totalPresent || 1)) * 100)}% late
           </span>
         </div>
 
         {/* Card 7: Avg. Hours */}
         <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-xs flex flex-col justify-between min-h-[105px]">
-          <span className="text-slate-405 text-xs font-semibold">Avg. Hours</span>
+          <span className="text-slate-500 text-xs font-semibold">Avg. Hours</span>
           <div className="flex items-center justify-between mt-2 mb-1">
-            <span className="text-2xl font-black text-blue-606">{avgHoursStr}</span>
+            <span className="text-xl font-bold text-blue-600">{avgHoursStr}</span>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <span className="text-slate-404 text-[10px] font-semibold">per employee</span>
+          <span className="text-slate-400 text-[10px] font-semibold">per employee</span>
         </div>
       </div>
 
       {/* 2. Sleek Action Buttons Row + Real-time Clock Timer placed to the right */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/40 p-3 rounded-2xl border border-slate-100/50 shadow-2xs">
         <div className="flex items-center gap-3 flex-wrap">
-          <button
-            type="button"
-            onClick={() => handleOpenPunchPopup(isCheckedIn)}
-            className="bg-[#0D47A1] hover:bg-blue-808 text-white font-extrabold text-xs py-2.5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform active:scale-95 flex items-center space-x-2 cursor-pointer"
-          >
-            <Clock className="w-4 h-4 text-blue-200 animate-pulse" />
-            <span>Mark {isCheckedIn ? 'Check-Out' : 'Check-In'}</span>
-          </button>
+          {isWeeklyOff ? (
+            <div className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl">
+              <span className="text-lg">🏖️</span>
+              <div>
+                <span className="text-xs font-bold text-slate-700 block">Weekly Off — {todayDayName}</span>
+                <span className="text-[10px] text-slate-500 font-medium">Attendance marking disabled today</span>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleOpenPunchPopup(isCheckedIn)}
+              className="bg-[#0D47A1] hover:bg-blue-800 text-white font-bold text-xs py-2.5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform active:scale-95 flex items-center space-x-2 cursor-pointer"
+            >
+              <Clock className="w-4 h-4 text-blue-200 animate-pulse" />
+              <span>Mark {isCheckedIn ? 'Check-Out' : 'Check-In'}</span>
+            </button>
+          )}
 
           <button
             type="button"
             onClick={() => setIsIssuePopupOpen(true)}
-            className="bg-white border border-slate-200 hover:bg-slate-55 text-slate-705 font-extrabold text-xs py-2.5 px-6 rounded-xl shadow-xs transition-all duration-200 flex items-center space-x-2 cursor-pointer"
+            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs py-2.5 px-6 rounded-xl shadow-xs transition-all duration-200 flex items-center space-x-2 cursor-pointer"
           >
-            <AlertTriangle className="w-4 h-4 text-rose-505" />
+            <AlertTriangle className="w-4 h-4 text-rose-500" />
             <span>Report Issue</span>
           </button>
         </div>
 
         {/* Real-time Ticking Clock widget placed directly on the right side of the buttons */}
-        <div className="flex items-center space-x-2.5 bg-slate-55 border border-slate-200 px-4 py-2 rounded-2xl shadow-2xs self-start sm:self-auto">
-          <span className="text-sm font-black text-slate-808 tabular-nums">{formatTime(time)}</span>
+        <div className="flex items-center space-x-2.5 bg-slate-50 border border-slate-200 px-4 py-2 rounded-2xl shadow-2xs self-start sm:self-auto">
+          <span className="text-sm font-bold text-slate-800 tabular-nums">{formatTime(time)}</span>
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] text-slate-404 font-bold uppercase tracking-wide">
+          <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">
             {formatDateLong(time)}
           </span>
         </div>
@@ -903,19 +929,19 @@ const Attendance: React.FC = () => {
         <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-md p-6">
           <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
             <div>
-              <h3 className="font-black text-slate-808 text-sm tracking-wide uppercase">Attendance Calendar</h3>
-              <p className="text-[10px] text-slate-404 font-bold uppercase tracking-wider">Click cells to view snaps</p>
+              <h3 className="font-bold text-slate-800 text-sm tracking-wide uppercase">Attendance Calendar</h3>
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Click cells to view snaps</p>
             </div>
 
             <div className="flex items-center space-x-1.5">
               <button
                 onClick={handlePrevMonth}
                 disabled={isPrevDisabled}
-                className={`p-1.5 rounded-lg hover:bg-slate-105 transition cursor-pointer ${isPrevDisabled ? 'opacity-30 cursor-not-allowed' : ''}`}
+                className={`p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer ${isPrevDisabled ? 'opacity-30 cursor-not-allowed' : ''}`}
               >
                 <ChevronLeft className="w-4 h-4 text-slate-500" />
               </button>
-              <span className="text-[11px] font-black text-slate-707 uppercase tracking-wider min-w-[100px] text-center">
+              <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider min-w-[100px] text-center">
                 {monthNames[calendarDate.getMonth()]} {calendarDate.getFullYear()}
               </span>
               <button
@@ -929,7 +955,7 @@ const Attendance: React.FC = () => {
           </div>
 
           {/* Weekday headers */}
-          <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-404 mb-3 uppercase">
+          <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-slate-400 mb-3 uppercase">
             <span>
               <span className="hidden sm:inline">Sunday</span>
               <span className="sm:hidden">Sun</span>
@@ -978,24 +1004,24 @@ const Attendance: React.FC = () => {
                   className={`p-3 rounded-2xl text-[12px] flex flex-col items-center justify-center min-h-[50px] transition-all duration-200 hover:scale-105 active:scale-95 border cursor-pointer ${classes}`}
                   title={`Date: ${dayNum} ${monthNames[calendarDate.getMonth()]}`}
                 >
-                  <span className="font-extrabold">{dayNum}</span>
+                  <span className="font-semibold">{dayNum}</span>
                 </button>
               );
             })}
           </div>
 
           {/* Legend */}
-          <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap gap-4 text-[9px] font-bold text-slate-505">
+          <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap gap-4 text-[9px] font-semibold text-slate-500">
             <div className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded bg-emerald-100 border border-emerald-300 inline-block" />
+              <span className="w-2.5 h-2.5 rounded bg-emerald-50 border border-slate-200 inline-block" />
               <span>Present / Recorded</span>
             </div>
             <div className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded bg-purple-50 border border-purple-200 inline-block" />
+              <span className="w-2.5 h-2.5 rounded bg-purple-50 border border-slate-200 inline-block" />
               <span>On Leave</span>
             </div>
             <div className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded bg-rose-50 border border-rose-250 inline-block" />
+              <span className="w-2.5 h-2.5 rounded bg-rose-50 border border-slate-200 inline-block" />
               <span>Absent (No In-Log Check)</span>
             </div>
           </div>
@@ -1005,8 +1031,8 @@ const Attendance: React.FC = () => {
         <div className="bg-white rounded-3xl  shadow-md p-6 flex flex-col justify-between">
           <div>
             <div className="pb-3.5 border-b border-slate-100 mb-4 text-left">
-              <h3 className="font-black text-slate-808 text-sm tracking-wide uppercase">Adjustment Logs</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Regularization & Issues</p>
+              <h3 className="font-bold text-slate-800 text-sm tracking-wide uppercase">Adjustment Logs</h3>
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Regularization & Issues</p>
             </div>
 
             {/* Scrollable Adjustment Table (MNC level professional styling) */}

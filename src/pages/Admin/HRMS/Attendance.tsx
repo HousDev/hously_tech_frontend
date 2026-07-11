@@ -295,6 +295,23 @@ const TodayView = ({
   const [typeFilter, setTypeFilter] = useState("all");
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [tempSearchName, setTempSearchName] = useState("");
+  const [tempSearchDept, setTempSearchDept] = useState("");
+  const [tempSearchLoc, setTempSearchLoc] = useState("");
+  const [tempStatusFilter, setTempStatusFilter] = useState("all");
+  const [tempDeptFilter, setTempDeptFilter] = useState("all");
+  const [tempTypeFilter, setTempTypeFilter] = useState("all");
+
+  useEffect(() => {
+    if (isFilterOpen) {
+      setTempSearchName(searchName);
+      setTempSearchDept(searchDept);
+      setTempSearchLoc(searchLoc);
+      setTempStatusFilter(statusFilter);
+      setTempDeptFilter(deptFilter);
+      setTempTypeFilter(typeFilter);
+    }
+  }, [isFilterOpen, searchName, searchDept, searchLoc, statusFilter, deptFilter, typeFilter]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -399,8 +416,8 @@ const TodayView = ({
           <input
             type="text"
             placeholder="Search name or ID..."
-            value={searchName}
-            onChange={e => setSearchName(e.target.value)}
+            value={tempSearchName}
+            onChange={e => setTempSearchName(e.target.value)}
             className="w-full px-3 py-1.5 text-[11px] border border-slate-200 rounded-lg font-semibold text-slate-655 outline-none focus:ring-1 focus:ring-[#0D47A1] bg-white"
           />
         </div>
@@ -411,8 +428,8 @@ const TodayView = ({
           <input
             type="text"
             placeholder="Search department..."
-            value={searchDept}
-            onChange={e => setSearchDept(e.target.value)}
+            value={tempSearchDept}
+            onChange={e => setTempSearchDept(e.target.value)}
             className="w-full px-3 py-1.5 text-[11px] border border-slate-200 rounded-lg font-semibold text-slate-655 outline-none focus:ring-1 focus:ring-[#0D47A1] bg-white"
           />
         </div>
@@ -423,8 +440,8 @@ const TodayView = ({
           <input
             type="text"
             placeholder="Search location..."
-            value={searchLoc}
-            onChange={e => setSearchLoc(e.target.value)}
+            value={tempSearchLoc}
+            onChange={e => setTempSearchLoc(e.target.value)}
             className="w-full px-3 py-1.5 text-[11px] border border-slate-200 rounded-lg font-semibold text-slate-655 outline-none focus:ring-1 focus:ring-[#0D47A1] bg-white"
           />
         </div>
@@ -432,7 +449,7 @@ const TodayView = ({
         {/* Status filter */}
         <div>
           <label className="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Status</label>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          <select value={tempStatusFilter} onChange={e => setTempStatusFilter(e.target.value)}
             className="w-full pl-2.5 pr-6 py-1.5 text-[11px] border border-slate-200 rounded-lg font-semibold text-slate-600 outline-none bg-white cursor-pointer focus:ring-1 focus:ring-[#0D47A1]">
             <option value="all">All Status</option>
             <option value="present">Present</option>
@@ -448,7 +465,7 @@ const TodayView = ({
         {/* Department filter */}
         <div>
           <label className="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Department</label>
-          <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}
+          <select value={tempDeptFilter} onChange={e => setTempDeptFilter(e.target.value)}
             className="w-full pl-2.5 pr-6 py-1.5 text-[11px] border border-slate-200 rounded-lg font-semibold text-slate-600 outline-none bg-white cursor-pointer focus:ring-1 focus:ring-[#0D47A1]">
             <option value="all">All Departments</option>
             {departments.map(d => <option key={d} value={d}>{d}</option>)}
@@ -458,7 +475,7 @@ const TodayView = ({
         {/* Type filter */}
         <div>
           <label className="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Check-in Type</label>
-          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
+          <select value={tempTypeFilter} onChange={e => setTempTypeFilter(e.target.value)}
             className="w-full pl-2.5 pr-6 py-1.5 text-[11px] border border-slate-200 rounded-lg font-semibold text-slate-600 outline-none bg-white cursor-pointer focus:ring-1 focus:ring-[#0D47A1]">
             <option value="all">All Types</option>
             <option value="office">Office</option>
@@ -467,18 +484,39 @@ const TodayView = ({
           </select>
         </div>
 
-        {/* Reset button */}
-        <button onClick={() => {
-          setStatusFilter("all");
-          setDeptFilter("all");
-          setTypeFilter("all");
-          setSearchName("");
-          setSearchDept("");
-          setSearchLoc("");
-          toast.success("Filters reset!");
-        }} className="w-full mt-auto py-2 border border-slate-200 rounded-xl text-[11px] font-extrabold text-slate-500 hover:bg-slate-50 transition cursor-pointer">
-          Reset Filters
-        </button>
+        {/* Actions Footer */}
+        <div className="flex gap-2 pt-3 border-t border-slate-100 mt-auto flex-shrink-0">
+          <button onClick={() => {
+            setTempStatusFilter("all");
+            setTempDeptFilter("all");
+            setTempTypeFilter("all");
+            setTempSearchName("");
+            setTempSearchDept("");
+            setTempSearchLoc("");
+
+            setStatusFilter("all");
+            setDeptFilter("all");
+            setTypeFilter("all");
+            setSearchName("");
+            setSearchDept("");
+            setSearchLoc("");
+            toast.success("Filters reset!");
+            setIsFilterOpen(false);
+          }} className="flex-1 py-2 border border-slate-200 rounded-xl text-[11px] font-extrabold text-slate-500 hover:bg-slate-50 transition cursor-pointer text-center">
+            Reset
+          </button>
+          <button onClick={() => {
+            setStatusFilter(tempStatusFilter);
+            setDeptFilter(tempDeptFilter);
+            setTypeFilter(tempTypeFilter);
+            setSearchName(tempSearchName);
+            setSearchDept(tempSearchDept);
+            setSearchLoc(tempSearchLoc);
+            setIsFilterOpen(false);
+          }} className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-extrabold transition cursor-pointer text-center shadow-sm">
+            Apply
+          </button>
+        </div>
       </div>
 
       {/* Stats Row */}
