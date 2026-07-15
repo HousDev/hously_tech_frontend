@@ -38,6 +38,8 @@ export interface AttendanceSecuritySettings {
   maxPunchInTime: string;
   minPunchOutTime: string;
   allowWeekendPunch: boolean;
+  lateTime?: string;
+  lateAmount?: number;
 }
 
 export interface AppearanceSettings {

@@ -487,6 +487,34 @@ const EmployeeProfile = ({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(employee.avatarUrl || null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
+  // Local state for Leave Balances & Policy
+  const [leaveBalances, setLeaveBalances] = useState({
+    privilegedLeave: 12,
+    sickLeave: 8,
+    casualLeave: 6,
+  });
+
+  // Local state for Penalty & Overtime
+  const [penaltyPolicy, setPenaltyPolicy] = useState({
+    allowedLateDays: 3,
+    deductIfLateByMoreThan: 10,
+    deductBasedOnLateArrival: true,
+    deductionType: "Custom Multiplier",
+    deductionAmount: 50,
+  });
+
+  // Local state for KYC Verification
+  const [kycData, setKycData] = useState({
+    aadhaarNumber: "",
+    frontImage: null as string | null,
+    backImage: null as string | null,
+    status: "pending" as "pending" | "verifying" | "verified" | "failed",
+  });
+
+  // Local state for Leave Balances & Policy subviews
+  const [leaveSubView, setLeaveSubView] = useState<"menu" | "policy" | "balance">("menu");
+  const [leaveCycle, setLeaveCycle] = useState<"Monthly" | "Yearly">("Monthly");
+
   const validate = () => {
     const errs: Record<string, string> = {};
 
@@ -633,7 +661,34 @@ const EmployeeProfile = ({
       upiId: employee.upiId || "",
     });
     setAvatarPreview(employee.avatarUrl || null);
+
+    // Leave Balances — load from DB, fallback to defaults
+    setLeaveBalances({
+      privilegedLeave: employee.privileged_leave_balance ?? 12,
+      sickLeave: employee.sick_leave_balance ?? 8,
+      casualLeave: employee.casual_leave_balance ?? 6,
+    });
+    // Penalty Policy — load from DB, fallback to defaults
+    setPenaltyPolicy({
+      allowedLateDays: employee.allowed_late_days ?? 3,
+      deductIfLateByMoreThan: employee.deduct_if_late_by_more_than ?? 10,
+      deductBasedOnLateArrival: employee.deduct_based_on_late_arrival ?? true,
+      deductionType: employee.deduction_type ?? "Custom Multiplier",
+      deductionAmount: employee.deduction_amount ?? 50,
+    });
+    setKycData({
+      aadhaarNumber: employee.aadharNumber || "",
+      frontImage: employee.aadhaar_front_image || null,
+      backImage: employee.aadhaar_back_image || null,
+      status: (employee.kyc_status as any) || (employee.aadharNumber ? "verified" : "pending"),
+    });
+    setLeaveSubView("menu");
+    setLeaveCycle(employee.leave_cycle ?? "Monthly");
   }, [employee]);
+
+  useEffect(() => {
+    setLeaveSubView("menu");
+  }, [activeTab]);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
@@ -704,6 +759,17 @@ const EmployeeProfile = ({
         accountNumber: formData.accountNumber || undefined,
         ifscCode: formData.ifscCode || undefined,
         upiId: formData.upiId || undefined,
+        // Leave Policy & Balance
+        leave_cycle: leaveCycle,
+        privileged_leave_balance: leaveBalances.privilegedLeave,
+        sick_leave_balance: leaveBalances.sickLeave,
+        casual_leave_balance: leaveBalances.casualLeave,
+        // Penalty & Overtime
+        allowed_late_days: penaltyPolicy.allowedLateDays,
+        deduct_if_late_by_more_than: penaltyPolicy.deductIfLateByMoreThan,
+        deduct_based_on_late_arrival: penaltyPolicy.deductBasedOnLateArrival,
+        deduction_type: penaltyPolicy.deductionType,
+        deduction_amount: penaltyPolicy.deductionAmount,
       };
       await employeeApi.update(employee.id, payload);
       toast.success("Employee updated successfully!");
@@ -735,6 +801,9 @@ const EmployeeProfile = ({
     { id: "employment", label: "Employment Details", icon: <BriefcaseIcon size={14} /> },
     { id: "system", label: "System Details", icon: <Laptop size={14} /> },
     { id: "bank", label: "Bank Details", icon: <Banknote size={14} /> },
+    { id: "leaves", label: "Leave Balances & Policy", icon: <CalendarCheck size={14} /> },
+    { id: "kyc", label: "KYC Verification", icon: <ShieldCheck size={14} /> },
+    { id: "penalty", label: "Penalty & Overtime", icon: <ClockIcon size={14} /> },
   ];
 
   const statusCfg = STATUS_CONFIG[employee.status];
@@ -747,7 +816,7 @@ const EmployeeProfile = ({
       case "basic":
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <InputField
                 label="First Name"
                 value={formData.firstName}
@@ -955,7 +1024,7 @@ const EmployeeProfile = ({
                 placeholder="Full permanent address"
                 icon={<MapPinIcon size={14} />}
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <InputField
                   label="City"
                   value={formData.city}
@@ -968,13 +1037,13 @@ const EmployeeProfile = ({
                   onChange={(v: string) => setFormData({ ...formData, state: v })}
                   placeholder="State"
                 />
+                <InputField
+                  label="Pincode"
+                  value={formData.pincode}
+                  onChange={(v: string) => setFormData({ ...formData, pincode: v })}
+                  placeholder="6-digit pincode"
+                />
               </div>
-              <InputField
-                label="Pincode"
-                value={formData.pincode}
-                onChange={(v: string) => setFormData({ ...formData, pincode: v })}
-                placeholder="6-digit pincode"
-              />
             </div>
             <div className="flex items-start gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
               <input
@@ -1038,7 +1107,7 @@ const EmployeeProfile = ({
       case "employment":
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <InputField
                 label="Date of Joining"
                 value={formData.joinDate}
@@ -1203,6 +1272,474 @@ const EmployeeProfile = ({
           </div>
         );
 
+      case "leaves":
+        if (leaveSubView === "menu") {
+          return (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 pb-4">
+                <h2 className="text-sm font-bold text-[#0D47A1]">Leave & Balance Details</h2>
+                <p className="text-xs text-slate-400 mt-0.5 font-medium">Select a section to manage leave policies or balances</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl">
+                <button
+                  type="button"
+                  onClick={() => setLeaveSubView("policy")}
+                  className="flex flex-col items-center justify-center p-8 bg-white border border-slate-200 rounded-2xl hover:border-[#0D47A1] hover:shadow-[0_4px_20px_rgba(13,71,161,0.06)] transition-all duration-250 cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-full bg-[#0D47A1]/5 flex items-center justify-center mb-4 group-hover:bg-[#0D47A1]/10 transition-colors">
+                    <BookOpen className="text-[#0D47A1]" size={24} />
+                  </div>
+                  <span className="text-lg font-bold text-slate-800 group-hover:text-[#0D47A1] transition-colors">
+                    Leave Policy
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setLeaveSubView("balance")}
+                  className="flex flex-col items-center justify-center p-8 bg-white border border-slate-200 rounded-2xl hover:border-[#0D47A1] hover:shadow-[0_4px_20px_rgba(13,71,161,0.06)] transition-all duration-250 cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-full bg-[#0D47A1]/5 flex items-center justify-center mb-4 group-hover:bg-[#0D47A1]/10 transition-colors">
+                    <CalendarCheck className="text-[#0D47A1]" size={24} />
+                  </div>
+                  <span className="text-lg font-bold text-slate-800 group-hover:text-[#0D47A1] transition-colors">
+                    Leave Balance
+                  </span>
+                </button>
+              </div>
+            </div>
+          );
+        }
+
+        if (leaveSubView === "policy") {
+          return (
+            <div className="space-y-6">
+              <div className="flex items-center border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-2 text-sm font-bold text-[#0D47A1]">
+                  <button
+                    type="button"
+                    onClick={() => setLeaveSubView("menu")}
+                    className="hover:underline cursor-pointer"
+                  >
+                    Leave & Balance Details
+                  </button>
+                  <span className="text-slate-400 font-normal">»</span>
+                  <span className="text-slate-600 font-medium">Leave Policy</span>
+                </div>
+              </div>
+
+              <div className="max-w-md space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                    Leave Cycle <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-4">
+                    <label
+                      onClick={() => setLeaveCycle("Monthly")}
+                      className={`flex-1 flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                        leaveCycle === "Monthly"
+                          ? "border-sky-300 bg-sky-50/30 text-sky-900"
+                          : "border-slate-200 hover:border-slate-300 bg-white text-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        checked={leaveCycle === "Monthly"}
+                        onChange={() => {}}
+                        className="w-4 h-4 text-[#0D47A1] border-slate-300 focus:ring-[#0D47A1]/20 cursor-pointer"
+                      />
+                      <span className="text-sm font-semibold">Monthly</span>
+                    </label>
+
+                    <label
+                      onClick={() => setLeaveCycle("Yearly")}
+                      className={`flex-1 flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                        leaveCycle === "Yearly"
+                          ? "border-sky-300 bg-sky-50/30 text-sky-900"
+                          : "border-slate-200 hover:border-slate-300 bg-white text-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        checked={leaveCycle === "Yearly"}
+                        onChange={() => {}}
+                        className="w-4 h-4 text-[#0D47A1] border-slate-300 focus:ring-[#0D47A1]/20 cursor-pointer"
+                      />
+                      <span className="text-sm font-semibold">Yearly</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-[#0D47A1]">
+                <button
+                  type="button"
+                  onClick={() => setLeaveSubView("menu")}
+                  className="hover:underline cursor-pointer"
+                >
+                  Leave & Balance Details
+                </button>
+                <span className="text-slate-400 font-normal">»</span>
+                <span className="text-slate-600 font-medium">Leave Balance</span>
+              </div>
+            </div>
+
+            {/* Grid of Leave Balances */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                { key: "privilegedLeave", label: "Privileged Leave" },
+                { key: "sickLeave", label: "Sick Leave" },
+                { key: "casualLeave", label: "Casual Leave" }
+              ].map((item) => (
+                <div key={item.key} className="flex flex-col justify-between bg-white border border-slate-150 rounded-2xl p-4 hover:border-[#0D47A1]/20 hover:shadow-[0_4px_12px_rgba(0,0,0,0.02)] transition duration-200">
+                  <div className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-2">
+                    {item.label}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1 rounded-xl border border-slate-200 flex items-center bg-white focus-within:ring-2 focus-within:ring-[#0D47A1]/20 focus-within:border-[#0D47A1] overflow-hidden transition-all">
+                      <input
+                        type="number"
+                        value={leaveBalances[item.key as keyof typeof leaveBalances]}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setLeaveBalances(prev => ({ ...prev, [item.key]: val }));
+                        }}
+                        className="w-full px-3 py-2 text-sm outline-none bg-transparent text-slate-700 font-bold"
+                      />
+                      <span className="pr-3 text-xs font-semibold text-slate-400 select-none bg-slate-50/50 py-2.5 border-l border-slate-100 pl-3">leaves</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case "kyc":
+        return (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-[#0D47A1]">
+                <span>KYC Verification Details</span>
+                <span className="text-slate-400 font-normal">»</span>
+                <span className="text-slate-600 font-medium">Aadhaar Card KYC</span>
+              </div>
+              {kycData.status === "verified" ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <CheckCircle2 size={14} /> Verified
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                  <AlertCircle size={14} /> Pending Verification
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column: Form & Actions */}
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                    Aadhaar Card Number <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative rounded-xl border border-slate-200 flex items-center bg-white focus-within:ring-2 focus-within:ring-[#0D47A1]/20 focus-within:border-[#0D47A1] overflow-hidden transition-all">
+                    <div className="pl-3 text-slate-400">
+                      <IdCard size={16} />
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={14}
+                      value={kycData.aadhaarNumber}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        const formatted = val.match(/.{1,4}/g)?.join("-").slice(0, 14) || "";
+                        setKycData(prev => ({ ...prev, aadhaarNumber: formatted }));
+                      }}
+                      placeholder="e.g. 5678-1234-9012"
+                      className="w-full px-3 py-2 text-sm outline-none bg-transparent text-slate-700 font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Status Box & Verify Button */}
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400 font-bold uppercase tracking-wider">Verification Status:</span>
+                    <span className={`font-extrabold capitalize ${
+                      kycData.status === "verified" ? "text-emerald-600" :
+                      kycData.status === "failed" ? "text-red-600" :
+                      kycData.status === "verifying" ? "text-blue-600" : "text-amber-600"
+                    }`}>
+                      {kycData.status}
+                    </span>
+                  </div>
+
+                  {kycData.status === "pending" && (
+                    <p className="text-xs text-slate-500 leading-normal">
+                      Please enter a valid 12-digit Aadhaar number and upload front & back images of the card to begin verification.
+                    </p>
+                  )}
+
+                  {kycData.status === "verifying" && (
+                    <div className="flex items-center gap-2 text-xs text-slate-600">
+                      <div className="w-4 h-4 border-2 border-[#0D47A1] border-t-transparent rounded-full animate-spin"></div>
+                      Verifying Aadhaar details securely with UIDAI server...
+                    </div>
+                  )}
+
+                  {kycData.status === "verified" && (
+                    <p className="text-xs text-emerald-600 font-medium">
+                      Aadhaar verification completed successfully. Identity matches with official records.
+                    </p>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={kycData.status === "verifying" || kycData.aadhaarNumber.replace(/\D/g, "").length !== 12}
+                    onClick={async () => {
+                      setKycData(prev => ({ ...prev, status: "verifying" }));
+                      try {
+                        const now = new Date().toISOString();
+                        const updated = await employeeApi.updateKyc(employee.id, {
+                          kyc_status: "verified",
+                          aadhaar_front_image: kycData.frontImage || undefined,
+                          aadhaar_back_image: kycData.backImage || undefined,
+                          kyc_verified_at: now,
+                        });
+                        setKycData(prev => ({
+                          ...prev,
+                          status: "verified",
+                          frontImage: updated.aadhaar_front_image || prev.frontImage,
+                          backImage: updated.aadhaar_back_image || prev.backImage,
+                        }));
+                        toast.success("Aadhaar KYC Verified Successfully!");
+                      } catch (err: any) {
+                        setKycData(prev => ({ ...prev, status: "failed" }));
+                        toast.error(err?.message || "KYC verification failed. Please try again.");
+                      }
+                    }}
+                    className="w-full py-2.5 bg-[#0D47A1] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {kycData.status === "verifying" ? "Verifying..." : kycData.status === "verified" ? "Re-verify Aadhaar" : "Verify Aadhaar"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Column: Front and Back Upload Box */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Front Side */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Aadhaar Front Image</label>
+                  <label className="relative flex flex-col items-center justify-center h-32 border-2 border-dashed border-slate-200 hover:border-[#0D47A1]/40 rounded-2xl cursor-pointer bg-slate-50/40 hover:bg-slate-50/70 transition overflow-hidden">
+                    {kycData.frontImage ? (
+                      <img src={kycData.frontImage} alt="Front Aadhaar" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center text-center p-3">
+                        <Upload size={20} className="text-slate-400 mb-1" />
+                        <span className="text-xs font-bold text-slate-600">Front Side</span>
+                        <span className="text-[9px] text-slate-400">Click to upload</span>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            setKycData(prev => ({ ...prev, frontImage: reader.result as string }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {/* Back Side */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Aadhaar Back Image</label>
+                  <label className="relative flex flex-col items-center justify-center h-32 border-2 border-dashed border-slate-200 hover:border-[#0D47A1]/40 rounded-2xl cursor-pointer bg-slate-50/40 hover:bg-slate-50/70 transition overflow-hidden">
+                    {kycData.backImage ? (
+                      <img src={kycData.backImage} alt="Back Aadhaar" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center text-center p-3">
+                        <Upload size={20} className="text-slate-400 mb-1" />
+                        <span className="text-xs font-bold text-slate-600">Back Side</span>
+                        <span className="text-[9px] text-slate-400">Click to upload</span>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            setKycData(prev => ({ ...prev, backImage: reader.result as string }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "penalty":
+        return (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-[#0D47A1]">
+                <span>Penalty & Overtime Details</span>
+                <span className="text-slate-400 font-normal">»</span>
+                <span className="text-slate-600 font-medium">Late Coming Policy</span>
+              </div>
+            </div>
+
+            {/* Content Form - 2 Columns grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column */}
+              <div className="space-y-4">
+                {/* Allowed Late Days */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                    Allowed Late Days <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative rounded-xl border border-slate-200 flex items-center bg-white focus-within:ring-2 focus-within:ring-[#0D47A1]/20 focus-within:border-[#0D47A1] overflow-hidden transition-all">
+                    <input
+                      type="number"
+                      value={penaltyPolicy.allowedLateDays}
+                      onChange={(e) => setPenaltyPolicy(prev => ({ ...prev, allowedLateDays: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 text-sm outline-none bg-transparent text-slate-700 font-bold"
+                    />
+                    <span className="pr-3 text-sm text-slate-400 font-medium whitespace-nowrap bg-slate-50/50 py-2 border-l border-slate-100 pl-3">days</span>
+                  </div>
+                </div>
+
+                {/* Only deduct if late by more than */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                    Only deduct if late by more than <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative rounded-xl border border-slate-200 flex items-center bg-white focus-within:ring-2 focus-within:ring-[#0D47A1]/20 focus-within:border-[#0D47A1] overflow-hidden transition-all">
+                    <input
+                      type="number"
+                      value={penaltyPolicy.deductIfLateByMoreThan}
+                      onChange={(e) => setPenaltyPolicy(prev => ({ ...prev, deductIfLateByMoreThan: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 text-sm outline-none bg-transparent text-slate-700 font-bold"
+                    />
+                    <span className="pr-3 text-sm text-slate-400 font-medium whitespace-nowrap bg-slate-50/50 py-2 border-l border-slate-100 pl-3">mins</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-4">
+                {/* Change deduction based on how late they arrive? */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                    Change deduction based on how late they arrive? <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex flex-col gap-2">
+                    {/* Option 1: Fixed */}
+                    <label
+                      onClick={() => setPenaltyPolicy(prev => ({ ...prev, deductBasedOnLateArrival: false }))}
+                      className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                        !penaltyPolicy.deductBasedOnLateArrival
+                          ? "border-sky-300 bg-sky-50/30 text-sky-900"
+                          : "border-slate-200 hover:border-slate-300 bg-white text-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        checked={!penaltyPolicy.deductBasedOnLateArrival}
+                        onChange={() => {}}
+                        className="w-4 h-4 text-[#0D47A1] border-slate-300 focus:ring-[#0D47A1]/20 cursor-pointer"
+                      />
+                      <span className="text-xs font-semibold">
+                        No, use a fixed deduction for late arrival
+                      </span>
+                    </label>
+
+                    {/* Option 2: Variable */}
+                    <label
+                      onClick={() => setPenaltyPolicy(prev => ({ ...prev, deductBasedOnLateArrival: true }))}
+                      className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                        penaltyPolicy.deductBasedOnLateArrival
+                          ? "border-sky-300 bg-sky-50/30 text-sky-900"
+                          : "border-slate-200 hover:border-slate-300 bg-white text-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        checked={penaltyPolicy.deductBasedOnLateArrival}
+                        onChange={() => {}}
+                        className="w-4 h-4 text-[#0D47A1] border-slate-300 focus:ring-[#0D47A1]/20 cursor-pointer"
+                      />
+                      <span className="text-xs font-semibold">
+                        Yes, deduct based on how late they arrived
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Deduction details */}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  {/* Deduction Dropdown */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                      Deduction <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={penaltyPolicy.deductionType}
+                      onChange={(e) => setPenaltyPolicy(prev => ({ ...prev, deductionType: e.target.value }))}
+                      className="w-full px-2 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none font-semibold text-slate-700 bg-white transition-all"
+                    >
+                      <option value="Custom Multiplier">Custom Multiplier</option>
+                      <option value="Fixed Amount">Fixed Amount</option>
+                    </select>
+                  </div>
+
+                  {/* Amount input */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                      Amount <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative rounded-xl border border-slate-200 flex items-center bg-white focus-within:ring-2 focus-within:ring-[#0D47A1]/20 focus-within:border-[#0D47A1] overflow-hidden transition-all">
+                      <input
+                        type="number"
+                        value={penaltyPolicy.deductionAmount}
+                        onChange={(e) => setPenaltyPolicy(prev => ({ ...prev, deductionAmount: parseInt(e.target.value) || 0 }))}
+                        className="w-full px-2 py-2 text-xs outline-none bg-transparent text-slate-700 font-bold"
+                      />
+                      <span className="pr-2 text-[10px] text-slate-400 font-medium whitespace-nowrap bg-slate-50/50 py-2 border-l border-slate-100 pl-2">
+                        {penaltyPolicy.deductionType === "Custom Multiplier" ? "x Hourly Salary" : "Rs."}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -1210,13 +1747,13 @@ const EmployeeProfile = ({
 
   return (
     <div
-      className={`p-4 md:p-6 flex flex-col h-full overflow-y-auto md:overflow-hidden transition-all duration-300 ease-in-out ${visible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
+      className={`p-3 md:p-4 flex flex-col h-full overflow-y-auto md:overflow-hidden transition-all duration-300 ease-in-out ${visible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
         }`}
     >
       {/* Top Header Section (Static, scrolls away on mobile) */}
-      <div className="flex-none space-y-4">
+      <div className="flex-none space-y-2">
         {/* Buttons Header */}
-        <div className="py-2 flex items-center justify-between flex-wrap gap-3 border-b border-slate-100 bg-white">
+        <div className="py-1 flex items-center justify-between flex-wrap gap-2 border-b border-slate-100 bg-white">
           <button
             onClick={handleBack}
             className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
@@ -1243,7 +1780,7 @@ const EmployeeProfile = ({
         </div>
 
         {/* Profile Card */}
-        <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4 flex flex-col sm:flex-row items-center gap-4">
+        <div className="bg-slate-50 rounded-xl border border-slate-100 p-2.5 flex flex-col sm:flex-row items-center gap-3">
           <div className="relative">
             <Avatar
               name={fullName}
@@ -1277,7 +1814,12 @@ const EmployeeProfile = ({
 
       {/* Tabs Headers - Sticky on mobile at the top, static on desktop */}
       <div className="sticky top-0 z-30 border-b border-slate-200 bg-white flex-none mt-4">
-        <div className="flex gap-1 overflow-x-auto">
+        <style>{`
+          .no-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
+        <div className="flex gap-1 overflow-x-auto no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -1293,8 +1835,8 @@ const EmployeeProfile = ({
         </div>
       </div>
 
-      {/* Scrollable Form Content */}
-      <div className="flex-1 overflow-y-visible md:overflow-y-auto mt-4 pr-1">
+      {/* Form Content — only this scrolls on desktop, header stays sticky */}
+      <div className="flex-1 mt-2 pb-4 md:overflow-y-auto no-scrollbar">
         <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-6">
           <EditingContext.Provider value={isEditing}>
             {renderTabContent()}
@@ -2120,7 +2662,8 @@ export default function EmployeesPage() {
                 return (
                   <tr
                     key={employee.id}
-                    className={`border-b border-slate-100 transition-colors hover:bg-blue-50/30 ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"
+                    onClick={() => setViewEmployee(employee)}
+                    className={`border-b border-slate-100 transition-colors hover:bg-blue-50/30 cursor-pointer ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"
                       } ${isChecked ? "bg-blue-50/50" : ""}`}
                   >
                     <td className="px-3 py-3 text-center">

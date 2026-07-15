@@ -63,6 +63,22 @@ export interface EmployeeRecord {
   accountNumber?: string;
   ifscCode?: string;
   upiId?: string;
+  // KYC fields
+  kyc_status?: "pending" | "verifying" | "verified" | "failed";
+  aadhaar_front_image?: string;
+  aadhaar_back_image?: string;
+  kyc_verified_at?: string;
+  // Leave Policy fields
+  leave_cycle?: "Monthly" | "Yearly";
+  privileged_leave_balance?: number;
+  sick_leave_balance?: number;
+  casual_leave_balance?: number;
+  // Penalty & Overtime fields
+  allowed_late_days?: number;
+  deduct_if_late_by_more_than?: number;
+  deduct_based_on_late_arrival?: boolean;
+  deduction_type?: string;
+  deduction_amount?: number;
   createdAt: string;
 }
 
@@ -104,8 +120,20 @@ export const employeeApi = {
       };
       reader.readAsDataURL(file);
     });
-  }
+  },
+
+  updateKyc: (
+    id: string,
+    payload: {
+      kyc_status: "pending" | "verifying" | "verified" | "failed";
+      aadhaar_front_image?: string | null;
+      aadhaar_back_image?: string | null;
+      kyc_verified_at?: string | null;
+    }
+  ): Promise<EmployeeRecord> =>
+    unwrap(api.patch<ApiResponse<EmployeeRecord>>(`/employees/${id}/kyc`, payload)),
 };
+
 
 // ── Face Enrollment API ──────────────────────────────────────────────────────
 
