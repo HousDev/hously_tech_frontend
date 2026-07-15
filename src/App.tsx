@@ -497,7 +497,7 @@
 
 
 
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 import Navbar from "./components/Navbar";
@@ -549,7 +549,13 @@ import HRMSEmployees from "./pages/Admin/HRMS/Employees";
 import HRMSRecruitment from "./pages/Admin/HRMS/Recruitment";
 import HRMSAttendance from "./pages/Admin/HRMS/Attendance";
 import HRMSLeaves from "./pages/Admin/HRMS/Leaves";
-import HRMSPayroll from "./pages/Admin/HRMS/Payroll";
+import PayrollSummary from "./pages/Admin/HRMS/Payroll/PayrollSummary";
+import CTCConfiguration from "./pages/Admin/HRMS/Payroll/CTCConfiguration";
+import Advance from "./pages/Admin/HRMS/Payroll/Advance";
+import Incentives from "./pages/Admin/HRMS/Payroll/Incentives";
+import Reimbursements from "./pages/Admin/HRMS/Payroll/Reimbursements";
+import TDS from "./pages/Admin/HRMS/Payroll/TDS";
+import PaymentHistory from "./pages/Admin/HRMS/Payroll/PaymentHistory";
 import HRMSExpenses from "./pages/Admin/HRMS/Expenses";
 import HRMSTickets from "./pages/Admin/HRMS/Tickets";
 import HRMSDocuments from "./pages/Admin/HRMS/Documents";
@@ -560,6 +566,7 @@ import UsersPage from "./pages/Admin/UsersPage";
 import IntegrationsPage from "./pages/Admin/IntegrationsPage";
 import ReportsPage from "./pages/Admin/ReportsPage";
 import TasksPage from "./pages/Admin/TaskManagement/TasksPage";
+import NotificationsPage from "./pages/Admin/NotificationsPage";
 
 
 import VisitorTracker from "./components/VisitorTracker";
@@ -789,7 +796,14 @@ function AppContent() {
             <Route path="hrms/recruitment" element={<HRMSRecruitment />} />
             <Route path="hrms/attendance" element={<HRMSAttendance />} />
             <Route path="hrms/leaves" element={<HRMSLeaves />} />
-            <Route path="hrms/payroll" element={<HRMSPayroll />} />
+            <Route path="hrms/payroll" element={<Navigate to="summary" replace />} />
+            <Route path="hrms/payroll/summary" element={<PayrollSummary />} />
+            <Route path="hrms/payroll/ctc-configuration" element={<CTCConfiguration />} />
+            <Route path="hrms/payroll/advance" element={<Advance />} />
+            <Route path="hrms/payroll/incentives" element={<Incentives />} />
+            <Route path="hrms/payroll/reimbursements" element={<Reimbursements />} />
+            <Route path="hrms/payroll/tds" element={<TDS />} />
+            <Route path="hrms/payroll/payment-history" element={<PaymentHistory />} />
             <Route path="hrms/expenses" element={<HRMSExpenses />} />
             <Route path="hrms/tickets" element={<HRMSTickets />} />
             <Route path="hrms/documents" element={<HRMSDocuments />} />
@@ -800,6 +814,7 @@ function AppContent() {
             <Route path="integrations" element={<IntegrationsPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="tasks" element={<TasksPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
           </Route>
 
           {/* ✅ Employee routes under /employee */}

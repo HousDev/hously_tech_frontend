@@ -40,6 +40,7 @@ interface AttendanceRecord {
   lateTime?: string;
   checkInSelfie?: string | null;
   checkOutSelfie?: string | null;
+  leaveType?: string;
 }
 
 interface RegularizeRequest {
@@ -134,11 +135,24 @@ const Avatar = ({ name, color, url }: { name: string; color: string; url?: strin
   );
 };
 
-const StatusBadge = ({ status }: { status: AttendanceStatus }) => {
-  const c = STATUS_CONFIG[status];
+const StatusBadge = ({ status, leaveType }: { status: AttendanceStatus; leaveType?: string | null }) => {
+  let c = STATUS_CONFIG[status];
+  if (!c) c = STATUS_CONFIG["not_marked"];
+  let label = c.label;
+
+  if (status === "on_leave" || leaveType === "paid_leave") {
+    c = STATUS_CONFIG["on_leave"];
+    if (leaveType === "paid_leave") label = "Paid Leave";
+    else label = "On Leave";
+  } else if (leaveType === "unpaid_leave" || leaveType === "half_day_leave") {
+    c = STATUS_CONFIG["absent"];
+    if (leaveType === "unpaid_leave") label = "Unpaid Leave";
+    else if (leaveType === "half_day_leave") label = "Half Day Leave";
+  }
+
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${c.bgColor} ${c.textColor} ${c.borderColor}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} /> {c.label}
+      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} /> {label}
     </span>
   );
 };
@@ -323,8 +337,8 @@ const TodayView = ({
   const stats = useMemo(() => {
     const total = records.length;
     const present = records.filter(r => r.status === "present").length;
-    const absent = records.filter(r => r.status === "absent").length;
-    const onLeave = records.filter(r => r.status === "on_leave").length;
+    const absent = records.filter(r => r.status === "absent" || (r as any).leaveType === "unpaid_leave" || (r as any).leaveType === "half_day_leave").length;
+    const onLeave = records.filter(r => r.status === "on_leave" || (r as any).leaveType === "paid_leave").length;
     const late = records.filter(r => r.status === "late").length;
     const halfDay = records.filter(r => r.status === "half_day").length;
     const notMarked = records.filter(r => r.status === "not_marked").length;
@@ -663,7 +677,7 @@ const TodayView = ({
                     </td>
                     <td className="px-3 py-2.5 text-slate-700 font-bold">{r.overtime || "—"}</td>
                     <td className="px-3 py-2.5">
-                      <StatusBadge status={r.status} />
+                      <StatusBadge status={r.status} leaveType={(r as any).leaveType} />
                     </td>
                     <td className="px-3 py-2.5">
                       <button
@@ -699,7 +713,7 @@ const TodayView = ({
                         <p className="text-[10px] text-slate-400 font-semibold">{r.empId} • {r.department}</p>
                       </div>
                     </div>
-                    <StatusBadge status={r.status} />
+                    <StatusBadge status={r.status} leaveType={(r as any).leaveType} />
                   </div>
 
                   {/* Details Grid */}
@@ -1069,10 +1083,10 @@ const EmployeeAttendanceView = ({
 
       if (rec) {
         if (rec.status === "present") present++;
-        else if (rec.status === "absent") absent++;
+        else if (rec.status === "absent" || rec.leaveType === "unpaid_leave" || rec.leaveType === "half_day_leave") absent++;
         else if (rec.status === "late") late++;
         else if (rec.status === "half_day") halfDay++;
-        else if (rec.status === "on_leave") onLeave++;
+        else if (rec.status === "on_leave" || rec.leaveType === "paid_leave") onLeave++;
         else if (rec.status === "holiday") holiday++;
         else if (rec.status === "not_marked") notMarked++;
         else if (rec.status === "week_off") holiday++;
@@ -1100,10 +1114,10 @@ const EmployeeAttendanceView = ({
 
     monthlyLogs.forEach(rec => {
       if (rec.status === "present") present++;
-      else if (rec.status === "absent") absent++;
+      else if (rec.status === "absent" || rec.leaveType === "unpaid_leave" || rec.leaveType === "half_day_leave") absent++;
       else if (rec.status === "late") late++;
       else if (rec.status === "half_day") halfDay++;
-      else if (rec.status === "on_leave") onLeave++;
+      else if (rec.status === "on_leave" || rec.leaveType === "paid_leave") onLeave++;
     });
 
     const totalDays = present + absent + late + halfDay + onLeave;
@@ -1443,21 +1457,21 @@ const EmployeeAttendanceView = ({
                 if (rec) {
                   if (rec.status === "present") {
                     statusColor = "bg-emerald-100 border-emerald-300 text-emerald-800 cursor-pointer hover:scale-105 hover:shadow-sm";
-                  } else if (rec.status === "absent") {
+                  } else if (rec.status === "absent" || (rec as any).leaveType === "unpaid_leave" || (rec as any).leaveType === "half_day_leave") {
                     statusColor = "bg-red-100 border-red-300 text-red-800 cursor-pointer hover:scale-105 hover:shadow-sm";
                   } else if (rec.status === "late") {
                     statusColor = "bg-amber-100 border-amber-300 text-amber-800 cursor-pointer hover:scale-105 hover:shadow-sm";
                   } else if (rec.status === "half_day") {
                     statusColor = "bg-sky-100 border-sky-300 text-sky-800 cursor-pointer hover:scale-105 hover:shadow-sm";
-                  } else if (rec.status === "on_leave") {
+                  } else if (rec.status === "on_leave" || (rec as any).leaveType === "paid_leave") {
                     statusColor = "bg-purple-100 border-purple-300 text-purple-800 cursor-pointer hover:scale-105 hover:shadow-sm";
                   } else if (rec.status === "holiday") {
                     statusColor = "bg-indigo-100 border-indigo-300 text-indigo-800 cursor-pointer hover:scale-105 hover:shadow-sm";
                   } else if (rec.status === "week_off") {
-                    statusColor = "bg-pink-100 border-pink-300 text-pink-800 cursor-pointer hover:scale-105 hover:shadow-sm";
+                    statusColor = "bg-white border-slate-200 text-slate-500 cursor-pointer hover:scale-105 hover:shadow-sm";
                   }
                 } else if (cell.isWeekend) {
-                  statusColor = "bg-gray-100 border-gray-300 text-gray-500 cursor-pointer hover:scale-105 hover:shadow-sm opacity-85";
+                  statusColor = "bg-white border-slate-200 text-slate-500 cursor-pointer hover:scale-105 hover:shadow-sm opacity-85";
                 }
 
                 return (

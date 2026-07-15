@@ -839,6 +839,8 @@ const SecuritySettings = () => {
     maxPunchInTime: "10:30",
     minPunchOutTime: "18:00",
     allowWeekendPunch: false,
+    lateTime: "09:45",
+    lateAmount: 500,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -847,7 +849,11 @@ const SecuritySettings = () => {
     try {
       if (!silent) setLoading(true);
       const data = await settingsApi.getAttendanceSecurity();
-      setFormData(data);
+      setFormData({
+        ...data,
+        lateTime: data.lateTime || "09:45",
+        lateAmount: data.lateAmount !== undefined ? data.lateAmount : 500,
+      });
     } catch (e: any) {
       console.error(e);
       toast.error("Failed to load security settings");
@@ -890,6 +896,8 @@ const SecuritySettings = () => {
       maxPunchInTime: "10:30",
       minPunchOutTime: "18:00",
       allowWeekendPunch: false,
+      lateTime: "09:45",
+      lateAmount: 500,
     };
     try {
       setSaving(true);
@@ -1178,6 +1186,53 @@ const SecuritySettings = () => {
                 <p className="text-xs text-slate-400 ml-7">Allow employees to punch on weekends</p>
               </div>
               <ToggleSwitch checked={formData.allowWeekendPunch} onChange={(v) => handleChange('allowWeekendPunch', v)} />
+            </div>
+          </div>
+
+          {/* Late Balance Settings */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <ClockIcon className="w-6 h-6 text-red-500 font-extrabold" />
+              <h3 className="text-sm font-extrabold text-slate-800">Late Balance Deductions</h3>
+              <span className="text-xs text-slate-400 ml-2">Define salary deduction thresholds for late arrivals</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
+                  Late Arrival Grace Cut-off Time
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 font-extrabold">
+                    <Clock size={16} />
+                  </div>
+                  <input
+                    type="time"
+                    value={formData.lateTime || "09:45"}
+                    onChange={(e) => handleChange('lateTime', e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Arrivals after this time are marked late</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
+                  Deduction Amount per Late Occurrence (₹)
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-red-500 font-extrabold">
+                    <IndianRupee size={16} />
+                  </div>
+                  <input
+                    type="number"
+                    value={formData.lateAmount !== undefined ? formData.lateAmount : 500}
+                    onChange={(e) => handleChange('lateAmount', parseInt(e.target.value) || 0)}
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Salary penalty amount deducted for each late day</p>
+              </div>
             </div>
           </div>
 

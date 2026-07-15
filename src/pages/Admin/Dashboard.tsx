@@ -41,6 +41,9 @@ import {
   BarChart2,
   Search,
   ClipboardList,
+  Award,
+  Calculator,
+  DollarSign,
 } from 'lucide-react';
 import { FiExternalLink } from "react-icons/fi";
 
@@ -113,6 +116,24 @@ const AdminDashboard = () => {
     setIsHrmsOpen(prev => {
       const next = !prev;
       localStorage.setItem('isHrmsOpen', String(next));
+      return next;
+    });
+  };
+
+  const [isPayrollOpen, setIsPayrollOpen] = useState(() => {
+    const saved = localStorage.getItem('isPayrollOpen');
+    if (saved !== null) return saved === 'true';
+    return window.location.pathname.includes('/hrms/payroll');
+  });
+
+  const togglePayroll = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setIsPayrollOpen(prev => {
+      const next = !prev;
+      localStorage.setItem('isPayrollOpen', String(next));
       return next;
     });
   };
@@ -780,6 +801,11 @@ const AdminDashboard = () => {
           title: 'Settings',
           subtitle: 'Configure application settings and administrative configurations'
         };
+      case '/dashboard/notifications':
+        return {
+          title: 'Notification Center',
+          subtitle: 'View and manage all your notifications'
+        };
       default:
         return {
           title: '',
@@ -905,7 +931,13 @@ const AdminDashboard = () => {
     { path: '/dashboard/hrms/recruitment', icon: UserPlus, label: 'Recruitment (HRMS)', color: 'text-teal-500' },
     { path: '/dashboard/hrms/attendance', icon: Clock, label: 'Attendance (HRMS)', color: 'text-amber-500' },
     { path: '/dashboard/hrms/leaves', icon: Calendar, label: 'Leaves (HRMS)', color: 'text-rose-500' },
-    { path: '/dashboard/hrms/payroll', icon: Wallet, label: 'Payroll (HRMS)', color: 'text-purple-500' },
+    { path: '/dashboard/hrms/payroll/summary', icon: Wallet, label: 'Payroll Summary', color: 'text-purple-500' },
+    { path: '/dashboard/hrms/payroll/ctc-configuration', icon: Settings, label: 'CTC Configuration', color: 'text-indigo-500' },
+    { path: '/dashboard/hrms/payroll/advance', icon: DollarSign, label: 'Advance / Loans', color: 'text-amber-500' },
+    { path: '/dashboard/hrms/payroll/incentives', icon: Award, label: 'Incentives & Bonuses', color: 'text-teal-500' },
+    { path: '/dashboard/hrms/payroll/reimbursements', icon: Receipt, label: 'Reimbursements', color: 'text-emerald-500' },
+    { path: '/dashboard/hrms/payroll/tds', icon: Calculator, label: 'TDS (Tax Deduction)', color: 'text-rose-500' },
+    { path: '/dashboard/hrms/payroll/payment-history', icon: Clock, label: 'Payroll Payment History', color: 'text-blue-500' },
     { path: '/dashboard/hrms/expenses', icon: Receipt, label: 'Expenses (HRMS)', color: 'text-emerald-500' },
     { path: '/dashboard/hrms/tickets', icon: Ticket, label: 'Tickets (HRMS)', color: 'text-sky-500' },
     { path: '/dashboard/hrms/documents', icon: FolderOpen, label: 'Documents (HRMS)', color: 'text-cyan-500' },
@@ -1300,6 +1332,57 @@ const AdminDashboard = () => {
                   {isHrmsOpen && (
                     <div className="pl-4 ml-3.5 border-l border-slate-200/80 flex flex-col gap-0.5 mt-1">
                       {hrmsItems.map((item) => {
+                        if (item.label === 'Payroll') {
+                          const isPayrollActive = location.pathname.startsWith('/dashboard/hrms/payroll');
+                          return (
+                            <div key={item.path} className="space-y-1">
+                              <button
+                                onClick={togglePayroll}
+                                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 group
+                                  ${isPayrollActive
+                                    ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                                    : 'text-gray-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                              >
+                                <div className="flex items-center">
+                                  <item.icon className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isPayrollActive ? 'text-[#0D47A1] scale-110' : item.color}`} />
+                                  <span className="text-xs font-semibold tracking-wide">{item.label}</span>
+                                </div>
+                                <ChevronDown className={`w-3 h-3 transition-transform duration-250 ${isPayrollActive ? 'text-[#0D47A1]' : 'text-slate-400'} ${isPayrollOpen ? 'rotate-180' : ''}`} />
+                              </button>
+
+                              {isPayrollOpen && (
+                                <div className="pl-4 ml-3 border-l border-slate-200/60 flex flex-col gap-0.5 mt-0.5">
+                                  {[
+                                    { path: '/dashboard/hrms/payroll/summary', label: 'Payroll Summary', icon: Wallet, color: 'text-purple-500' },
+                                    { path: '/dashboard/hrms/payroll/ctc-configuration', label: 'CTC Configuration', icon: Settings, color: 'text-indigo-500' },
+                                    { path: '/dashboard/hrms/payroll/advance', label: 'Advance', icon: DollarSign, color: 'text-amber-500' },
+                                    { path: '/dashboard/hrms/payroll/incentives', label: 'Incentives', icon: Award, color: 'text-teal-500' },
+                                    { path: '/dashboard/hrms/payroll/reimbursements', label: 'Reimbursements', icon: Receipt, color: 'text-emerald-500' },
+                                    { path: '/dashboard/hrms/payroll/tds', label: 'TDS', icon: Calculator, color: 'text-rose-500' },
+                                    { path: '/dashboard/hrms/payroll/payment-history', label: 'Payment History', icon: Clock, color: 'text-blue-500' },
+                                  ].map((subItem) => {
+                                    const isSubActive = location.pathname === subItem.path || location.pathname.startsWith(subItem.path + '/');
+                                    return (
+                                      <NavLink
+                                        key={subItem.path}
+                                        to={subItem.path}
+                                        onClick={() => setMobileSidebarOpen(false)}
+                                        className={`flex items-center rounded-md transition-all duration-200 px-3 py-1.5 text-[11px] font-semibold group min-w-0 w-full
+                                          ${isSubActive
+                                            ? 'text-[#0D47A1] bg-[#0D47A1]/5 font-bold border-l border-[#1976D2] pl-2.5'
+                                            : 'text-gray-500 hover:text-slate-855 hover:bg-slate-50'}`}
+                                      >
+                                        <subItem.icon className={`w-3 h-3 mr-2 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isSubActive ? 'text-[#0D47A1] scale-110' : subItem.color}`} />
+                                        <span className="truncate">{subItem.label}</span>
+                                      </NavLink>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+
                         const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
                         return (
                           <NavLink
@@ -1585,7 +1668,7 @@ const AdminDashboard = () => {
                             Mark all read
                           </button>
                           <button
-                            onClick={() => navigate('/admin/enquiries')}
+                            onClick={() => navigate('/dashboard/notifications')}
                             className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
                           >
                             View all
@@ -1678,14 +1761,13 @@ const AdminDashboard = () => {
                                 );
                               })}
 
-                            {/* Show "X more" only if combined total > 10 */}
-                            {(enquiryNotifications.length + careerNotifications.length + leaveNotifications.length + ticketNotifications.length) > 10 && (
+                            {(enquiryNotifications.length + careerNotifications.length + leaveNotifications.length + ticketNotifications.length + expenseNotifications.length) > 10 && (
                               <div className="p-3 text-center border-t border-gray-200">
                                 <button
-                                  onClick={() => navigate('/admin/enquiries')}
-                                  className="text-sm text-blue-600 hover:text-blue-800"
+                                  onClick={() => { setShowNotifications(false); navigate('/dashboard/notifications'); }}
+                                  className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
                                 >
-                                  View {(enquiryNotifications.length + careerNotifications.length + leaveNotifications.length) - 10} more notifications
+                                  View {Math.max(0, (enquiryNotifications.length + careerNotifications.length + leaveNotifications.length + ticketNotifications.length + expenseNotifications.length) - 10)} more notifications →
                                 </button>
                               </div>
                             )}

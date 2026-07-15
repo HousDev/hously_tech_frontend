@@ -1,0 +1,12 @@
+- [x] Create subpage files in `src/pages/Admin/HRMS/Payroll/`
+    - [x] `PayrollSummary.tsx`
+    - [x] `CTCConfiguration.tsx`
+    - [x] `Advance.tsx`
+    - [x] `Incentives.tsx`
+    - [x] `Reimbursements.tsx`
+    - [x] `TDS.tsx`
+    - [x] `PaymentHistory.tsx`
+- [x] Update routes in `src/App.tsx`
+- [x] Update collapsible sidebar & search in `src/pages/Admin/Dashboard.tsx`
+- [x] Delete legacy `src/pages/Admin/HRMS/Payroll.tsx`
+- [x] Verify and update `walkthrough.md`
