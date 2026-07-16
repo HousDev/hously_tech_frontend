@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
 import {
   Plus, Search, Filter, X, Edit2, Trash2,
   Clock, Calendar, User, CheckCircle2, Circle, AlertCircle,
@@ -8,8 +7,9 @@ import {
   Layers, ChevronLeft, ChevronRight, Eye
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { apiClient } from '../../../lib/api';
-import { useTaskSocket } from '../../../hooks/useTaskSocket';
+import { useAuth } from '../../context/AuthContext';
+import { apiClient } from '../../lib/api';
+import { useTaskSocket } from '../../hooks/useTaskSocket';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,24 +44,6 @@ interface Task {
   comments: TaskComment[];
   created_at: string;
   updated_at: string;
-}
-
-interface Employee {
-  id: number;
-  username: string;
-  email: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  role: string;
-  phone: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface FilterState {
-  status: string;
-  priority: string;
-  assignee: string;
 }
 
 // ─── Helpers & Configurations ─────────────────────────────────────────────────
@@ -127,18 +109,19 @@ const StatCard = ({ title, value, icon, color, sub }: { title: string; value: st
 // ─── Create/Edit Modal ────────────────────────────────────────────────────────
 
 const TaskFormModal = ({
-  task, employees, onClose, onSave
+  task, employees, onClose, onSave, currentUser
 }: {
   task: Task | null;
-  employees: Employee[];
+  employees: any[];
   onClose: () => void;
   onSave: (data: any) => Promise<void>;
+  currentUser: any;
 }) => {
   const [visible, setVisible] = useState(false);
   const [form, setForm] = useState({
     title: task?.title ?? '',
     description: task?.description ?? '',
-    assignee_id: task?.assignee_id ? String(task.assignee_id) : '',
+    assignee_id: task?.assignee_id ? String(task.assignee_id) : (task ? '' : String(currentUser?.id || '')),
     priority: task?.priority ?? 'medium' as TaskPriority,
     status: task?.status ?? 'todo' as TaskStatus,
     due_date: task?.due_date ? task.due_date.split('T')[0] : '',
@@ -192,7 +175,7 @@ const TaskFormModal = ({
           }}
         >
           {/* Header */}
-          <div className="sticky top-0 bg-white px-6 py-5 border-b border-slate-100 flex items-center justify-between rounded-t-2xl z-10">
+          <div className="sticky top-0 bg-white px-6 py-5 border-b border-slate-100/80 flex items-center justify-between rounded-t-2xl z-10">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0D47A1] to-[#1976D2] flex items-center justify-center shadow-sm">
                 <ClipboardList size={16} className="text-white" />
@@ -212,7 +195,7 @@ const TaskFormModal = ({
                 type="text"
                 value={form.title}
                 onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                placeholder="e.g. Design the login page UI"
+                placeholder="e.g. Add validation logic"
                 className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-800"
                 required
               />
@@ -220,7 +203,7 @@ const TaskFormModal = ({
 
             {/* Description */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Description</label>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-sans">Description</label>
               <textarea
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -232,7 +215,7 @@ const TaskFormModal = ({
 
             {/* Assignee */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Assignee</label>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-sans">Assignee</label>
               <select
                 value={form.assignee_id}
                 onChange={e => setForm(f => ({ ...f, assignee_id: e.target.value }))}
@@ -326,12 +309,14 @@ const TaskDetailModal = ({
   task,
   onClose,
   onEdit,
-  onAddComment
+  onAddComment,
+  currentUser
 }: {
   task: Task;
   onClose: () => void;
   onEdit: (t: Task) => void;
   onAddComment: (commentText: string) => void;
+  currentUser: any;
 }) => {
   const [visible, setVisible] = useState(false);
   const [newComment, setNewComment] = useState('');
@@ -355,6 +340,9 @@ const TaskDetailModal = ({
   const priority = PRIORITY_CONFIG[task.priority];
   const status = STATUS_CONFIG[task.status];
   const overdue = isOverdue(task);
+
+  // Check if current employee is creator of this task to show/hide edit options
+  const isCreator = task.creator_id === currentUser?.id;
 
   return (
     <>
@@ -392,11 +380,11 @@ const TaskDetailModal = ({
               </button>
             </div>
 
-            {/* Modal Body (Height optimized to avoid general scrolls) */}
+            {/* Modal Body */}
             <div className="px-5 py-4 flex-1 z-10 text-left overflow-hidden flex flex-col">
-              {/* Title and Main Status Badge */}
+              {/* Title and Badge */}
               <div className="mb-4">
-                <h2 className="text-lg font-extrabold text-slate-800 leading-snug tracking-tight mb-1.5">
+                <h2 className="text-lg font-extrabold text-slate-800 leading-snug tracking-tight mb-1.5 font-sans">
                   {task.title}
                 </h2>
                 <div className="flex items-center gap-2">
@@ -415,7 +403,7 @@ const TaskDetailModal = ({
               {/* Two-Column Grid */}
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4 overflow-hidden flex-1">
                 
-                {/* Left Side (Main Content: description + comments) */}
+                {/* Left Side (Main Content) */}
                 <div className="md:col-span-3 flex flex-col min-h-0 space-y-4 overflow-hidden">
                   
                   {/* Description Box */}
@@ -575,23 +563,25 @@ const TaskDetailModal = ({
               </div>
             </div>
 
-            {/* Modal Footer */}
+            {/* Modal Footer (Conditional footer buttons if the employee created the task) */}
             <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-end gap-2.5 z-10 bg-white">
               <button
                 onClick={handleClose}
                 className="px-3.5 py-1.5 text-xs font-bold border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition cursor-pointer"
               >
-                Close Task
+                Close Details
               </button>
-              <button
-                onClick={() => {
-                  handleClose();
-                  setTimeout(() => onEdit(task), 300);
-                }}
-                className="px-3.5 py-1.5 text-xs font-bold bg-gradient-to-r from-[#0D47A1] to-[#1976D2] hover:from-[#0b3d8f] hover:to-[#1565c0] text-white rounded-xl transition shadow-md hover:shadow-lg flex items-center gap-1.5 cursor-pointer"
-              >
-                <Edit2 size={11} /> Edit Details
-              </button>
+              {isCreator && (
+                <button
+                  onClick={() => {
+                    handleClose();
+                    setTimeout(() => onEdit(task), 300);
+                  }}
+                  className="px-3.5 py-1.5 text-xs font-bold bg-gradient-to-r from-[#0D47A1] to-[#1976D2] hover:from-[#0b3d8f] hover:to-[#1565c0] text-white rounded-xl transition shadow-md hover:shadow-lg flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Edit2 size={11} /> Edit Details
+                </button>
+              )}
             </div>
 
           </div>
@@ -642,7 +632,7 @@ const DeleteConfirmModal = ({
           </div>
           <h3 className="text-base font-extrabold text-slate-800 text-center">Delete Task?</h3>
           <p className="text-sm text-slate-500 text-center mt-2">
-            Are you sure you want to delete "<strong>{task.title}</strong>"? This action cannot be undone.
+            Are you sure you want to delete your task "<strong>{task.title}</strong>"? This action cannot be undone.
           </p>
           <div className="flex gap-3 mt-6">
             <button onClick={handleClose} className="flex-1 py-2.5 text-sm font-bold border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition cursor-pointer">
@@ -658,162 +648,26 @@ const DeleteConfirmModal = ({
   );
 };
 
-// ─── Side Filter Drawer ───────────────────────────────────────────────────────
+// ─── Main Employee Tasks Component ───────────────────────────────────────────
 
-const SideFilter = ({
-  open, onClose, filters, setFilters, onReset, employees
-}: {
-  open: boolean;
-  onClose: () => void;
-  filters: FilterState;
-  setFilters: (f: FilterState) => void;
-  onReset: () => void;
-  employees: Employee[];
-}) => {
-  const [tempFilters, setTempFilters] = useState<FilterState>({ ...filters });
-
-  useEffect(() => {
-    if (open) setTempFilters({ ...filters });
-  }, [open, filters]);
-
-  const selCls =
-    "w-full px-3 py-2 text-xs border border-slate-200 rounded-xl font-medium text-slate-750 bg-white focus:border-[#0D47A1] focus:ring-1 focus:ring-[#0D47A1]/20 outline-none appearance-none cursor-pointer";
-
-  return (
-    <>
-      <div
-        onClick={onClose}
-        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 pointer-events-auto ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-      />
-      <div
-        className={`fixed inset-y-0 right-0 z-50 w-72 bg-white shadow-2xl border-l border-slate-100 flex flex-col transition-transform duration-300 pointer-events-auto ${open ? 'translate-x-0' : 'translate-x-full'}`}
-      >
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Filter size={15} className="text-slate-500" />
-            <h3 className="text-sm font-extrabold text-slate-800">Filter Tasks</h3>
-          </div>
-          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="flex-1 p-5 space-y-4 text-left overflow-y-auto">
-          <div className="space-y-1.5">
-            <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Status</label>
-            <div className="relative">
-              <select
-                value={tempFilters.status}
-                onChange={(e) => setTempFilters({ ...tempFilters, status: e.target.value })}
-                className={selCls}
-              >
-                <option value="">All Status</option>
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="review">Under Review</option>
-                <option value="completed">Completed</option>
-              </select>
-              <ChevronRight size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none rotate-90" />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Priority</label>
-            <div className="relative">
-              <select
-                value={tempFilters.priority}
-                onChange={(e) => setTempFilters({ ...tempFilters, priority: e.target.value })}
-                className={selCls}
-              >
-                <option value="">All Priority</option>
-                <option value="urgent">Urgent</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
-              <ChevronRight size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none rotate-90" />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Assignee</label>
-            <div className="relative">
-              <select
-                value={tempFilters.assignee}
-                onChange={(e) => setTempFilters({ ...tempFilters, assignee: e.target.value })}
-                className={selCls}
-              >
-                <option value="">All Employees</option>
-                {employees.map(emp => (
-                  <option key={emp.id} value={String(emp.id)}>{emp.full_name || emp.username}</option>
-                ))}
-              </select>
-              <ChevronRight size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none rotate-90" />
-            </div>
-          </div>
-        </div>
-
-        <div className="px-5 py-4 border-t border-slate-100 flex gap-2">
-          <button
-            onClick={() => {
-              const cleared = { status: "", priority: "", assignee: "" };
-              setTempFilters(cleared);
-              onReset();
-              onClose();
-            }}
-            className="flex-1 py-2 text-xs font-bold border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition flex items-center justify-center gap-1 cursor-pointer"
-          >
-            <RefreshCw size={11} /> Reset
-          </button>
-          <button
-            onClick={() => {
-              setFilters(tempFilters);
-              onClose();
-            }}
-            className="flex-1 py-2 text-xs font-bold bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-xl hover:opacity-90 transition cursor-pointer"
-          >
-            Apply
-          </button>
-        </div>
-      </div>
-    </>
-  );
-};
-
-// ─── Main TasksPage Component ─────────────────────────────────────────────────
-
-export default function TasksPage() {
-  const context = useOutletContext<{ setHeaderTitle: (t: string) => void; setHeaderSubtitle: (s: string) => void } | null>();
-
-  useEffect(() => {
-    context?.setHeaderTitle?.('Task Management');
-    context?.setHeaderSubtitle?.('Manage and track all your tasks');
-  }, []);
-
+export default function Tasks() {
+  const { user } = useAuth();
+  
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Checkbox selection
+  
+  // Selection state
   const [selectedTasks, setSelectedTasks] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
 
-  // Column-wise search
+  // Column-wise searches
   const [colSearch, setColSearch] = useState({
     title: '',
-    assignee: '',
     priority: '',
     status: '',
     due_date: '',
   });
-
-  // Filters
-  const [filters, setFilters] = useState<FilterState>({
-    status: '',
-    priority: '',
-    assignee: '',
-  });
-  const [filterOpen, setFilterOpen] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -826,12 +680,12 @@ export default function TasksPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<Task | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // API Methods
+  // API methods
   const fetchTasks = async () => {
     try {
-      const res = await apiClient.get<any>('/tasks');
-      if (res) {
-        const list = Array.isArray(res) ? res : (res.data || []);
+      const data = await apiClient.get<any>('/tasks');
+      if (data) {
+        const list = Array.isArray(data) ? data : (data.data || []);
         setTasks(list);
       }
     } catch (err) {
@@ -873,9 +727,9 @@ export default function TasksPage() {
     }
   };
 
-  // Socket.IO event handler
+  // Listen for socket events to refresh tasks list in real-time
   useTaskSocket((event, data) => {
-    console.log(`[AdminTasks] socket event: ${event}`, data);
+    console.log(`[EmployeeTasks] socket event: ${event}`, data);
     fetchTasks();
     if (viewTask && (event === 'task_updated' || event === 'task_comment_added' || event === 'task_status_updated')) {
       if (data.taskId === viewTask.id || (viewTask && viewTask.id === data.taskId)) {
@@ -889,31 +743,27 @@ export default function TasksPage() {
     }
   });
 
-  // Stats
-  const today = new Date().toISOString().split('T')[0];
-  const todayTasks = tasks.filter(t => t.due_date === today);
-  const overdueTasks = tasks.filter(t => isOverdue(t));
-  const pendingTasks = tasks.filter(t => t.status !== 'completed');
-  const highPriorityTasks = tasks.filter(t => t.priority === 'high' || t.priority === 'urgent');
+  // Filter ONLY my tasks
+  // (Assignee ID matches current logged-in employee ID or assignee name matches full_name)
+  const myTasks = tasks.filter(t => 
+    t.assignee_id === user?.id || 
+    t.assignee_name?.toLowerCase() === user?.full_name?.toLowerCase() ||
+    // fallback context
+    (user?.full_name === undefined && t.assignee_id === 101)
+  );
 
-  // Filtered tasks with column search
-  const filteredTasks = tasks.filter(t => {
+  // Apply column-wise filters
+  const filteredTasks = myTasks.filter(t => {
     const matchTitle = t.title.toLowerCase().includes(colSearch.title.toLowerCase()) ||
       (t.description?.toLowerCase().includes(colSearch.title.toLowerCase()) || false);
-    const matchAssignee = t.assignee_name?.toLowerCase().includes(colSearch.assignee.toLowerCase()) ?? true;
     const matchPriority = t.priority.toLowerCase().includes(colSearch.priority.toLowerCase());
     const matchStatus = t.status.toLowerCase().includes(colSearch.status.toLowerCase());
     const matchDueDate = t.due_date ? t.due_date.includes(colSearch.due_date) : true;
 
-    const matchFilterStatus = !filters.status || t.status === filters.status;
-    const matchFilterPriority = !filters.priority || t.priority === filters.priority;
-    const matchFilterAssignee = !filters.assignee || t.assignee_id === parseInt(filters.assignee);
-
-    return matchTitle && matchAssignee && matchPriority && matchStatus && matchDueDate &&
-      matchFilterStatus && matchFilterPriority && matchFilterAssignee;
+    return matchTitle && matchPriority && matchStatus && matchDueDate;
   });
 
-  // Pagination
+  // Pagination math
   const totalPages = Math.ceil(filteredTasks.length / pageSize);
   const paginatedTasks = filteredTasks.slice(
     (currentPage - 1) * pageSize,
@@ -924,7 +774,13 @@ export default function TasksPage() {
     setCurrentPage(1);
     setSelectedTasks(new Set());
     setSelectAll(false);
-  }, [colSearch, filters, pageSize]);
+  }, [colSearch, pageSize]);
+
+  // Personal statistics
+  const pendingCount = myTasks.filter(t => t.status !== 'completed').length;
+  const overdueCount = myTasks.filter(t => isOverdue(t)).length;
+  const highPriorityCount = myTasks.filter(t => t.priority === 'high' || t.priority === 'urgent').length;
+  const completedCount = myTasks.filter(t => t.status === 'completed').length;
 
   // Handle select all
   const handleSelectAll = () => {
@@ -950,17 +806,24 @@ export default function TasksPage() {
     setSelectAll(newSelected.size === paginatedTasks.length && paginatedTasks.length > 0);
   };
 
-  // Handle delete selected
+  // Handle bulk delete (only allowed on tasks created by user)
   const handleDeleteSelected = async () => {
     if (selectedTasks.size === 0) {
       toast.error('Please select tasks to delete');
       return;
     }
-    if (window.confirm(`Are you sure you want to delete ${selectedTasks.size} selected tasks?`)) {
+
+    const deletableTasks = paginatedTasks.filter(t => selectedTasks.has(t.id) && t.creator_id === user?.id);
+    if (deletableTasks.length === 0) {
+      toast.error('You can only delete tasks created by yourself.');
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to delete ${deletableTasks.length} tasks you created?`)) {
       try {
-        const deletePromises = Array.from(selectedTasks).map(id => apiClient.delete(`/tasks/${id}`));
+        const deletePromises = deletableTasks.map(t => apiClient.delete(`/tasks/${t.id}`));
         await Promise.all(deletePromises);
-        toast.success(`${selectedTasks.size} tasks deleted successfully!`);
+        toast.success(`${deletableTasks.length} tasks deleted successfully!`);
         fetchTasks();
         setSelectedTasks(new Set());
         setSelectAll(false);
@@ -977,17 +840,19 @@ export default function TasksPage() {
     setCurrentPage(1);
   };
 
+  // Create task
   const handleCreate = async (data: any) => {
     try {
       await apiClient.post('/tasks', data);
       toast.success('Task created successfully!');
       fetchTasks();
     } catch (err) {
-      console.error('Error creating task:', err);
+      console.error('API error saving task:', err);
       toast.error('Failed to create task');
     }
   };
 
+  // Edit task details
   const handleUpdate = async (data: any) => {
     if (!editTask) return;
     try {
@@ -996,11 +861,12 @@ export default function TasksPage() {
       fetchTasks();
       setEditTask(null);
     } catch (err) {
-      console.error('Error updating task:', err);
+      console.error('API error updating task:', err);
       toast.error('Failed to update task');
     }
   };
 
+  // Delete task
   const handleDelete = async () => {
     if (!deleteConfirm) return;
     setDeleting(true);
@@ -1010,13 +876,14 @@ export default function TasksPage() {
       fetchTasks();
       setDeleteConfirm(null);
     } catch (err) {
-      console.error('Error deleting task:', err);
+      console.error('API error deleting task:', err);
       toast.error('Failed to delete task');
     } finally {
       setDeleting(false);
     }
   };
 
+  // Interactive write comment handler
   const handleAddComment = async (taskId: number, commentText: string) => {
     try {
       await apiClient.post(`/tasks/${taskId}/comments`, { comment: commentText });
@@ -1028,57 +895,53 @@ export default function TasksPage() {
       }
       fetchTasks();
     } catch (err) {
-      console.error('Error posting comment:', err);
+      console.error('API error saving comment:', err);
       toast.error('Failed to post comment');
     }
   };
 
-  const resetFilters = () => {
-    setFilters({ status: '', priority: '', assignee: '' });
-  };
-
   const colInp =
-    "w-full px-2 py-1 text-[10px] border border-slate-200 rounded-md bg-white outline-none font-medium text-slate-600 placeholder-slate-300 focus:border-[#0D47A1]/50 focus:ring-1 focus:ring-[#0D47A1]/15 transition-all text-left";
+    "w-full px-2 py-1 text-[10px] border border-slate-200 rounded-md bg-white outline-none font-medium text-slate-600 placeholder-slate-350 focus:border-[#0D47A1]/50 focus:ring-1 focus:ring-[#0D47A1]/15 transition-all text-left";
 
   return (
-    <div className="p-4 md:p-6 space-y-5 min-h-full">
+    <div className="space-y-5 min-h-full">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <StatCard
           title="Total Tasks"
-          value={tasks.length}
+          value={myTasks.length}
           icon={<ClipboardList size={20} className="text-blue-600" />}
           color="bg-blue-50"
         />
         <StatCard
-          title="Today's Tasks"
-          value={todayTasks.length}
-          icon={<Calendar size={20} className="text-emerald-600" />}
-          color="bg-emerald-50"
-        />
-        <StatCard
-          title="Overdue Tasks"
-          value={overdueTasks.length}
-          icon={<AlertTriangle size={20} className="text-red-500" />}
-          color="bg-red-50"
-        />
-        <StatCard
           title="Pending Tasks"
-          value={pendingTasks.length}
+          value={pendingCount}
           icon={<Clock size={20} className="text-amber-600" />}
           color="bg-amber-50"
         />
         <StatCard
           title="High Priority"
-          value={highPriorityTasks.length}
+          value={highPriorityCount}
           icon={<Zap size={20} className="text-orange-500" />}
           color="bg-orange-50"
         />
+        <StatCard
+          title="Overdue Tasks"
+          value={overdueCount}
+          icon={<AlertTriangle size={20} className="text-red-500" />}
+          color="bg-red-50"
+        />
+        <StatCard
+          title="Completed"
+          value={completedCount}
+          icon={<CheckCircle2 size={20} className="text-emerald-600" />}
+          color="bg-emerald-50"
+        />
       </div>
 
-      {/* Table */}
+      {/* Table Container */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col min-h-[480px]">
-        {/* Toolbar above table - Sticky */}
+        {/* Count/Toolbar Header - Sticky */}
         <div className="sticky top-0 z-20 px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-white">
           <div className="flex items-center gap-3">
             <div className="text-xs font-semibold text-slate-500 text-left">
@@ -1100,24 +963,15 @@ export default function TasksPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setFilterOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition cursor-pointer"
-            >
-              <Filter size={13} /> Filters
-              {(filters.status || filters.priority || filters.assignee) && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0D47A1]" />
-              )}
-            </button>
-            <button
               onClick={() => setCreateOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white rounded-lg text-xs font-bold shadow-sm hover:opacity-90 transition cursor-pointer"
             >
-              <Plus size={14} /> New Task
+              <Plus size={14} /> Create Task
             </button>
           </div>
         </div>
 
-        {/* Scrollable container */}
+        {/* Scrollable Table View */}
         <div className="overflow-y-auto flex-1 max-h-[calc(100vh-240px)]">
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center">
@@ -1138,19 +992,18 @@ export default function TasksPage() {
                     />
                   </th>
                   <th className="px-4 py-3 text-left font-extrabold text-slate-500 uppercase tracking-wider">Task</th>
-                  <th className="px-4 py-3 text-left font-extrabold text-slate-500 uppercase tracking-wider">Assignee</th>
                   <th className="px-4 py-3 text-left font-extrabold text-slate-500 uppercase tracking-wider">Priority</th>
                   <th className="px-4 py-3 text-left font-extrabold text-slate-500 uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-left font-extrabold text-slate-500 uppercase tracking-wider">Due Date</th>
                   <th className="px-4 py-3 text-right font-extrabold text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
 
-                {/* Column Search Row */}
+                {/* Column Searches */}
                 <tr className="bg-white border-b-2 border-slate-200 sticky top-[48px] z-10">
                   <th className="px-3 py-2"></th>
                   <th className="px-3 py-2">
                     <div className="relative">
-                      <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-350" />
                       <input
                         value={colSearch.title}
                         onChange={(e) => setColSearch(s => ({ ...s, title: e.target.value }))}
@@ -1161,18 +1014,7 @@ export default function TasksPage() {
                   </th>
                   <th className="px-3 py-2">
                     <div className="relative">
-                      <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-300" />
-                      <input
-                        value={colSearch.assignee}
-                        onChange={(e) => setColSearch(s => ({ ...s, assignee: e.target.value }))}
-                        placeholder="Search employee..."
-                        className={`${colInp} pl-5`}
-                      />
-                    </div>
-                  </th>
-                  <th className="px-3 py-2">
-                    <div className="relative">
-                      <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-350" />
                       <input
                         value={colSearch.priority}
                         onChange={(e) => setColSearch(s => ({ ...s, priority: e.target.value }))}
@@ -1183,7 +1025,7 @@ export default function TasksPage() {
                   </th>
                   <th className="px-3 py-2">
                     <div className="relative">
-                      <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-350" />
                       <input
                         value={colSearch.status}
                         onChange={(e) => setColSearch(s => ({ ...s, status: e.target.value }))}
@@ -1194,7 +1036,7 @@ export default function TasksPage() {
                   </th>
                   <th className="px-3 py-2">
                     <div className="relative">
-                      <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-350" />
                       <input
                         value={colSearch.due_date}
                         onChange={(e) => setColSearch(s => ({ ...s, due_date: e.target.value }))}
@@ -1209,8 +1051,8 @@ export default function TasksPage() {
               <tbody className="divide-y divide-slate-100">
                 {paginatedTasks.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-16 text-center text-slate-400 text-sm font-semibold">
-                      No tasks found matching filters.
+                    <td colSpan={6} className="py-16 text-center text-slate-400 text-sm font-semibold">
+                      No tasks found. Create a new task!
                     </td>
                   </tr>
                 )}
@@ -1219,6 +1061,9 @@ export default function TasksPage() {
                   const status = STATUS_CONFIG[task.status] || STATUS_CONFIG['todo'];
                   const overdue = isOverdue(task);
                   const isChecked = selectedTasks.has(task.id);
+
+                  // Check if task was created by the logged in employee
+                  const isMyCreatedTask = task.creator_id === user?.id;
 
                   return (
                     <tr
@@ -1239,14 +1084,6 @@ export default function TasksPage() {
                         {task.description && <p className="text-[10px] text-slate-450 truncate">{task.description}</p>}
                       </td>
                       <td className="px-4 py-3 text-left">
-                        <div className="flex items-center gap-2">
-                          <Avatar name={task.assignee_name} avatarUrl={task.assignee_avatar} size="xs" />
-                          <span className="font-semibold text-slate-650 truncate max-w-[90px]">
-                            {task.assignee_name ?? <span className="text-slate-400 italic">Unassigned</span>}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-left">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${priority.bg} ${priority.color}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${priority.dot}`} />{priority.label}
                         </span>
@@ -1257,7 +1094,7 @@ export default function TasksPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-left">
-                        <span className={`font-semibold ${overdue ? 'text-red-500' : 'text-slate-600'}`}>
+                        <span className={`font-semibold ${overdue ? 'text-red-500' : 'text-slate-650'}`}>
                           {task.due_date ? formatDate(task.due_date) : '—'}
                           {overdue && ' ⚠️'}
                         </span>
@@ -1267,24 +1104,32 @@ export default function TasksPage() {
                           <button
                             onClick={() => handleOpenViewTask(task)}
                             className="p-1.5 hover:bg-[#0D47A1]/10 rounded-lg text-slate-450 hover:text-[#0D47A1] transition cursor-pointer"
-                            title="View Details"
+                            title="View details & comments"
                           >
                             <Eye size={13} />
                           </button>
-                          <button
-                            onClick={() => setEditTask(task)}
-                            className="p-1.5 hover:bg-blue-50 rounded-lg text-slate-450 hover:text-blue-600 transition cursor-pointer"
-                            title="Edit"
-                          >
-                            <Edit2 size={13} />
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(task)}
-                            className="p-1.5 hover:bg-red-50 rounded-lg text-slate-450 hover:text-red-500 transition cursor-pointer"
-                            title="Delete"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          {isMyCreatedTask ? (
+                            <>
+                              <button
+                                onClick={() => setEditTask(task)}
+                                className="p-1.5 hover:bg-blue-50 rounded-lg text-slate-450 hover:text-blue-600 transition cursor-pointer"
+                                title="Edit"
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(task)}
+                                className="p-1.5 hover:bg-red-50 rounded-lg text-slate-450 hover:text-red-500 transition cursor-pointer"
+                                title="Delete"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-bold bg-slate-105 border border-slate-200/60 px-2 py-0.5 rounded shadow-sm select-none mr-2">
+                              View Only
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1295,7 +1140,7 @@ export default function TasksPage() {
           )}
         </div>
 
-        {/* Pagination */}
+        {/* Pagination Footer */}
         {!loading && filteredTasks.length > 0 && (
           <div className="sticky bottom-0 z-20 px-5 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-white/95 backdrop-blur-sm flex-wrap gap-2">
             <span className="font-semibold">
@@ -1366,14 +1211,14 @@ export default function TasksPage() {
 
       {/* Form Modals */}
       {createOpen && (
-        <TaskFormModal task={null} employees={employees} onClose={() => setCreateOpen(false)} onSave={handleCreate} />
+        <TaskFormModal task={null} employees={employees} onClose={() => setCreateOpen(false)} onSave={handleCreate} currentUser={user} />
       )}
 
       {editTask && (
-        <TaskFormModal task={editTask} employees={employees} onClose={() => setEditTask(null)} onSave={handleUpdate} />
+        <TaskFormModal task={editTask} employees={employees} onClose={() => setEditTask(null)} onSave={handleUpdate} currentUser={user} />
       )}
 
-      {/* Task Preview Modal */}
+      {/* Task Details Modal */}
       {viewTask && (
         <TaskDetailModal
           task={viewTask}
@@ -1383,6 +1228,7 @@ export default function TasksPage() {
             setTimeout(() => setEditTask(t), 300);
           }}
           onAddComment={(commentText) => handleAddComment(viewTask.id, commentText)}
+          currentUser={user}
         />
       )}
 
@@ -1395,16 +1241,6 @@ export default function TasksPage() {
           deleting={deleting}
         />
       )}
-
-      {/* Side Filter */}
-      <SideFilter
-        open={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        filters={filters}
-        setFilters={setFilters}
-        onReset={resetFilters}
-        employees={employees}
-      />
     </div>
   );
 }

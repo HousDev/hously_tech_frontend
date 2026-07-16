@@ -17,6 +17,9 @@ import {
   ArrowDown,
   Briefcase,
   LogIn,
+  Calendar,
+  MapPin,
+  Clock,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import logo from "../assets/images/hously-logo.png";
@@ -117,6 +120,8 @@ function WelcomePage({ onSectorClick, onLoginClick }: WelcomePageProps) {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [visibleCards, setVisibleCards] = useState<boolean[]>([]);
+  const [walkInDrives, setWalkInDrives] = useState<any[]>([]);
+  const [badgeText, setBadgeText] = useState<'hiring' | 'walkin'>('hiring');
   const statsRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const timelineRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -226,6 +231,24 @@ function WelcomePage({ onSectorClick, onLoginClick }: WelcomePageProps) {
     setVisibleCards(new Array(sectors.length).fill(false));
     timelineRefs.current = timelineRefs.current.slice(0, timeline.length);
   }, [sectors.length, timeline.length]);
+
+  useEffect(() => {
+    const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+    fetch(`${base}/api/career/walk-in-drives`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) {
+          setWalkInDrives(data.data.filter((d: any) => d.status !== 'Completed'));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Badge: always show Walk-in Drive when any Active drive exists
+  useEffect(() => {
+    const hasActiveDrive = walkInDrives.some((d: any) => d.status === 'Active');
+    setBadgeText(hasActiveDrive ? 'walkin' : 'hiring');
+  }, [walkInDrives]);
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowNewBrand(true);
@@ -244,6 +267,7 @@ function WelcomePage({ onSectorClick, onLoginClick }: WelcomePageProps) {
           setVisibleStats(true);
         }
       }
+
 
       cardsRef.current.forEach((card, index) => {
         if (card) {
@@ -296,21 +320,27 @@ function WelcomePage({ onSectorClick, onLoginClick }: WelcomePageProps) {
 
         {/* Top Right Navigation Actions */}
         <div className="fixed top-4 right-4 sm:top-6 sm:right-6 md:top-8 md:right-8 z-40 flex items-center gap-2 sm:gap-4 animate-fade-in select-none">
-          {/* Careers Button with Floating Blinking Hiring Badge */}
+          {/* Careers Button with Blinking Badge */}
           <div className="relative">
-            {/* Blinking Hiring Badge */}
-            <span className="absolute -top-2.5 -right-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500 text-white font-extrabold text-[8px] sm:text-[9px] uppercase tracking-wider animate-pulse shadow-md shadow-emerald-500/30 border border-emerald-400 select-none pointer-events-none">
-              <span className="relative flex h-1 w-1">
+            {/* Badge: Walk-in Drive when Active, Hiring otherwise */}
+            <Link
+              to="/career"
+              className="absolute -top-2.5 -right-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-[8px] sm:text-[9px] uppercase tracking-wider animate-pulse shadow-md shadow-emerald-500/30 border border-emerald-400 select-none cursor-pointer overflow-hidden"
+              style={{ minWidth: 52 }}
+            >
+              <span className="relative flex h-1 w-1 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-1 w-1 bg-white"></span>
               </span>
-              Hiring
-            </span>
+              <span key={badgeText} className="whitespace-nowrap" style={{ animation: 'badgeSlide 0.4s ease' }}>
+                {badgeText === 'hiring' ? 'Hiring' : 'Walk-in Drive'}
+              </span>
+            </Link>
 
             {/* Careers Button */}
             <Link
               to="/career"
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 bg-white/95 backdrop-blur-md border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-slate-700 rounded-full shadow-sm hover:shadow-md transition-all duration-300 font-semibold text-[11px] sm:text-xs group"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 bg-white/95 backdrop-blur-md border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-full shadow-sm hover:shadow-md transition-all duration-300 font-semibold text-[11px] sm:text-xs group"
             >
               <Briefcase className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-slate-500 group-hover:scale-110 transition-transform" />
               <span>Careers</span>
@@ -756,6 +786,7 @@ function WelcomePage({ onSectorClick, onLoginClick }: WelcomePageProps) {
                 ))}
               </div>
             </div>
+
 
             {/* Features Section */}
             <div className="mt-12 sm:mt-20 md:mt-20 mb-12 sm:mb-16 md:mb-20">

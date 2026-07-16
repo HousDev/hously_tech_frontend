@@ -40,6 +40,7 @@ import {
 import { documentApi } from '../../../lib/documentApi';
 import { employeeApi } from '../../../lib/employeeApi';
 import { uploadFile } from '../../../lib/api';
+import { masterDataAPI } from '../../../lib/masterApi';
 import toast, { Toaster } from 'react-hot-toast';
 
 const offerLetterHtml = `<!DOCTYPE html>
@@ -474,24 +475,10 @@ const agreementHtml = `<!DOCTYPE html>
 </body>
 </html>`;
 
-const blankTemplateHtml = `<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      font-size: 13.5px;
-      line-height: 1.65;
-      color: #1e293b;
-      padding: 30px;
-    }
-  </style>
-</head>
-<body>
+const blankTemplateHtml = `<div style="font-family: 'Inter', sans-serif; font-size: 13.5px; line-height: 1.65; color: #1e293b; padding: 30px;">
   <h2>New Document Template</h2>
   <p>Start editing this document, or switch to Source Code Editor view (&lt;&gt;) to paste your custom HTML code.</p>
-</body>
-</html>`;
+</div>`;
 
 // ─── TYPES & DATA ────────────────────────────────────────────────────────────
 
@@ -713,7 +700,8 @@ const getRenderedHtml = (type: string, empData: EmployeeData, templatesList: Doc
     employee_id: empData.employeeId || 'EMP001',
     month_year: empData.joinDate ? new Date(empData.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'June 2026',
     issue_date: currentDateDisplay,
-    date_of_leaving: leavingDateDisplay
+    date_of_leaving: leavingDateDisplay,
+    ctc: empData.salary ? `₹${(Number(empData.salary) * 12).toLocaleString('en-IN')}.00 Per Annum` : '₹9,60,000.00 Per Annum'
   };
 
   // Format acceptance date for offer letter (8 days after join date)
@@ -795,6 +783,20 @@ export default function HRMSDocuments() {
   }, [setHeaderTitle, setHeaderSubtitle]);
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'templates'>('dashboard');
+  const [templateViewState, setTemplateViewState] = useState<'list' | 'create' | 'edit'>('list');
+
+  useEffect(() => {
+    if (setHeaderTitle && setHeaderSubtitle) {
+      if (activeTab === 'templates' && templateViewState !== 'list') {
+        setHeaderTitle("");
+        setHeaderSubtitle("");
+      } else {
+        setHeaderTitle("Document Hub");
+        setHeaderSubtitle("Manage corporate templates, generate certificates, and track official forms");
+      }
+    }
+  }, [setHeaderTitle, setHeaderSubtitle, activeTab, templateViewState]);
+
   const [documents, setDocuments] = useState<GeneratedDocument[]>([]);
   const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
 
@@ -866,61 +868,65 @@ export default function HRMSDocuments() {
   }, [documents, templates]);
 
   return (
-    <div className="md:h-[calc(100vh-64px)] h-auto bg-slate-50 flex flex-col font-sans overflow-y-auto md:overflow-hidden relative">
+    <div className={`md:h-[calc(100vh-64px)] h-auto flex flex-col font-sans overflow-y-auto md:overflow-hidden relative ${activeTab === 'templates' && templateViewState !== 'list' ? 'bg-white' : 'bg-slate-50'}`}>
       <Toaster position="top-right" />
 
       {/* Sticky Tabs & Stats Header (Sticky on desktop and large screens) */}
-      <div className="flex-shrink-0 bg-slate-50 border-b border-slate-100/50 space-y-4 px-4 md:px-6 py-4">
-        {/* Navigation Tabs (No Title / No Subtitle) */}
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex bg-slate-200/50 p-1 rounded-xl border border-slate-100/30">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`flex items-center gap-2 text-xs font-bold py-2.5 px-4 rounded-lg transition-all duration-300 cursor-pointer ${activeTab === 'dashboard'
-                ? 'bg-white text-blue-700 shadow-xs'
-                : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-              <FileText size={14} />
-              Document Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab('templates')}
-              className={`flex items-center gap-2 text-xs font-bold py-2.5 px-4 rounded-lg transition-all duration-300 cursor-pointer ${activeTab === 'templates'
-                ? 'bg-white text-blue-700 shadow-xs'
-                : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-              <FileSignature size={14} />
-              Document Templates
-            </button>
-          </div>
-        </div>
-
-        {/* Stats Row (Only on Dashboard tab) */}
-        {activeTab === 'dashboard' && (
-          <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-3 animate-[fadeIn_0.15s_ease-out]">
-            {stats.map((s, i) => (
-              <div
-                key={i}
-                className={`p-4 rounded-xl border shadow-xs flex items-center justify-between hover:shadow-sm transition ${s.cardBg}`}
+      {(activeTab === 'dashboard' || (activeTab === 'templates' && templateViewState === 'list')) && (
+        <div className="flex-shrink-0 bg-slate-50 border-b border-slate-100/50 space-y-4 px-4 md:px-6 py-4">
+          {/* Navigation Tabs (No Title / No Subtitle) */}
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex bg-slate-200/50 p-1 rounded-xl border border-slate-100/30">
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`flex items-center gap-2 text-xs font-bold py-2.5 px-4 rounded-lg transition-all duration-300 cursor-pointer ${activeTab === 'dashboard'
+                  ? 'bg-white text-blue-700 shadow-xs'
+                  : 'text-gray-500 hover:text-gray-700'
+                  }`}
               >
-                <div>
-                  <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest">{s.label}</p>
-                  <p className="text-xl font-extrabold mt-1">{s.value}</p>
-                  <p className="text-[10px] opacity-70 mt-0.5">{s.sub}</p>
-                </div>
-                <div className={`p-2.5 rounded-xl ${s.iconBg}`}>
-                  {s.icon}
-                </div>
-              </div>
-            ))}
+                <FileText size={14} />
+                Document Dashboard
+              </button>
+              <button
+                onClick={() => setActiveTab('templates')}
+                className={`flex items-center gap-2 text-xs font-bold py-2.5 px-4 rounded-lg transition-all duration-300 cursor-pointer ${activeTab === 'templates'
+                  ? 'bg-white text-blue-700 shadow-xs'
+                  : 'text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                <FileSignature size={14} />
+                Document Templates
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Stats Row (Only on Dashboard tab) */}
+          {activeTab === 'dashboard' && (
+            <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-3 animate-[fadeIn_0.15s_ease-out]">
+              {stats.map((s, i) => (
+                <div
+                  key={i}
+                  className={`p-4 rounded-xl border shadow-xs flex items-center justify-between hover:shadow-sm transition ${s.cardBg}`}
+                >
+                  <div>
+                    <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest">{s.label}</p>
+                    <p className="text-xl font-extrabold mt-1">{s.value}</p>
+                    <p className="text-[10px] opacity-70 mt-0.5">{s.sub}</p>
+                  </div>
+                  <div className={`p-2.5 rounded-xl ${s.iconBg}`}>
+                    {s.icon}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Main Content View (fills the remaining height cleanly down to the bottom) */}
-      <div className="md:flex-1 h-auto md:overflow-hidden overflow-visible px-4 md:px-6 pb-0 flex flex-col">
+      <div className={`md:flex-1 h-auto md:overflow-hidden overflow-visible pb-0 flex flex-col ${
+        templateViewState === 'list' ? 'px-4 md:px-6' : 'px-0'
+      }`}>
         {activeTab === 'dashboard' ? (
           <DocumentDashboard
             documents={documents}
@@ -933,6 +939,8 @@ export default function HRMSDocuments() {
             templates={templates}
             setTemplates={setTemplates}
             triggerToast={triggerToast}
+            viewState={templateViewState}
+            setViewState={setTemplateViewState}
           />
         )}
       </div>
@@ -1109,7 +1117,7 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
         triggerToast(`Failed to send email.`, "error");
       } finally {
         setSendingEmailId(null);
-      
+
       }
     };
 
@@ -1986,14 +1994,35 @@ interface TemplatesProps {
   templates: DocumentTemplate[];
   setTemplates: React.Dispatch<React.SetStateAction<DocumentTemplate[]>>;
   triggerToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  viewState: 'list' | 'create' | 'edit';
+  setViewState: React.Dispatch<React.SetStateAction<'list' | 'create' | 'edit'>>;
 }
 
-function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesProps) {
-  const [viewState, setViewState] = useState<'list' | 'create' | 'edit'>('list');
+function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, setViewState }: TemplatesProps) {
   const [editingTemplate, setEditingTemplate] = useState<DocumentTemplate | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
   const [showSealOnPage, setShowSealOnPage] = useState(false);
   const [showSigOnPage, setShowSigOnPage] = useState(false);
+  const [documentVariables, setDocumentVariables] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchDocVariables = async () => {
+      try {
+        const types = await masterDataAPI.getAllMasterTypes("common");
+        const docVarType = types.find((t: any) =>
+          t.name?.toLowerCase().includes("document variable")
+        );
+        if (docVarType) {
+          const vals = await masterDataAPI.getMasterValues(docVarType.id);
+          const activeVals = vals.filter((v: any) => v.status === "Active" || v.status === "active");
+          setDocumentVariables(activeVals);
+        }
+      } catch (err) {
+        console.error("Failed to load master Document Variables:", err);
+      }
+    };
+    fetchDocVariables();
+  }, []);
 
   // Overlays confirmations
   const [deleteTemplateId, setDeleteTemplateId] = useState<number | null>(null);
@@ -2016,7 +2045,9 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
   const [editorMode, setEditorMode] = useState<'preview' | 'code'>('preview');
   const [templateHtml, setTemplateHtml] = useState<string>('');
   const [savedRange, setSavedRange] = useState<Range | null>(null);
+  const [showInsertVar, setShowInsertVar] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const insertVarRef = useRef<HTMLDivElement>(null);
 
   const saveSelection = () => {
     const sel = window.getSelection();
@@ -2711,7 +2742,7 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
 
       {/* 2. Create or Edit Template Forms (Inline, keeping header/sidebar/navbar layout exactly matching layout) */}
       {(viewState === 'create' || viewState === 'edit') && (
-        <div className="bg-white rounded-t-2xl border-x border-t border-slate-100 flex flex-col md:flex-1 h-auto md:overflow-hidden overflow-visible shadow-xs">
+        <div className="bg-white flex flex-col md:flex-1 h-auto md:overflow-hidden overflow-visible">
           {/* Header Action Bar */}
           <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white flex-shrink-0 z-10">
             <div className="flex items-center gap-3">
@@ -3034,61 +3065,133 @@ function DocumentTemplates({ templates, setTemplates, triggerToast }: TemplatesP
                         <option>Custom Variables</option>
                       </select>
 
-                      <select
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            navigator.clipboard.writeText(`{{${e.target.value}}}`);
-                            triggerToast(`Variable {{${e.target.value}}} copied to clipboard!`, 'success');
-                            e.target.value = '';
-                          }
-                        }}
-                        className="bg-white border border-slate-200 rounded px-2 py-0.5 outline-none text-slate-500 font-medium"
-                      >
-                        <option value="">Insert variable...</option>
-                        <option value="issue_date">issue_date (Today)</option>
-                        <option value="date_of_leaving">date_of_leaving</option>
-                        {formCategory === 'Offer Letter' && (
+                      {/* Custom scrollable Insert Variable dropdown */}
+                      <div ref={insertVarRef} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowInsertVar(v => !v)}
+                          className="bg-white border border-slate-200 rounded px-2 py-0.5 outline-none text-slate-500 font-medium text-[11px] flex items-center gap-1.5 hover:bg-slate-50 transition cursor-pointer"
+                        >
+                          Insert variable...
+                          <ChevronDown size={11} className={`transition-transform ${showInsertVar ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {showInsertVar && (
                           <>
-                            <option value="employee_name">employee_name</option>
-                            <option value="job_title">job_title</option>
-                            <option value="department">department</option>
-                            <option value="start_date">start_date</option>
-                            <option value="salary">salary</option>
-                            <option value="company_name">company_name</option>
+                            {/* Backdrop to close */}
+                            <div className="fixed inset-0 z-10" onClick={() => setShowInsertVar(false)} />
+                            <div
+                              className="absolute left-0 top-full mt-1 z-20 bg-white border border-slate-200 rounded-xl shadow-lg overflow-y-auto scrollbar-thin"
+                              style={{ maxHeight: '50vh', minWidth: '180px' }}
+                            >
+                              {/* Common variables */}
+                              <div className="px-2 pt-2 pb-1">
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-1 mb-1">Common</p>
+                                {[
+                                  { val: 'issue_date', label: 'issue_date (Today)' },
+                                  { val: 'date_of_leaving', label: 'date_of_leaving' },
+                                ].map(item => (
+                                  <button
+                                    key={item.val}
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(`{{${item.val}}}`);
+                                      triggerToast(`Variable {{${item.val}}} copied!`, 'success');
+                                      setShowInsertVar(false);
+                                    }}
+                                    className="w-full text-left px-2 py-1 text-[11px] text-slate-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition cursor-pointer font-medium"
+                                  >
+                                    {`{{ ${item.val} }}`}
+                                    <span className="text-[10px] text-slate-400 ml-1">{item.label.includes('(') ? item.label.match(/\((.+)\)/)?.[1] : ''}</span>
+                                  </button>
+                                ))}
+                              </div>
+
+                              {/* Category variables */}
+                              {(() => {
+                                let vars: { val: string; label: string }[] = [];
+                                if (formCategory === 'Offer Letter') vars = [
+                                  { val: 'employee_name', label: 'Employee Name' },
+                                  { val: 'job_title', label: 'Job Title' },
+                                  { val: 'department', label: 'Department' },
+                                  { val: 'start_date', label: 'Start Date' },
+                                  { val: 'salary', label: 'Monthly Salary' },
+                                  { val: 'ctc', label: 'Annual CTC' },
+                                  { val: 'company_name', label: 'Company Name' },
+                                ];
+                                else if (formCategory === 'Pay Slip') vars = [
+                                  { val: 'employee_name', label: 'Employee Name' },
+                                  { val: 'employee_id', label: 'Employee ID' },
+                                  { val: 'department', label: 'Department' },
+                                  { val: 'month_year', label: 'Month & Year' },
+                                  { val: 'basic', label: 'Basic Salary' },
+                                  { val: 'hra', label: 'HRA' },
+                                  { val: 'allowance', label: 'Allowance' },
+                                  { val: 'pf', label: 'PF' },
+                                  { val: 'tax', label: 'Tax' },
+                                ];
+                                else if (formCategory === 'Contract') vars = [
+                                  { val: 'employee_name', label: 'Employee Name' },
+                                  { val: 'job_title', label: 'Job Title' },
+                                  { val: 'start_date', label: 'Start Date' },
+                                  { val: 'salary', label: 'Salary' },
+                                  { val: 'probation_months', label: 'Probation Months' },
+                                  { val: 'notice_days', label: 'Notice Days' },
+                                  { val: 'company_name', label: 'Company Name' },
+                                ];
+                                else if (formCategory === 'Agreement') vars = [
+                                  { val: 'employee_name', label: 'Employee Name' },
+                                  { val: 'effective_date', label: 'Effective Date' },
+                                  { val: 'company_name', label: 'Company Name' },
+                                ];
+
+                                if (vars.length === 0) return null;
+                                return (
+                                  <div className="px-2 pb-1 border-t border-slate-100 mt-1 pt-1">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-1 mb-1">{formCategory}</p>
+                                    {vars.map(item => (
+                                      <button
+                                        key={item.val}
+                                        type="button"
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(`{{${item.val}}}`);
+                                          triggerToast(`Variable {{${item.val}}} copied!`, 'success');
+                                          setShowInsertVar(false);
+                                        }}
+                                        className="w-full text-left px-2 py-1 text-[11px] text-slate-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition cursor-pointer font-medium"
+                                      >
+                                        {`{{ ${item.val} }}`}
+                                        <span className="text-[10px] text-slate-400 ml-1">{item.label}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
+
+                              {/* Custom/master variables */}
+                              {documentVariables && documentVariables.length > 0 && (
+                                <div className="px-2 pb-2 border-t border-slate-100 mt-1 pt-1">
+                                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-1 mb-1">Custom</p>
+                                  {documentVariables.map((v: any) => (
+                                    <button
+                                      key={v.id}
+                                      type="button"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(`{{${v.value}}}`);
+                                        triggerToast(`Variable {{${v.value}}} copied!`, 'success');
+                                        setShowInsertVar(false);
+                                      }}
+                                      className="w-full text-left px-2 py-1 text-[11px] text-slate-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition cursor-pointer font-medium"
+                                    >
+                                      {`{{ ${v.value} }}`}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </>
                         )}
-                        {formCategory === 'Pay Slip' && (
-                          <>
-                            <option value="employee_name">employee_name</option>
-                            <option value="employee_id">employee_id</option>
-                            <option value="department">department</option>
-                            <option value="month_year">month_year</option>
-                            <option value="basic">basic</option>
-                            <option value="hra">hra</option>
-                            <option value="allowance">allowance</option>
-                            <option value="pf">pf</option>
-                            <option value="tax">tax</option>
-                          </>
-                        )}
-                        {formCategory === 'Contract' && (
-                          <>
-                            <option value="employee_name">employee_name</option>
-                            <option value="job_title">job_title</option>
-                            <option value="start_date">start_date</option>
-                            <option value="salary">salary</option>
-                            <option value="probation_months">probation_months</option>
-                            <option value="notice_days">notice_days</option>
-                            <option value="company_name">company_name</option>
-                          </>
-                        )}
-                        {formCategory === 'Agreement' && (
-                          <>
-                            <option value="employee_name">employee_name</option>
-                            <option value="effective_date">effective_date</option>
-                            <option value="company_name">company_name</option>
-                          </>
-                        )}
-                      </select>
+                      </div>
 
                       <select className="bg-white border border-slate-200 rounded px-2 py-0.5 outline-none text-slate-500 font-medium">
                         <option>Used variables (21)</option>

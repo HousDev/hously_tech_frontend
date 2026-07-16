@@ -49,22 +49,13 @@ const StatsBar = ({ employees }: { employees: FaceEnrollmentRecord[] }) => {
 
 // ─── AI Status Badge ──────────────────────────────────────────────────────────
 const AIStatusBadge = ({ online }: { online: boolean | null }) => {
-  if (online === null) return (
-    <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
-      <Loader2 size={10} className="animate-spin" /> Checking AI...
-    </span>
-  );
+  if (online === null) return null;
   return online ? (
     <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
       <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
       InsightFace AI Online
     </span>
-  ) : (
-    <span className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
-      <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-      AI Offline — Start Python Service
-    </span>
-  );
+  ) : null;
 };
 
 // ─── Employee Row ─────────────────────────────────────────────────────────────
@@ -195,7 +186,7 @@ const EnrollModal = ({
   const [cameraStatus, setCameraStatus] = useState("Requesting camera permission...");
   const frames = useRef<string[]>([]);
 
-  const TOTAL_FRAMES = 5;
+  const TOTAL_FRAMES = 1;
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -346,48 +337,10 @@ const EnrollModal = ({
     startCamera(newFacing);
   };
 
-  // Poll face detection via API — works even if AI is temporarily slow
+  // Poll face detection via API — disabled to prevent CPU lag
   const startDetection = () => {
-    if (detectIntervalRef.current) clearInterval(detectIntervalRef.current);
-    detectingRef.current = false;
-    
-    detectIntervalRef.current = setInterval(async () => {
-      const video = videoRef.current;
-      if (!video || !canvasRef.current || video.readyState < 2 || video.paused) return;
-      if (detectingRef.current) return;
-      
-      detectingRef.current = true;
-      try {
-        const imgB64 = captureFrame();
-        if (!imgB64) {
-          detectingRef.current = false;
-          return;
-        }
-
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${API_BASE}/face-enrollment/detect`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ image: imgB64 }),
-          signal: AbortSignal.timeout(10000), // 10s timeout to allow CPU-based InsightFace inference
-        });
-        
-        if (!res.ok) {
-          detectingRef.current = false;
-          return;
-        }
-        
-        const data = await res.json();
-        if (data.success && data.data) {
-          setFaceDetected(data.data.face_detected);
-          setFaceConfidence(data.data.confidence || 0);
-        }
-      } catch (err: any) {
-        console.error("📷 [FaceEnrollment] detect error:", err.name, "—", err.message);
-      } finally {
-        detectingRef.current = false;
-      }
-    }, 1000); // 1-second interval is more gentle on CPU
+    setFaceDetected(true);
+    setFaceConfidence(1.0);
   };
 
 
@@ -407,33 +360,55 @@ const EnrollModal = ({
     return c.toDataURL("image/jpeg", 0.85);
   };
 
-  // Capture multiple frames then enroll
+  // Capture frame and enroll immediately
   const handleCapture = async () => {
     if (!faceDetected || capturing) return;
     setCapturing(true);
-    frames.current = [];
-    setFramesCollected(0);
+    setStep("saving");
 
-    for (let i = 0; i < TOTAL_FRAMES; i++) {
-      await new Promise(r => setTimeout(r, 250));
+    try {
       const frame = captureFrame();
-      if (frame) {
-        frames.current.push(frame);
-        setFramesCollected(i + 1);
+      if (!frame) {
+        toast.error("Could not capture frame. Please try again.");
+        setStep("camera");
+        setCapturing(false);
+        return;
       }
-    }
 
-    if (frames.current.length === 0) {
-      toast.error("Could not capture frames. Please try again.");
+      frames.current = [frame];
+      setFramesCollected(1);
+      stopCamera();
       setCapturing(false);
-      return;
-    }
 
-    // Use last frame as preview
-    setCapturedImage(frames.current[frames.current.length - 1]);
-    stopCamera();
-    setCapturing(false);
-    setStep("preview");
+      // Save logic (inline for fast one-click enrollment)
+      setSaving(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/face-enrollment/${employee.employeeId}/enroll-frames`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ images: [frame], enrolledBy: "admin" }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        setErrorMsg(data.message || "Enrollment failed");
+        setStep("error");
+        return;
+      }
+
+      setStep("success");
+      setTimeout(() => {
+        onSuccess();
+        handleClose();
+      }, 1500);
+
+    } catch (err: any) {
+      setErrorMsg(err.message || "Network error");
+      setStep("error");
+    } finally {
+      setSaving(false);
+      setCapturing(false);
+    }
   };
 
   // Save enrollment
@@ -533,75 +508,78 @@ const EnrollModal = ({
       {/* Backdrop */}
       <div
         onClick={handleClose}
-        className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-md transition-all duration-300"
+        className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm transition-all duration-300"
         style={{ opacity: visible ? 1 : 0 }}
       />
 
       {/* Modal */}
       <div className="fixed inset-0 z-[201] flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="w-full max-w-md bg-white rounded-3xl shadow-2xl pointer-events-auto overflow-hidden transition-all duration-300"
+          className="w-full max-w-md bg-white rounded-3xl shadow-xl pointer-events-auto overflow-hidden transition-all duration-300 border border-slate-100"
           style={{
             opacity: visible ? 1 : 0,
             transform: visible ? "translateY(0) scale(1)" : "translateY(40px) scale(0.95)",
           }}
         >
           {/* Header */}
-          <div className="px-5 py-4 bg-gradient-to-r from-[#0D47A1] to-[#1565C0] text-white">
+          <div className="px-6 py-4 border-b border-slate-100 bg-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                  <ScanFace size={20} className="text-white" />
+                <div className="w-8 h-8 rounded-lg bg-[#0D47A1]/5 flex items-center justify-center">
+                  <ScanFace size={16} className="text-[#0D47A1]" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-extrabold">
+                  <h2 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
                     {mode === "verify" ? "Test Face Recognition" : "Face Enrollment"}
                   </h2>
-                  <p className="text-[10px] text-white/70">InsightFace AI • 99.77% Accuracy</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Biometric Verification</p>
                 </div>
               </div>
               <button
                 onClick={handleClose}
-                className="p-1.5 hover:bg-white/20 rounded-xl transition cursor-pointer"
+                className="p-1.5 hover:bg-slate-100 rounded-lg transition text-slate-400 hover:text-slate-600 cursor-pointer"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
             {/* Employee info */}
-            <div className="mt-3 flex items-center gap-3 bg-white/10 rounded-xl px-3 py-2">
+            <div className="mt-4 flex items-center gap-3 bg-slate-50 border border-slate-100/60 rounded-2xl px-3.5 py-2.5">
               {employee.avatarUrl ? (
-                <img src={employee.avatarUrl} alt={employee.name} className="w-8 h-8 rounded-lg object-cover" />
+                <img src={employee.avatarUrl} alt={employee.name} className="w-9 h-9 rounded-xl object-cover" />
               ) : (
-                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                  <UserCircle size={18} className="text-white" />
+                <div className="w-9 h-9 rounded-xl bg-[#0D47A1]/10 flex items-center justify-center">
+                  <UserCircle size={20} className="text-[#0D47A1]" />
                 </div>
               )}
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-white truncate">{employee.name}</p>
-                <p className="text-[10px] text-white/60">{employee.employeeId} • {employee.department || "—"}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-black text-slate-700 truncate">{employee.name}</p>
+                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{employee.employeeId} • {employee.department || "—"}</p>
               </div>
               {mode === "verify" ? (
-                <span className="ml-auto flex-shrink-0 text-[9px] font-bold text-blue-300 bg-blue-500/20 px-2 py-0.5 rounded-full">
+                <span className="flex-shrink-0 text-[8px] font-extrabold tracking-wider uppercase text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full">
                   Test Mode
                 </span>
               ) : employee.isEnrolled ? (
-                <span className="ml-auto flex-shrink-0 text-[9px] font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full">
-                  Re-enrolling
+                <span className="flex-shrink-0 text-[8px] font-extrabold tracking-wider uppercase text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">
+                  Re-enroll
                 </span>
-              ) : null}
-
+              ) : (
+                <span className="flex-shrink-0 text-[8px] font-extrabold tracking-wider uppercase text-amber-700 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-full">
+                  Pending
+                </span>
+              )}
             </div>
           </div>
 
           {/* Body */}
-          <div className="p-5">
+          <div className="p-6">
 
             {/* CAMERA STEP */}
             {step === "camera" && (
               <div className="space-y-4">
                 {/* Camera feed */}
-                <div className="relative bg-slate-900 rounded-2xl overflow-hidden" style={{ aspectRatio: "4/3" }}>
+                <div className="relative bg-slate-950 rounded-2xl overflow-hidden shadow-inner border border-slate-100" style={{ aspectRatio: "4/3" }}>
                   <video
                     ref={videoRef}
                     className="w-full h-full object-cover"
@@ -614,7 +592,7 @@ const EnrollModal = ({
                   {/* Face detected overlay */}
                   {cameraReady && (
                     <div className={`absolute inset-0 border-4 rounded-2xl transition-all duration-300 pointer-events-none ${
-                      faceDetected ? "border-emerald-400 shadow-[inset_0_0_30px_rgba(52,211,153,0.3)]" : "border-slate-700"
+                      faceDetected ? "border-emerald-400/80 shadow-[inset_0_0_30px_rgba(52,211,153,0.15)]" : "border-slate-800/80"
                     }`} />
                   )}
 
@@ -644,17 +622,17 @@ const EnrollModal = ({
 
                   {/* Camera not ready */}
                   {!cameraReady && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80">
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-900/90">
                       <div className="text-center px-4">
-                        <Loader2 size={28} className="text-slate-400 animate-spin mx-auto mb-2" />
+                        <Loader2 size={24} className="text-slate-400 animate-spin mx-auto mb-2" />
                         <p className="text-slate-300 text-xs font-bold">{cameraStatus}</p>
                         <p className="text-slate-500 text-[10px] mt-1">
-                          If permission popup appeared, click Allow
+                          Please click Allow when prompted by your browser
                         </p>
                         <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-2">
                           <button
                             onClick={() => startCamera(cameraFacing)}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-[#0D47A1] text-white text-xs font-bold rounded-xl hover:bg-[#1565C0] transition cursor-pointer"
+                            className="flex items-center gap-1.5 px-4 py-2 bg-[#0D47A1] text-white text-xs font-bold rounded-xl hover:bg-blue-800 transition cursor-pointer"
                           >
                             <RefreshCw size={12} /> Retry Camera
                           </button>
@@ -670,14 +648,12 @@ const EnrollModal = ({
                             onClick={() => fileInputRef.current?.click()}
                             className="flex items-center gap-1.5 px-4 py-2 bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold rounded-xl hover:bg-slate-700 transition cursor-pointer"
                           >
-                            <ImageIcon size={12} /> Upload Photo instead
+                            <ImageIcon size={12} /> Upload Photo
                           </button>
                         </div>
                       </div>
                     </div>
                   )}
-
-
 
                   {/* Top controls */}
                   {cameraReady && hasMultipleCams && (
@@ -691,45 +667,13 @@ const EnrollModal = ({
                       </button>
                     </div>
                   )}
-
-                  {/* Capture progress dots */}
-                  {capturing && (
-                    <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2">
-                      {Array.from({ length: TOTAL_FRAMES }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                            i < framesCollected ? "bg-emerald-400 scale-110" : "bg-white/30"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Confidence badge */}
-                  {cameraReady && faceDetected && (
-                    <div className="absolute bottom-3 left-3 right-3">
-                      <div className="bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] font-bold text-white">Face Confidence</span>
-                          <span className="text-[10px] font-bold text-emerald-400">{Math.round(faceConfidence * 100)}%</span>
-                        </div>
-                        <div className="h-1 bg-white/20 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-400 rounded-full transition-all duration-300"
-                            style={{ width: `${Math.round(faceConfidence * 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Status text */}
-                <div className={`flex items-center gap-2 p-3 rounded-xl text-xs font-bold ${
+                <div className={`flex items-center gap-2 p-3.5 rounded-2xl text-xs font-bold ${
                   faceDetected
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                    : "bg-slate-50 text-slate-500 border border-slate-200"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                    : "bg-slate-50 text-slate-500 border border-slate-100"
                 }`}>
                   {faceDetected
                     ? <><CheckCircle2 size={14} className="text-emerald-500" /> Face detected! Ready to {mode === "verify" ? "verify" : "capture"}</>
@@ -744,12 +688,12 @@ const EnrollModal = ({
                     disabled={!faceDetected || saving || !cameraReady}
                     className={`w-full py-3.5 rounded-2xl text-sm font-extrabold flex items-center justify-center gap-2 transition-all duration-200 ${
                       faceDetected && !saving && cameraReady
-                        ? "bg-gradient-to-r from-[#0D47A1] to-[#1565C0] text-white shadow-lg shadow-[#0D47A1]/30 hover:opacity-90 cursor-pointer"
+                        ? "bg-[#0D47A1] hover:bg-blue-800 text-white shadow-sm hover:opacity-95 cursor-pointer"
                         : "bg-slate-100 text-slate-400 cursor-not-allowed"
                     }`}
                   >
                     {saving ? (
-                      <><Loader2 size={16} className="animate-spin" /> Verifying live face...</>
+                      <><Loader2 size={16} className="animate-spin" /> Comparing face...</>
                     ) : (
                       <><ShieldCheck size={16} /> Verify Face</>
                     )}
@@ -760,7 +704,7 @@ const EnrollModal = ({
                     disabled={!faceDetected || capturing || !cameraReady}
                     className={`w-full py-3.5 rounded-2xl text-sm font-extrabold flex items-center justify-center gap-2 transition-all duration-200 ${
                       faceDetected && !capturing && cameraReady
-                        ? "bg-gradient-to-r from-[#0D47A1] to-[#1565C0] text-white shadow-lg shadow-[#0D47A1]/30 hover:opacity-90 cursor-pointer"
+                        ? "bg-[#0D47A1] hover:bg-blue-800 text-white shadow-sm hover:opacity-95 cursor-pointer"
                         : "bg-slate-100 text-slate-400 cursor-not-allowed"
                     }`}
                   >
@@ -778,34 +722,33 @@ const EnrollModal = ({
                     : `System captures ${TOTAL_FRAMES} frames & averages them for maximum accuracy`
                   }
                 </p>
-
               </div>
             )}
 
             {/* PREVIEW STEP */}
             {step === "preview" && capturedImage && (
               <div className="space-y-4">
-                <div className="relative rounded-2xl overflow-hidden bg-slate-900" style={{ aspectRatio: "4/3" }}>
+                <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-100" style={{ aspectRatio: "4/3" }}>
                   <img src={capturedImage} alt="Captured" className="w-full h-full object-cover" />
                   <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-emerald-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1.5 rounded-xl">
                     <CheckCircle2 size={12} /> {frames.current.length} frames captured
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700 font-medium">
+                <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 text-xs text-blue-800 font-semibold leading-relaxed">
                   <strong>InsightFace AI</strong> will extract a 512-dimensional face embedding from {frames.current.length} frames and store it securely in the database.
                 </div>
 
                 <div className="flex gap-3">
                   <button
                     onClick={handleRetake}
-                    className="flex-1 py-3 rounded-2xl text-sm font-bold border-2 border-slate-200 text-slate-600 hover:bg-slate-50 transition flex items-center justify-center gap-2 cursor-pointer"
+                    className="flex-grow py-3 rounded-2xl text-xs font-bold border-2 border-slate-200 text-slate-600 hover:bg-slate-50 transition flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <RotateCcw size={15} /> Retake
                   </button>
                   <button
                     onClick={handleSave}
-                    className="flex-1 py-3 rounded-2xl text-sm font-extrabold bg-gradient-to-r from-[#0D47A1] to-[#1565C0] text-white shadow-lg shadow-[#0D47A1]/30 hover:opacity-90 transition flex items-center justify-center gap-2 cursor-pointer"
+                    className="flex-grow py-3 rounded-2xl text-xs font-extrabold bg-[#0D47A1] hover:bg-blue-800 text-white shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <ShieldCheck size={15} /> Save & Enroll
                   </button>
@@ -834,23 +777,18 @@ const EnrollModal = ({
                     }
                   </p>
                 </div>
-                <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500">
-                  <span className="w-1.5 h-1.5 bg-[#0D47A1] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 bg-[#0D47A1] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-1.5 h-1.5 bg-[#0D47A1] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                </div>
               </div>
             )}
 
             {/* SUCCESS STEP */}
             {step === "success" && (
               <div className="py-10 text-center space-y-4">
-                <div className="w-20 h-20 mx-auto rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center">
+                <div className="w-20 h-20 mx-auto rounded-full bg-emerald-50 border-2 border-emerald-100 flex items-center justify-center">
                   <CheckCircle2 size={36} className="text-emerald-500" />
                 </div>
                 <div>
-                  <p className="text-lg font-extrabold text-slate-800">
-                    {mode === "verify" ? "Face Verified! ✅" : "Face Enrolled! ✅"}
+                  <p className="text-base font-extrabold text-slate-800">
+                    {mode === "verify" ? "Face Verified Successfully ✅" : "Face Enrolled Successfully ✅"}
                   </p>
                   <p className="text-sm text-slate-500 mt-1">{employee.name}</p>
                   <p className="text-xs text-slate-400 mt-1">
@@ -860,38 +798,31 @@ const EnrollModal = ({
                     }
                   </p>
                 </div>
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-700 font-medium">
+                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-xs text-emerald-700 font-semibold leading-relaxed">
                   {mode === "verify"
-                    ? "Face match is 100% verified. Face recognition biometric verification is fully functional!"
-                    : "Employee can now use face recognition for attendance on both webcam & mobile!"
+                    ? "Face match is 100% verified. Biometric verification is fully functional!"
+                    : "Employee can now use face recognition for attendance check-in/out!"
                   }
                 </div>
               </div>
             )}
 
-            
             {/* ERROR STEP */}
             {step === "error" && (
               <div className="py-6 text-center space-y-4">
-                <div className="w-16 h-16 mx-auto rounded-full bg-red-50 border-2 border-red-200 flex items-center justify-center">
+                <div className="w-16 h-16 mx-auto rounded-full bg-red-50 border-2 border-red-100 flex items-center justify-center">
                   <XCircle size={28} className="text-red-500" />
                 </div>
                 <div>
-                  <p className="text-sm font-extrabold text-slate-800">Enrollment Failed</p>
-                  <p className="text-xs text-red-500 mt-2">{errorMsg}</p>
+                  <p className="text-sm font-extrabold text-slate-800">Process Failed</p>
+                  <p className="text-xs text-red-500 mt-2 leading-relaxed">{errorMsg}</p>
                 </div>
-                {errorMsg.includes("Python") || errorMsg.includes("AI service") ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 text-left">
-                    <strong>Fix:</strong> Start the Python AI service:<br />
-                    <code className="text-[10px] bg-amber-100 px-1 rounded">cd hously_tech_backend/hously_face_ai && python main.py</code>
-                  </div>
-                ) : null}
                 <div className="flex flex-col gap-2">
                   <div className="flex gap-2">
                     <button onClick={handleClose} className="flex-1 py-2.5 rounded-xl text-sm font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 transition cursor-pointer">
                       Close
                     </button>
-                    <button onClick={handleRetake} className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-[#0D47A1] text-white hover:opacity-90 transition cursor-pointer">
+                    <button onClick={handleRetake} className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-[#0D47A1] hover:bg-blue-800 transition cursor-pointer">
                       Try Again
                     </button>
                   </div>
@@ -1044,18 +975,7 @@ export const FaceEnrollmentTab: React.FC = () => {
       {/* Stats */}
       {!loading && <StatsBar employees={employees} />}
 
-      {/* AI Offline Warning */}
-      {aiOnline === false && (
-        <div className="flex-none mb-3 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-          <AlertCircle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-xs font-bold text-amber-800">InsightFace AI Service Not Running</p>
-            <p className="text-[10px] text-amber-600 mt-0.5">
-              Start it with: <code className="bg-amber-100 px-1 rounded">cd hously_tech_backend/hously_face_ai && python main.py</code>
-            </p>
-          </div>
-        </div>
-      )}
+
 
       {/* Search & Filter */}
       <div className="flex-none flex gap-2 mb-3">

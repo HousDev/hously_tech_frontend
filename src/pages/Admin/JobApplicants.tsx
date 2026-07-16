@@ -338,6 +338,8 @@ const JobApplicants: React.FC = () => {
     setHeaderSubtitle: (subtitle: string) => void;
   }>() || {};
 
+  const lastUpdatedIdsRef = React.useRef<number[]>([]);
+
   useEffect(() => {
     if (setHeaderTitle && setHeaderSubtitle) {
       setHeaderTitle('Job Applicants');
@@ -474,14 +476,18 @@ const JobApplicants: React.FC = () => {
       fetchAppStats();
     });
 
-    // Status updated by an admin
     socket.on('application_status_change', (data) => {
       console.log('[JobApplicants] application_status_change received:', data);
-      toast(`Status updated → ${data.status}`, {
-        position: 'bottom-right',
-        duration: 3000,
-        icon: '🔄',
-      });
+      const index = lastUpdatedIdsRef.current.indexOf(Number(data.id));
+      if (index > -1) {
+        lastUpdatedIdsRef.current.splice(index, 1);
+      } else {
+        toast(`Status updated → ${data.status}`, {
+          position: 'bottom-right',
+          duration: 3000,
+          icon: '🔄',
+        });
+      }
       fetchApplications();
       fetchAppStats();
     });
@@ -832,6 +838,7 @@ const JobApplicants: React.FC = () => {
     setProcessingIds(prev => new Set(prev).add(id));
 
     try {
+      lastUpdatedIdsRef.current.push(id);
       await careerApi.updateApplicationStatus(id, status);
       await fetchApplications();
       await fetchAppStats();
@@ -869,6 +876,7 @@ const JobApplicants: React.FC = () => {
     );
 
     try {
+      lastUpdatedIdsRef.current.push(...selectedApplications);
       for (const id of selectedApplications) {
         await careerApi.updateApplicationStatus(id, status);
       }

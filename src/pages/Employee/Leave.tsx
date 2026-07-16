@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight, Eye, Edit2, Trash2, X,
   Clock, CheckCircle2, XCircle, Calendar,
   AlertTriangle, FileText, Bookmark, CalendarRange,
-  Send, CalendarDays, Lock, Loader2
+  Send, CalendarDays, Lock, Loader2, Plus
 } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { useLeaveSocket } from '../../hooks/useLeaveSocket';
@@ -84,6 +84,7 @@ const Leave: React.FC = () => {
   });
   const [loading,  setLoading]  = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isApplyOpen, setIsApplyOpen] = useState(false);
 
   // Apply form
   const [form, setForm] = useState({
@@ -197,6 +198,7 @@ const Leave: React.FC = () => {
       setForm({ type: 'Casual Leave', startDate: '', endDate: '', reason: '', isHalfDay: false });
       toast.success('Leave application submitted successfully!');
       setCurrentPage(1);
+      setIsApplyOpen(false);
     } catch (err: any) {
       toast.error(err.message || 'Failed to submit leave');
     } finally {
@@ -303,74 +305,35 @@ const Leave: React.FC = () => {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
-
-        {/* ── Apply Form ───────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden h-auto lg:h-[calc(100vh-270px)] lg:min-h-[400px]">
-          <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/20 flex items-center gap-2">
-            <span className="text-[10px] font-extrabold text-[#0D47A1] uppercase tracking-wider bg-[#0D47A1]/5 px-2 py-1 rounded-md">Apply For Leave</span>
-          </div>
-          <form onSubmit={handleApply} className="flex flex-col flex-1 p-5 gap-4">
-            <div className="space-y-3.5 flex-1">
-              <div className="space-y-1">
-                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Leave Type</label>
-                <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] bg-white text-slate-700 text-xs font-bold cursor-pointer">
-                  <option value="Casual Leave">Casual Leave</option>
-                  <option value="Sick Leave">Sick Leave</option>
-                  <option value="Paid Leave">Paid Leave</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Start Date</label>
-                  <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] text-slate-700 text-xs bg-white font-bold" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">End Date</label>
-                  <input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] text-slate-700 text-xs bg-white font-bold" required />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <input id="halfDay" type="checkbox" checked={form.isHalfDay} onChange={e => setForm(f => ({ ...f, isHalfDay: e.target.checked }))}
-                  className="w-3.5 h-3.5 rounded border-slate-300 text-[#0D47A1] cursor-pointer" />
-                <label htmlFor="halfDay" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider cursor-pointer select-none">Half Day (0.5 day)</label>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Reason</label>
-                <textarea rows={3} value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))}
-                  placeholder="Enter leave reason details..."
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] resize-none text-slate-700 text-xs font-medium placeholder-slate-300" required />
-              </div>
-            </div>
-            <button type="submit" disabled={submitting}
-              className="w-full bg-[#0D47A1] hover:bg-blue-800 text-white font-bold text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-sm disabled:opacity-60">
-              {submitting ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-              Submit Request
-            </button>
-          </form>
-        </div>
+      <div className="w-full">
 
         {/* ── Leave History Table ───────────────────────────────────────────────── */}
-        <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col h-auto lg:h-[calc(100vh-270px)] lg:min-h-[400px]">
+        <div className="w-full bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col h-auto lg:h-[calc(100vh-270px)] lg:min-h-[400px]">
 
           {/* Toolbar */}
           <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/20 flex items-center justify-between flex-wrap gap-2">
             <span className="text-[10px] font-extrabold text-[#0D47A1] uppercase tracking-wider bg-[#0D47A1]/5 px-2 py-1 rounded-md">My Leave History</span>
-            <div className="flex items-center gap-1">
-              <button onClick={goPrevMonth} disabled={!canGoPrev} title="Previous month"
-                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
-                <ChevronLeft size={14} />
-              </button>
-              <span className="min-w-[110px] text-center text-[11px] font-extrabold text-slate-700 uppercase tracking-wider">
-                {MONTH_NAMES[viewMonth.getMonth()]} {viewMonth.getFullYear()}
-              </span>
-              <button onClick={goNextMonth} disabled={!canGoNext} title="Next month"
-                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
-                <ChevronRight size={14} />
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <button onClick={goPrevMonth} disabled={!canGoPrev} title="Previous month"
+                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                  <ChevronLeft size={14} />
+                </button>
+                <span className="min-w-[110px] text-center text-[11px] font-extrabold text-slate-700 uppercase tracking-wider">
+                  {MONTH_NAMES[viewMonth.getMonth()]} {viewMonth.getFullYear()}
+                </span>
+                <button onClick={goNextMonth} disabled={!canGoNext} title="Next month"
+                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+
+              <button
+                onClick={() => setIsApplyOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#0D47A1] hover:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-sm transition cursor-pointer"
+              >
+                <Plus size={13} />
+                <span>Apply For Leave</span>
               </button>
             </div>
           </div>
@@ -507,6 +470,62 @@ const Leave: React.FC = () => {
 
       {/* ── MODALS ─────────────────────────────────────────────────────────────── */}
       <AnimatePresence>
+
+        {/* APPLY FOR LEAVE */}
+        {isApplyOpen && (
+          <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <Overlay onClick={() => setIsApplyOpen(false)} />
+            <motion.div initial={{ scale:0.95, opacity:0, y:16 }} animate={{ scale:1, opacity:1, y:0 }} exit={{ scale:0.95, opacity:0, y:16 }} transition={{ type:'spring', duration:0.35 }}
+              className="relative bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-lg overflow-hidden flex flex-col z-10">
+              <div className="sticky top-0 bg-slate-50 border-b border-slate-100 px-5 py-4 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Apply For Leave</h3>
+                  <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Submit a new leave request</p>
+                </div>
+                <button type="button" onClick={() => setIsApplyOpen(false)} className="p-1 hover:bg-slate-200/60 rounded-lg transition text-slate-400 hover:text-slate-600 cursor-pointer"><X size={16} /></button>
+              </div>
+              <form onSubmit={handleApply} className="flex flex-col flex-grow">
+                <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Leave Type</label>
+                    <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white text-slate-700 text-xs focus:outline-none focus:ring-1 focus:ring-[#0D47A1]/50 cursor-pointer font-medium">
+                      <option value="Casual Leave">Casual Leave</option>
+                      <option value="Sick Leave">Sick Leave</option>
+                      <option value="Paid Leave">Paid Leave</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Start Date</label>
+                      <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white text-slate-700 text-xs focus:outline-none focus:ring-1 focus:ring-[#0D47A1]/50 font-medium" required />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">End Date</label>
+                      <input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white text-slate-700 text-xs focus:outline-none focus:ring-1 focus:ring-[#0D47A1]/50 font-medium" required />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input id="halfDay" type="checkbox" checked={form.isHalfDay} onChange={e => setForm(f => ({ ...f, isHalfDay: e.target.checked }))} className="w-3.5 h-3.5 rounded border-slate-300 text-[#0D47A1] cursor-pointer" />
+                    <label htmlFor="halfDay" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider cursor-pointer select-none">Half Day (0.5 day)</label>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Reason</label>
+                    <textarea rows={3} value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white text-slate-700 text-xs focus:outline-none focus:ring-1 focus:ring-[#0D47A1]/50 font-medium placeholder-slate-300 leading-relaxed resize-none" placeholder="Enter leave reason details..." required />
+                  </div>
+                </div>
+                <div className="px-5 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+                  <button type="button" onClick={() => setIsApplyOpen(false)} className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg shadow-sm transition cursor-pointer">Cancel</button>
+                  <button type="submit" disabled={submitting} className="px-4 py-2 bg-[#0D47A1] hover:bg-blue-800 text-white text-xs font-semibold rounded-lg shadow-sm transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5">
+                    {submitting ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />} Submit Request
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
 
         {/* VIEW */}
         {viewItem && (

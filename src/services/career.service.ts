@@ -101,7 +101,7 @@ class CareerService {
   // Get all jobs
   async getJobs(filters: JobFilters = {}) {
     const params = new URLSearchParams();
-    
+
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== '') {
         params.append(key, String(value));
@@ -145,18 +145,18 @@ class CareerService {
   // Submit application - FRONTEND VERSION
   async submitApplication(formData: ApplicationFormData) {
     const data = new FormData();
-    
+
     // Append all form data
     data.append('job_id', formData.job_id.toString());
     data.append('applicant_name', formData.applicant_name);
     data.append('email', formData.email);
-    
+
     if (formData.phone) data.append('phone', formData.phone);
     if (formData.experience_level) data.append('experience_level', formData.experience_level);
     if (formData.cover_letter) data.append('cover_letter', formData.cover_letter);
     if (formData.linkedin) data.append('linkedin', formData.linkedin);
     if (formData.portfolio) data.append('portfolio', formData.portfolio);
-    
+
     if (formData.whatsapp) data.append('whatsapp', formData.whatsapp);
     if (formData.gender) data.append('gender', formData.gender);
     if (formData.dob) data.append('dob', formData.dob);
@@ -166,7 +166,7 @@ class CareerService {
     if (formData.current_address) data.append('current_address', formData.current_address);
     if (formData.candidate_type) data.append('candidate_type', formData.candidate_type);
     if (formData.fresher_studying) data.append('fresher_studying', formData.fresher_studying);
-    
+
     if (formData.current_company) data.append('current_company', formData.current_company);
     if (formData.designation) data.append('designation', formData.designation);
     if (formData.employment_status) data.append('employment_status', formData.employment_status);
@@ -176,9 +176,9 @@ class CareerService {
     if (formData.current_ctc) data.append('current_ctc', formData.current_ctc);
     if (formData.expected_ctc) data.append('expected_ctc', formData.expected_ctc);
     if (formData.notice_period) data.append('notice_period', formData.notice_period);
-    
+
     if (formData.prev_companies) data.append('prev_companies', typeof formData.prev_companies === 'object' ? JSON.stringify(formData.prev_companies) : formData.prev_companies);
-    
+
     if (formData.college) data.append('college', formData.college);
     if (formData.university) data.append('university', formData.university);
     if (formData.degree) data.append('degree', formData.degree);
@@ -188,11 +188,11 @@ class CareerService {
     if (formData.duration) data.append('duration', formData.duration);
     if (formData.available_from) data.append('available_from', formData.available_from);
     if (formData.stipend_pref) data.append('stipend_pref', formData.stipend_pref);
-    
+
     if (formData.education_list) data.append('education_list', typeof formData.education_list === 'object' ? JSON.stringify(formData.education_list) : formData.education_list);
     if (formData.primary_skills) data.append('primary_skills', typeof formData.primary_skills === 'object' ? JSON.stringify(formData.primary_skills) : formData.primary_skills);
     if (formData.secondary_skills) data.append('secondary_skills', typeof formData.secondary_skills === 'object' ? JSON.stringify(formData.secondary_skills) : formData.secondary_skills);
-    
+
     if (formData.skill_level) data.append('skill_level', formData.skill_level);
     if (formData.languages) data.append('languages', formData.languages);
     if (formData.earliest_joining_date) data.append('earliest_joining_date', formData.earliest_joining_date);
@@ -200,7 +200,7 @@ class CareerService {
     if (formData.willing_to_relocate) data.append('willing_to_relocate', formData.willing_to_relocate);
     if (formData.preferred_interview_time) data.append('preferred_interview_time', formData.preferred_interview_time);
     if (formData.why_consider) data.append('why_consider', formData.why_consider);
-    
+
     if (formData.resume instanceof File) {
       data.append('resume', formData.resume);
     }
@@ -211,11 +211,11 @@ class CareerService {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
+
       return response.data;
     } catch (error: any) {
       console.error('❌ Frontend: Error submitting application:', error);
-      
+
       if (error.response) {
         console.error('Response error:', error.response.data);
         console.error('Response status:', error.response.status);
@@ -224,7 +224,7 @@ class CareerService {
       } else {
         console.error('Error message:', error.message);
       }
-      
+
       throw error;
     }
   }
@@ -250,7 +250,7 @@ class CareerService {
   // Admin: Get applications
   async getApplications(filters: { job_id?: number; status?: string; page?: number; limit?: number } = {}) {
     const params = new URLSearchParams();
-    
+
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined) {
         params.append(key, String(value));

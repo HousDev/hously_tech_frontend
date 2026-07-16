@@ -24,7 +24,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import { careerApi, type Job, type Application, type JobStats, type ApplicationStats } from '../../../lib/careerApi';
+import { careerApi, type Job, type Application, type JobStats, type ApplicationStats, type WalkInDrive } from '../../../lib/careerApi';
 
 
 
@@ -507,16 +507,30 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   const [totalApps, setTotalApps] = useState(0);
   const [loading, setLoading] = useState(true);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'applications'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'walk-in-drives'>('jobs');
   const location = useLocation();
   const [hasOpenedApp, setHasOpenedApp] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState('');
 
+  // Walk-in Drives States
+  const [walkInDrives, setWalkInDrives] = useState<any[]>([]);
+  const [editingDrive, setEditingDrive] = useState<any | null>(null);
+  const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
+  const [driveFormData, setDriveFormData] = useState({
+    title: '',
+    date: '',
+    time: '',
+    location: '',
+    description: '',
+    skills: '',
+    status: 'Upcoming' as WalkInDrive['status']
+  });
+
   /* ── delete confirm states ── */
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [deleteTargetIds, setDeleteTargetIds] = useState<number[] | null>(null);
-  const [deleteType, setDeleteType] = useState<'job' | 'application' | 'bulk_jobs' | 'bulk_apps'>('job');
+  const [deleteType, setDeleteType] = useState<'job' | 'walk-in-drive' | 'bulk_jobs'>('job');
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const handleDeleteJobClick = (id: number) => {
@@ -525,20 +539,20 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     setIsDeleteConfirmOpen(true);
   };
 
-  const handleDeleteAppClick = (id: number) => {
+  const handleDeleteDriveClick = (id: number) => {
     setDeleteTargetId(id);
-    setDeleteType('application');
+    setDeleteType('walk-in-drive');
     setIsDeleteConfirmOpen(true);
   };
 
   const handleBulkDeleteClick = () => {
-    const selected = activeTab === 'jobs' ? selectedJobs : selectedApplications;
+    const selected = selectedJobs;
     if (selected.length === 0) {
       toast.error('Please select items to delete');
       return;
     }
     setDeleteTargetIds(selected);
-    setDeleteType(activeTab === 'jobs' ? 'bulk_jobs' : 'bulk_apps');
+    setDeleteType('bulk_jobs');
     setIsDeleteConfirmOpen(true);
   };
 
@@ -555,20 +569,6 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     }
   };
 
-  const proceedDeleteApp = async (id: number) => {
-    const deleteToast = toast.loading('Deleting application...');
-    try {
-      await careerApi.deleteApplication(id);
-      setApplications(prev => prev.filter(app => app.id !== id));
-      setSelectedApplications(prev => prev.filter(appId => appId !== id));
-      toast.success('Application deleted successfully', { id: deleteToast });
-      fetchAppStats();
-    } catch (err: unknown) {
-      toast.error('Failed to delete application', { id: deleteToast });
-      console.error(err);
-    }
-  };
-
   const proceedBulkDeleteJobs = async (ids: number[]) => {
     const loadingToast = toast.loading(`Deleting ${ids.length} job(s)...`);
     try {
@@ -582,19 +582,15 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     }
   };
 
-  const proceedBulkDeleteApps = async (ids: number[]) => {
-    const loadingToast = toast.loading(`Deleting ${ids.length} application(s)...`);
+  const proceedDeleteDrive = async (id: number) => {
+    const deleteToast = toast.loading('Deleting Walk-in Drive...');
     try {
-      for (const id of ids) {
-        await careerApi.deleteApplication(id);
-      }
-      setApplications(prev => prev.filter(app => !ids.includes(app.id)));
-      setSelectedApplications([]);
-      toast.success(`${ids.length} application(s) deleted successfully`, { id: loadingToast });
-      fetchAllData();
-    } catch (err) {
+      await careerApi.deleteWalkInDrive(id);
+      setWalkInDrives(prev => prev.filter(d => d.id !== id));
+      toast.success('Walk-in Drive deleted successfully', { id: deleteToast });
+    } catch (err: unknown) {
+      toast.error('Failed to delete Walk-in Drive', { id: deleteToast });
       console.error(err);
-      toast.error('Failed to delete applications', { id: loadingToast });
     }
   };
   // View mode
@@ -628,10 +624,10 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       setHeaderSubtitle(
         activeTab === 'jobs'
           ? `Create & publish career opportunities (${jobStats.total} active listings)`
-          : `Track & evaluate incoming talent applications (${appStats.total} candidates)`
+          : `Manage upcoming recruitment drives and walk-in events`
       );
     }
-  }, [activeTab, jobStats.total, appStats.total, setHeaderTitle, setHeaderSubtitle]);
+  }, [activeTab, jobStats.total, setHeaderTitle, setHeaderSubtitle]);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -807,7 +803,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       if (activeTab === 'jobs') {
         await Promise.all([fetchJobs(), fetchJobStats()]);
       } else {
-        await Promise.all([fetchApplications(), fetchAppStats()]);
+        await fetchWalkInDrives();
       }
 
     } catch (error) {
@@ -875,6 +871,16 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
     }
   };
 
+  const fetchWalkInDrives = async () => {
+    try {
+      const response = await careerApi.getAllWalkInDrives();
+      setWalkInDrives(response || []);
+    } catch (error) {
+      console.error('Failed to fetch walk-in drives:', error);
+      showToast('Failed to fetch walk-in drives', 'error');
+    }
+  };
+
 
   const openInterviewModal = async (app: Application) => {
     setSelectedApp(app);
@@ -892,7 +898,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
-    if (tab === 'jobs' || tab === 'applications') {
+    if (tab === 'jobs' || tab === 'walk-in-drives') {
       setActiveTab(tab);
     }
     const appIdStr = params.get('application');
@@ -1259,6 +1265,34 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError('Failed to save job: ' + errorMessage);
       showToast(`Failed to save job: ${errorMessage}`, 'error');
+    }
+  };
+
+  const handleCreateWalkInDrive = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingDrive) {
+        await careerApi.updateWalkInDrive(editingDrive.id, driveFormData);
+        showToast('Walk-in Drive updated successfully!', 'success');
+      } else {
+        await careerApi.createWalkInDrive(driveFormData);
+        showToast('Walk-in Drive created successfully!', 'success');
+      }
+      setIsDriveModalOpen(false);
+      setEditingDrive(null);
+      setDriveFormData({
+        title: '',
+        date: '',
+        time: '',
+        location: '',
+        description: '',
+        skills: '',
+        status: 'Upcoming'
+      });
+      fetchWalkInDrives();
+    } catch (err: any) {
+      console.error(err);
+      showToast('Failed to save Walk-in Drive', 'error');
     }
   };
 
@@ -1893,7 +1927,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
       app.job_title?.toLowerCase().includes(search)
     );
   });
-  const totalItems = activeTab === 'jobs' ? (totalJobs || jobStats.total) : (totalApps || appStats.total);
+  const totalItems = activeTab === 'jobs' ? (totalJobs || jobStats.total) : walkInDrives.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // Selection handlers
@@ -2550,32 +2584,24 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                 </div>
               )}
 
-              {/* Stats Cards - Applications */}
-              {activeTab === 'applications' && appStats && (
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
+              {/* Stats Cards - Walk-in Drives */}
+              {activeTab === 'walk-in-drives' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
                   <div className="bg-blue-50/40 border border-blue-100/30 rounded-xl px-3.5 py-2 shadow-sm hover:shadow-md backdrop-blur-md transition-all duration-300 flex items-center justify-between h-15">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Total Apps</p>
-                    <p className="text-sm font-extrabold text-blue-600">{appStats.total || 0}</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Total Drives</p>
+                    <p className="text-sm font-extrabold text-blue-600">{walkInDrives.length || 0}</p>
                   </div>
                   <div className="bg-yellow-50/40 border border-yellow-100/30 rounded-xl px-3.5 py-2 shadow-sm hover:shadow-md backdrop-blur-md transition-all duration-300 flex items-center justify-between h-15">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Pending</p>
-                    <p className="text-sm font-extrabold text-yellow-600">{appStats.pending || 0}</p>
-                  </div>
-                  <div className="bg-sky-50/40 border border-sky-100/30 rounded-xl px-3.5 py-2 shadow-sm hover:shadow-md backdrop-blur-md transition-all duration-300 flex items-center justify-between h-15">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Reviewed</p>
-                    <p className="text-sm font-extrabold text-sky-600">{appStats.reviewed || 0}</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Upcoming</p>
+                    <p className="text-sm font-extrabold text-yellow-600">
+                      {walkInDrives.filter(d => d.status === 'Upcoming').length}
+                    </p>
                   </div>
                   <div className="bg-green-50/40 border border-green-100/30 rounded-xl px-3.5 py-2 shadow-sm hover:shadow-md backdrop-blur-md transition-all duration-300 flex items-center justify-between h-15">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Shortlisted</p>
-                    <p className="text-sm font-extrabold text-[#0D47A1]">{appStats.shortlisted || 0}</p>
-                  </div>
-                  <div className="bg-red-50/40 border border-red-100/30 rounded-xl px-3.5 py-2 shadow-sm hover:shadow-md backdrop-blur-md transition-all duration-300 flex items-center justify-between h-15">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Rejected</p>
-                    <p className="text-sm font-extrabold text-red-600">{appStats.rejected || 0}</p>
-                  </div>
-                  <div className="bg-purple-50/40 border border-purple-100/30 rounded-xl px-3.5 py-2 shadow-sm hover:shadow-md backdrop-blur-md transition-all duration-300 flex items-center justify-between h-15">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Hired</p>
-                    <p className="text-sm font-extrabold text-purple-600">{appStats.hired || 0}</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Active</p>
+                    <p className="text-sm font-extrabold text-green-600">
+                      {walkInDrives.filter(d => d.status === 'Active').length}
+                    </p>
                   </div>
                 </div>
               )}
@@ -2595,16 +2621,16 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                   </button>
                   <button
                     onClick={() => {
-                      setActiveTab('applications');
-                      fetchAppStats();
+                      setActiveTab('walk-in-drives');
+                      fetchWalkInDrives();
                     }}
-                    className={`flex-1 sm:flex-none py-1.5 px-4 text-center font-bold transition-all rounded-lg text-xs flex items-center justify-center gap-1.5 cursor-pointer ${activeTab === 'applications'
+                    className={`flex-1 sm:flex-none py-1.5 px-4 text-center font-bold transition-all rounded-lg text-xs flex items-center justify-center gap-1.5 cursor-pointer ${activeTab === 'walk-in-drives'
                       ? 'bg-[#0D47A1] text-white shadow'
                       : 'text-slate-500 hover:text-slate-800'
                       }`}
                   >
-                    <Users size={13} />
-                    <span>Applications ({appStats.total})</span>
+                    <Calendar size={13} />
+                    <span>Walk-in Drives ({walkInDrives.length})</span>
                   </button>
                 </div>
 
@@ -2616,7 +2642,27 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                     <Plus size={14} />
                     <span>Add Job</span>
                   </button>
-                ) : null}
+                ) : (
+                  <button
+                    onClick={() => {
+                      setEditingDrive(null);
+                      setDriveFormData({
+                        title: '',
+                        date: '',
+                        time: '',
+                        location: '',
+                        description: '',
+                        skills: '',
+                        status: 'Upcoming'
+                      });
+                      setIsDriveModalOpen(true);
+                    }}
+                    className="bg-[#0D47A1] hover:bg-[#1976D2] text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm text-xs font-semibold self-end sm:self-auto cursor-pointer"
+                  >
+                    <Plus size={14} />
+                    <span>Add Drive</span>
+                  </button>
+                )}
               </div>
 
               {/* Filters Bar */}
@@ -2680,57 +2726,12 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                       </div>
                     </>
                   ) : (
-                    // Applications Filter Bar Layout
-                    <div className="flex items-center justify-between w-full">
-                      {/* Left: Show Dropdown */}
-                      <div className="flex items-center gap-2">
-                        <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Show</label>
-                        <select
-                          value={itemsPerPage}
-                          onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                          className="px-2.5 py-1 text-[11px] font-bold border border-slate-200 rounded-lg bg-white focus:ring-1 focus:ring-[#0D47A1] outline-none text-slate-700 cursor-pointer"
-                        >
-                          <option value="10">10</option>
-                          <option value="25">25</option>
-                          <option value="50">50</option>
-                          <option value="9999">All</option>
-                        </select>
-                      </div>
-
-                      {/* Right: Export, Import, Filters Toggle */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={handleExportApplications}
-                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-xs font-bold cursor-pointer"
-                        >
-                          <Download size={13} />
-                          <span>Export Data</span>
-                        </button>
-                        <button
-                          onClick={() => document.getElementById('csv-import-input')?.click()}
-                          className="bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-xs font-bold cursor-pointer"
-                        >
-                          <Upload size={13} />
-                          <span>Import Data</span>
-                        </button>
-                        <input
-                          id="csv-import-input"
-                          type="file"
-                          accept=".csv"
-                          onChange={handleImportApplications}
-                          className="hidden"
-                        />
-                        <button
-                          onClick={() => setIsSideFilterOpen(true)}
-                          className="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-xs font-bold cursor-pointer"
-                        >
-                          <Filter size={13} className="text-[#0D47A1]" />
-                          <span>Filters</span>
-                          {(statusFilter !== 'all' || positionFilter !== 'all' || experienceFilter !== 'all' || startDate || endDate) && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                          )}
-                        </button>
-                      </div>
+                    // Walk-in Drives Filter Bar Layout
+                    <div className="flex items-center justify-between w-full py-1">
+                      <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                        <Calendar size={14} className="text-[#0D47A1]" />
+                        List of scheduled walk-in drives and off-campus recruitment events
+                      </span>
                     </div>
                   )}
                 </div>
@@ -2739,8 +2740,7 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
           </div>
         )}
         {/* Bulk Actions Bar - Hide when sidebar is open on mobile */}
-        {((activeTab === 'jobs' && selectedJobs.length > 0) ||
-          (activeTab === 'applications' && selectedApplications.length > 0)) &&
+        {activeTab === 'jobs' && selectedJobs.length > 0 &&
           (!isSidebarOpen || window.innerWidth >= 640) && (
             <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
@@ -2748,29 +2748,15 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                   <div className="flex items-center">
                     <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-1 sm:mr-2" />
                     <span className="text-xs sm:text-sm font-medium text-blue-800">
-                      {activeTab === 'jobs' ? selectedJobs.length : selectedApplications.length} selected
+                      {selectedJobs.length} selected
                     </span>
                   </div>
-                  {activeTab === 'applications' && (
-                    <div className="flex flex-wrap gap-1 sm:gap-2">
-                      <select
-                        onChange={(e) => handleBulkUpdateApplicationStatus(e.target.value)}
-                        className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition"
-                      >
-                        <option value="">Update Status</option>
-                        <option value="reviewed">Mark as Reviewed</option>
-                        <option value="shortlisted">Mark as Shortlisted</option>
-                        <option value="rejected">Mark as Rejected</option>
-                        <option value="hired">Mark as Hired</option>
-                      </select>
-                    </div>
-                  )}
                 </div>
                 <button
                   onClick={handleBulkDeleteClick}
                   className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition mt-1 sm:mt-0 cursor-pointer font-bold"
                 >
-                  Delete ({activeTab === 'jobs' ? selectedJobs.length : selectedApplications.length})
+                  Delete ({selectedJobs.length})
                 </button>
               </div>
             </div>
@@ -3003,268 +2989,162 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
               </div>
             )
           ) : (
-            // Applications Table
+            // Walk-in Drives Table/Grid
             <div className="flex flex-col sm:flex-1 sm:min-h-0 bg-white/40 backdrop-blur-md rounded-xl border border-slate-200/60 shadow-sm sm:overflow-hidden outline-none focus:outline-none focus:ring-0">
               <div className="flex-1 overflow-x-auto sm:overflow-y-auto sm:min-h-0 outline-none focus:outline-none focus:ring-0">
-                <table className="min-w-full border-collapse border border-slate-300 outline-none focus:outline-none focus:ring-0">
-                  <thead className="bg-slate-200/50 backdrop-blur-md sticky top-0 z-20">
-                    <tr>
-                      <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-8 border-r border-b border-slate-300">
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedApplications.length === filteredApplications.length && filteredApplications.length > 0}
-                            onChange={handleSelectAll}
-                            className="h-3 w-3 text-[#0D47A1] rounded focus:ring-[#0D47A1] cursor-pointer"
-                          />
-                        </div>
-                      </th>
-                      <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-40 border-r border-b border-slate-300">
-                        Applicant
-                      </th>
-                      <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-28 border-r border-b border-slate-300">
-                        mobile no.
-                      </th>
-                      <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-32 border-r border-b border-slate-300">
-                        Position
-                      </th>
-                      <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-24 border-r border-b border-slate-300">
-                        Experience
-                      </th>
-                      <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-48 border-r border-b border-slate-300">
-                        Branch / Specialization
-                      </th>
-                      <th className="px-2 py-1 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-24 border-r border-b border-slate-300">
-                        Status
-                      </th>
-                      <th className="px-2 py-1 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider w-36 border-b border-slate-300">
-                        Actions
-                      </th>
-                    </tr>
-                    <tr className="bg-slate-100/50">
-                      <th className="px-2 py-1 border-r border-b border-slate-300"></th>
-                      <th className="px-2 py-1 border-r border-b border-slate-300">
-                        <input
-                          type="text"
-                          placeholder="Search applicant..."
-                          value={columnFilters.applicant}
-                          onChange={(e) => setColumnFilters({ ...columnFilters, applicant: e.target.value })}
-                          className="w-full px-2 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none"
-                        />
-                      </th>
-                      <th className="px-2 py-1 border-r border-b border-slate-300">
-                        <input
-                          type="text"
-                          placeholder="Search mobile..."
-                          value={columnFilters.mobile}
-                          onChange={(e) => setColumnFilters({ ...columnFilters, mobile: e.target.value })}
-                          className="w-full px-2 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none"
-                        />
-                      </th>
-                      <th className="px-2 py-1 border-r border-b border-slate-300">
-                        <select
-                          value={columnFilters.position}
-                          onChange={(e) => setColumnFilters({ ...columnFilters, position: e.target.value })}
-                          className="w-full px-1 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-semibold text-slate-700 outline-none cursor-pointer"
-                        >
-                          <option value="all">All Positions</option>
-                          {Array.from(new Set(applications.map(app => app.job_title).filter((t): t is string => !!t))).map(title => (
-                            <option key={title} value={title}>{title}</option>
-                          ))}
-                        </select>
-                      </th>
-                      <th className="px-2 py-1 border-r border-b border-slate-300">
-                        <select
-                          value={columnFilters.experience}
-                          onChange={(e) => setColumnFilters({ ...columnFilters, experience: e.target.value })}
-                          className="w-full px-1 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-semibold text-slate-700 outline-none cursor-pointer"
-                        >
-                          {experienceFilterOptions.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
-                      </th>
-                      <th className="px-2 py-1 border-r border-b border-slate-300">
-                        <input
-                          type="text"
-                          placeholder="Search branch..."
-                          value={columnFilters.branch}
-                          onChange={(e) => setColumnFilters({ ...columnFilters, branch: e.target.value })}
-                          className="w-full px-2 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-medium text-slate-700 outline-none"
-                        />
-                      </th>
-                      <th className="px-2 py-1 border-r border-b border-slate-300">
-                        <select
-                          value={columnFilters.status}
-                          onChange={(e) => setColumnFilters({ ...columnFilters, status: e.target.value })}
-                          className="w-full px-1 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-[#0D47A1] focus:border-[#0D47A1] bg-white font-semibold text-slate-700 outline-none cursor-pointer"
-                        >
-                          <option value="all">All Status</option>
-                          <option value="pending">Pending</option>
-                          <option value="reviewed">Reviewed</option>
-                          <option value="shortlisted">Shortlisted</option>
-                          <option value="rejected">Rejected</option>
-                          <option value="hired">Hired</option>
-                        </select>
-                      </th>
-                      <th className="px-2 py-1 border-b border-slate-300"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-transparent">
-                    {filteredApplications.map((app: Application) => (
-                      <tr key={app.id} className="hover:bg-blue-50/50 bg-white/20 transition-all duration-200">
-                        <td className="px-2 py-1 border-r border-b border-slate-200">
-                          <input
-                            type="checkbox"
-                            checked={selectedApplications.includes(app.id)}
-                            onChange={() => handleSelectItem(app.id)}
-                            className="h-3 w-3 text-[#0D47A1] rounded focus:ring-[#0D47A1] cursor-pointer"
-                          />
-                        </td>
-                        <td className="px-2 py-1 border-r border-b border-slate-200">
-                          <div className="flex items-center space-x-2">
-                            <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center border border-blue-200">
-                              <span className="font-bold text-blue-600 text-[10px]">
-                                {app.applicant_name
-                                  ?.split(" ")
-                                  .map((name: string) => name.charAt(0))
-                                  .slice(0, 2)
-                                  .join("")
-                                  .toUpperCase()}
+                {walkInDrives.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Walk-in Drives Found</h3>
+                    <p className="text-gray-500 mb-6">Create your first recruitment walk-in drive event.</p>
+                    <button
+                      onClick={() => {
+                        setEditingDrive(null);
+                        setDriveFormData({
+                          title: '',
+                          date: '',
+                          time: '',
+                          location: '',
+                          description: '',
+                          skills: '',
+                          status: 'Upcoming'
+                        });
+                        setIsDriveModalOpen(true);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 mx-auto cursor-pointer font-bold text-xs"
+                    >
+                      <Plus size={16} />
+                      <span>Add Walk-in Drive</span>
+                    </button>
+                  </div>
+                ) : (
+                  <table className="min-w-full border-collapse border border-slate-200 text-left">
+                    <thead className="bg-slate-50 sticky top-0 z-20">
+                      <tr>
+                        <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Drive Title</th>
+                        <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Date & Time</th>
+                        <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Location</th>
+                        <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Required Skills</th>
+                        <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Status</th>
+                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-100">
+                      {walkInDrives.map((drive) => (
+                        <tr key={drive.id} className="hover:bg-slate-50/50 transition">
+                          <td className="px-4 py-3 border-b border-slate-100">
+                            <div>
+                              <p className="font-bold text-slate-800 text-sm leading-snug">{drive.title}</p>
+                              {drive.description && (
+                                <p className="text-xs text-slate-400 mt-1 line-clamp-2 max-w-md">{drive.description}</p>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 border-b border-slate-100">
+                            <div className="flex flex-col text-xs text-slate-700 font-semibold gap-1">
+                              <span className="flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                {drive.date}
+                              </span>
+                              <span className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                {drive.time}
                               </span>
                             </div>
-                            <div>
-                              <div className="text-[11px] font-bold text-slate-800 leading-tight">{app.applicant_name}</div>
-                              <div
-                                onClick={() => {
-                                  const subject = `Interview Schedule: ${app.job_title || 'Position'} - Hously`;
-                                  const body = `Dear ${app.applicant_name},\n\nThank you for applying for the ${app.job_title || 'Position'} role at Hously.\n\nWe have reviewed your application and would like to invite you for an interview. Here are the details:\n\n- Date: [Enter Date, e.g., July 6]\n- Time: [Enter Time, e.g., 3:00 PM]\n- Mode: [Online (Google Meet) / In-person]\n- Link/Address: [Meeting Link or Address]\n\nPlease let us know if this works for you.\n\nBest regards,\nHously HR Team`;
-                                  window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${app.email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
-                                }}
-                                className="text-[9px] text-slate-400 mt-0.5 leading-none cursor-pointer hover:text-blue-600 hover:underline"
-                                title="Email candidate with template"
-                              >
-                                {app.email}
-                              </div>
+                          </td>
+                          <td className="px-4 py-3 border-b border-slate-100">
+                            <div className="flex items-start gap-1 text-xs text-slate-600 font-semibold max-w-xs">
+                              <MapPin className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                              <span className="line-clamp-2">{drive.location}</span>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-2 py-1 border-r border-b border-slate-200">
-                          <div className="text-[11px] text-slate-600 font-bold">{app.phone || '—'}</div>
-                        </td>
-                        <td className="px-2 py-1 border-r border-b border-slate-200">
-                          <div className="text-[11px] font-semibold text-slate-700 leading-tight">{app.job_title || 'N/A'}</div>
-                          <div className="text-[9px] text-slate-400 mt-0.5 leading-none">{formatDate(app.applied_at)}</div>
-                        </td>
-                        <td className="px-2 py-1 border-r border-b border-slate-200">
-                          <div className="text-[11px] text-slate-500 font-semibold">{app.experience_level || '—'}</div>
-                        </td>
-                        <td className="px-2 py-1 border-r border-b border-slate-200">
-                          <div className="text-[11px] text-slate-600 font-bold truncate max-w-[150px]" title={getBranchSpecVal(app) || ''}>
-                            {getBranchSpecVal(app)}
-                          </div>
-                        </td>
-                        <td className="px-2 py-1 border-r border-b border-slate-200">
-                          <select
-                            value={app.status}
-                            onChange={(e) => handleUpdateApplicationStatus(app.id, e.target.value as 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired')}
-                            className={`px-1.5 py-0.5 rounded border text-[10px] font-bold focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white/60 focus:bg-white cursor-pointer transition-all outline-none ${getStatusColor(app.status)}`}
-                          >
-                            <option value="pending">Pending</option>
-                            <option value="reviewed">Reviewed</option>
-                            <option value="shortlisted">Shortlisted</option>
-                            <option value="rejected">Rejected</option>
-                            <option value="hired">Hired</option>
-                          </select>
-                        </td>
-                        <td className="px-2 py-1 border-b border-slate-200 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => {
-                                setViewingCandidateApp(app);
-                                setCandidatePopupTab('overview');
-                              }}
-                              className="p-0.5 text-indigo-600 hover:bg-indigo-50 border border-indigo-100 rounded cursor-pointer transition-all"
-                              title="View Candidate Details"
-                            >
-                              <Eye size={11} />
-                            </button>
-
-                            {app.resume_path && (
+                          </td>
+                          <td className="px-4 py-3 border-b border-slate-100">
+                            <div className="flex flex-wrap gap-1 max-w-xs">
+                              {drive.skills ? (
+                                drive.skills.split(',').map((skill: string, idx: number) => (
+                                  <span key={idx} className="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100">
+                                    {skill.trim()}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-slate-400 text-xs">—</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 border-b border-slate-100">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold ${
+                              drive.status === 'Active'
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : drive.status === 'Completed'
+                                  ? 'bg-slate-100 text-slate-600 border-slate-200'
+                                  : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                            }`}>
+                              {drive.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 border-b border-slate-100 text-right">
+                            <div className="flex items-center justify-end gap-2">
                               <button
-                                onClick={() => downloadResume(app.resume_path!)}
-                                className="p-0.5 text-purple-600 hover:bg-purple-50 border border-purple-100 rounded cursor-pointer transition-all"
-                                title="Download Resume"
+                                onClick={() => {
+                                  setEditingDrive(drive);
+                                  setDriveFormData({
+                                    title: drive.title,
+                                    date: drive.date,
+                                    time: drive.time,
+                                    location: drive.location,
+                                    description: drive.description || '',
+                                    skills: drive.skills || '',
+                                    status: drive.status
+                                  });
+                                  setIsDriveModalOpen(true);
+                                }}
+                                className="p-1 text-indigo-600 hover:bg-indigo-50 border border-indigo-100 rounded cursor-pointer transition-all"
+                                title="Edit"
                               >
-                                <Download size={11} />
+                                <Edit size={13} />
                               </button>
-                            )}
-
-                            <button
-                              onClick={() => {
-                                setCalendarSelectedCandidate(app);
-                                setShowCalendarPopup(true);
-                              }}
-                              className="p-0.5 text-amber-600 hover:bg-amber-50 border border-amber-100 rounded cursor-pointer transition-all"
-                              title="Schedule Interview"
-                            >
-                              <Calendar size={11} />
-                            </button>
-                            <button
-                              onClick={() => {
-                                const subject = `Interview Schedule: ${app.job_title || 'Position'} - Hously`;
-                                const body = `Dear ${app.applicant_name},\n\nThank you for applying for the ${app.job_title || 'Position'} role at Hously.\n\nWe have reviewed your application and would like to invite you for an interview. Here are the details:\n\n- Date: [Enter Date, e.g., July 6]\n- Time: [Enter Time, e.g., 3:00 PM]\n- Mode: [Online (Google Meet) / In-person]\n- Link/Address: [Meeting Link or Address]\n\nPlease let us know if this works for you.\n\nBest regards,\nHously HR Team`;
-                                window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${app.email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
-                              }}
-                              className="p-0.5 text-emerald-600 hover:bg-emerald-50 border border-emerald-100 rounded cursor-pointer transition-all"
-                              title="Email Applicant"
-                            >
-                              <Mail size={11} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteAppClick(app.id)}
-                              className="p-0.5 text-red-600 hover:bg-red-50 border border-red-100 rounded cursor-pointer transition-all"
-                              title="Delete Application"
-                            >
-                              <Trash2 size={11} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                              <button
+                                onClick={() => handleDeleteDriveClick(drive.id)}
+                                className="p-1 text-red-600 hover:bg-red-50 border border-red-100 rounded cursor-pointer transition-all"
+                                title="Delete"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
               {renderPagination(true)}
             </div>
-
           )}
 
           {/* Empty State */}
-          {(activeTab === 'jobs' ? jobs.length : filteredApplications.length) === 0 && (
+          {activeTab === 'jobs' && jobs.length === 0 && (
             <div className="text-center py-12">
               <Briefcase className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No {activeTab === 'jobs' ? 'jobs' : 'applications'} found
+                No jobs found
               </h3>
               <p className="text-gray-500 mb-6">
-                {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' || locationFilter !== 'all' || jobTypeFilter !== 'all' || statusViewFilter !== 'all'
+                {searchTerm || departmentFilter !== 'all' || locationFilter !== 'all' || jobTypeFilter !== 'all' || statusViewFilter !== 'all'
                   ? 'Try adjusting your filters'
-                  : activeTab === 'jobs'
-                    ? 'Create your first job opening'
-                    : 'Applications will appear here when candidates apply'}
+                  : 'Create your first job opening'}
               </p>
-              {activeTab === 'jobs' && (
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 mx-auto"
-                >
-                  <Plus size={20} />
-                  <span>Create Job Opening</span>
-                </button>
-              )}
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 mx-auto"
+              >
+                <Plus size={20} />
+                <span>Create Job Opening</span>
+              </button>
             </div>
           )}
+
+
 
 
         </div>
@@ -4105,6 +3985,144 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
         </div>
       )}
 
+      {/* ========== WALK-IN DRIVE CREATE/EDIT MODAL ========== */}
+      {isDriveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-modal-backdrop bg-slate-900/60 backdrop-blur-sm">
+          <div
+            className="fixed inset-0 cursor-default"
+            onClick={() => setIsDriveModalOpen(false)}
+          />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 animate-modal-content max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-[#fafbff] rounded-t-2xl">
+              <div>
+                <h2 className="text-base font-extrabold text-[#0D1B3E]">
+                  {editingDrive ? 'Edit Walk-in Drive' : 'Add Walk-in Drive'}
+                </h2>
+                <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                  {editingDrive ? 'Update this recruitment event' : 'Configure a new walk-in drive'}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsDriveModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCreateWalkInDrive} className="p-6 space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Drive Title <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  required
+                  value={driveFormData.title}
+                  onChange={(e) => setDriveFormData({ ...driveFormData, title: e.target.value })}
+                  placeholder="e.g. Mega Walk-in Drive for React Developers"
+                  className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none bg-gray-50 transition"
+                />
+              </div>
+
+              {/* Date & Time Row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Date <span className="text-red-500">*</span></label>
+                  <input
+                    type="date"
+                    required
+                    value={driveFormData.date}
+                    onChange={(e) => setDriveFormData({ ...driveFormData, date: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none bg-gray-50 transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Time Slot <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={driveFormData.time}
+                    onChange={(e) => setDriveFormData({ ...driveFormData, time: e.target.value })}
+                    placeholder="e.g. 10:00 AM - 04:00 PM"
+                    className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none bg-gray-50 transition"
+                  />
+                </div>
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Venue Location <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  required
+                  value={driveFormData.location}
+                  onChange={(e) => setDriveFormData({ ...driveFormData, location: e.target.value })}
+                  placeholder="e.g. Hously Tech Office, Sector 62, Noida"
+                  className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none bg-gray-50 transition"
+                />
+              </div>
+
+              {/* Skills */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Required Skills (Comma Separated)</label>
+                <input
+                  type="text"
+                  value={driveFormData.skills}
+                  onChange={(e) => setDriveFormData({ ...driveFormData, skills: e.target.value })}
+                  placeholder="React, Node.js, JavaScript"
+                  className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none bg-gray-50 transition"
+                />
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Status</label>
+                <select
+                  value={driveFormData.status}
+                  onChange={(e) => setDriveFormData({ ...driveFormData, status: e.target.value as 'Active' | 'Upcoming' | 'Completed' })}
+                  className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none bg-gray-50 transition cursor-pointer"
+                >
+                  <option value="Upcoming">Upcoming</option>
+                  <option value="Active">Active</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Description / Instructions</label>
+                <textarea
+                  rows={3}
+                  value={driveFormData.description}
+                  onChange={(e) => setDriveFormData({ ...driveFormData, description: e.target.value })}
+                  placeholder="e.g. Carry updated resume and Aadhar card. Looking for freshers and experienced professionals."
+                  className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none bg-gray-50 transition"
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsDriveModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#0D47A1] hover:bg-[#1976D2] rounded-xl cursor-pointer transition-all shadow-sm shadow-blue-100"
+                >
+                  {editingDrive ? 'Save Changes' : 'Create Event'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {isDeleteConfirmOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-modal-backdrop">
@@ -4137,12 +4155,10 @@ const CareerCMS: React.FC<CareerCMSProps> = ({ isSidebarOpen = false }) => {
                   setIsDeleteConfirmOpen(false);
                   if (deleteType === 'job' && deleteTargetId !== null) {
                     await proceedDeleteJob(deleteTargetId);
-                  } else if (deleteType === 'application' && deleteTargetId !== null) {
-                    await proceedDeleteApp(deleteTargetId);
+                  } else if (deleteType === 'walk-in-drive' && deleteTargetId !== null) {
+                    await proceedDeleteDrive(deleteTargetId);
                   } else if (deleteType === 'bulk_jobs' && deleteTargetIds !== null) {
                     await proceedBulkDeleteJobs(deleteTargetIds);
-                  } else if (deleteType === 'bulk_apps' && deleteTargetIds !== null) {
-                    await proceedBulkDeleteApps(deleteTargetIds);
                   }
                   setDeleteTargetId(null);
                   setDeleteTargetIds(null);
