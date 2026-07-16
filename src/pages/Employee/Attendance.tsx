@@ -13,7 +13,8 @@ import {
   Camera,
   UserCheck,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  Palmtree
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { attendanceApi } from '../../lib/attendanceApi';
@@ -394,38 +395,42 @@ const Attendance: React.FC = () => {
 
     // Check if this calendar day is a weekly off for this employee
     if (weekOffDays.length > 0 && weekOffDays.includes(dayName)) {
-      return 'bg-slate-200 text-slate-600 border-slate-300 font-medium';
+      return 'bg-slate-50 text-slate-500 border-slate-200 font-semibold';
     }
 
     if (!log) {
       if (d > today) return 'bg-white text-slate-400 border-slate-200';
-      return 'bg-rose-200 text-rose-800 border-rose-300 font-medium';
+      return 'bg-red-500 text-white border-red-600 font-semibold shadow-xs';
     }
 
     const s = log.status?.toLowerCase();
 
     if (s === 'on_leave' || s === 'on leave') {
-      return 'bg-purple-200 text-purple-800 border-purple-300 font-medium';
+      return 'bg-purple-600 text-white border-purple-700 font-semibold shadow-xs';
     }
 
     if (s === 'absent') {
-      return 'bg-rose-200 text-rose-800 border-rose-300 font-medium';
+      return 'bg-red-500 text-white border-red-600 font-semibold shadow-xs';
     }
 
     if (s === 'week_off' || s === 'week off') {
-      return 'bg-slate-200 text-slate-600 border-slate-300';
+      return 'bg-slate-50 text-slate-500 border-slate-200 font-semibold';
     }
 
     if (s === 'holiday') {
-      return 'bg-indigo-200 text-indigo-800 border-indigo-300 font-medium';
+      return 'bg-[#0d75db] border-[#0c6ecf] text-white font-semibold shadow-xs';
     }
 
     if (s === 'half_day' || s === 'half day') {
-      return 'bg-sky-200 text-sky-800 border-sky-300 font-medium';
+      return 'bg-orange-500 text-white border-orange-600 font-semibold shadow-xs';
     }
 
-    // Recorded present/late/etc -> GREEN
-    return 'bg-emerald-200 text-emerald-800 border-emerald-300 hover:bg-emerald-300/40 font-semibold';
+    if (s === 'late') {
+      return 'bg-emerald-500 text-white border-emerald-600 font-semibold shadow-xs';
+    }
+
+    // Recorded present -> GREEN
+    return 'bg-emerald-500 text-white border-emerald-600 font-semibold shadow-xs';
   };
 
   // Open biometric punch popup
@@ -751,7 +756,7 @@ const Attendance: React.FC = () => {
   }
 
   return (
-    <div className="max-w-[1400px] w-full mx-auto px-2 sm:px-4 py-6 space-y-6 select-text text-slate-808 text-left animate-slideUp">
+    <div className="max-w-[1400px] w-full mx-auto px-2 sm:px-4 py-4 space-y-4 select-text text-slate-808 text-left animate-slideUp lg:h-[calc(100vh-95px)] lg:overflow-hidden lg:flex lg:flex-col">
       <Toaster position="top-right" />
 
       {/* CSS animation stylesheet */}
@@ -923,10 +928,10 @@ const Attendance: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Bottom Grid: Calendar (2/3 width) and Adjustment Logs Table (1/3 width) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      {/* 3. Bottom Grid: Calendar (col-5) and Adjustment Logs Table (col-7) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start lg:flex-1 lg:min-h-0 lg:overflow-hidden">
         {/* Month-wise Interactive Calendar */}
-        <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-md p-6">
+        <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-100 shadow-md p-5 flex flex-col justify-between overflow-hidden">
           <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
             <div>
               <h3 className="font-bold text-slate-800 text-sm tracking-wide uppercase">Attendance Calendar</h3>
@@ -1001,10 +1006,22 @@ const Attendance: React.FC = () => {
                 <button
                   key={`day-${dayNum}`}
                   onClick={() => handleDayClick(formattedDay, dayNum, dayLog)}
-                  className={`p-3 rounded-2xl text-[12px] flex flex-col items-center justify-center min-h-[50px] transition-all duration-200 hover:scale-105 active:scale-95 border cursor-pointer ${classes}`}
+                  className={`p-1.5 rounded-xl text-[11px] flex flex-col items-center justify-center min-h-[42px] transition-all duration-200 hover:scale-105 active:scale-95 border cursor-pointer ${classes}`}
                   title={`Date: ${dayNum} ${monthNames[calendarDate.getMonth()]}`}
                 >
                   <span className="font-semibold">{dayNum}</span>
+                  {dayLog && dayLog.status?.toLowerCase() === 'late' && (
+                    <span className="text-[7px] font-black tracking-wider mt-0.5 text-yellow-300 uppercase">LATE</span>
+                  )}
+                  {dayLog && (dayLog.status?.toLowerCase() === 'half_day' || dayLog.status?.toLowerCase() === 'half day') && (
+                    <span className="text-[6.5px] font-black tracking-wider mt-0.5 text-white/90 uppercase">HALF DAY</span>
+                  )}
+                  {dayLog && (dayLog.status?.toLowerCase() === 'on_leave' || dayLog.status?.toLowerCase() === 'on leave') && (
+                    <span className="text-[7px] font-black tracking-wider mt-0.5 text-white/90 uppercase">LEAVE</span>
+                  )}
+                  {dayLog && dayLog.status?.toLowerCase() === 'holiday' && (
+                    <Palmtree size={12} className="mt-0.5 text-white/90" />
+                  )}
                 </button>
               );
             })}
@@ -1013,43 +1030,55 @@ const Attendance: React.FC = () => {
           {/* Legend */}
           <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap gap-4 text-[9px] font-semibold text-slate-500">
             <div className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded bg-emerald-50 border border-slate-200 inline-block" />
+              <span className="w-2.5 h-2.5 rounded bg-emerald-500 border border-emerald-600 inline-block" />
               <span>Present / Recorded</span>
             </div>
             <div className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded bg-purple-50 border border-slate-200 inline-block" />
+              <span className="w-2.5 h-2.5 rounded bg-purple-600 border border-purple-700 inline-block" />
               <span>On Leave</span>
             </div>
             <div className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded bg-rose-50 border border-slate-200 inline-block" />
+              <span className="w-2.5 h-2.5 rounded bg-orange-500 border border-orange-600 inline-block" />
+              <span>Half Day</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <span className="w-2.5 h-2.5 rounded bg-red-500 border border-red-600 inline-block" />
               <span>Absent (No In-Log Check)</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <span className="w-2.5 h-2.5 rounded bg-[#0d75db] border-[#0c6ecf] inline-flex items-center justify-center text-white"><Palmtree size={6} /></span>
+              <span>Holiday</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <span className="w-2.5 h-2.5 rounded bg-emerald-500 border border-emerald-600 inline-flex items-center justify-center text-[5px] font-extrabold text-yellow-400">L</span>
+              <span>Late Check-in</span>
             </div>
           </div>
         </div>
 
         {/* Adjustment Logs (Unified Scrollable Table - MNC Level Premium look, smaller text and no bold headers) */}
-        <div className="bg-white rounded-3xl  shadow-md p-6 flex flex-col justify-between">
-          <div>
-            <div className="pb-3.5 border-b border-slate-100 mb-4 text-left">
-              <h3 className="font-bold text-slate-800 text-sm tracking-wide uppercase">Adjustment Logs</h3>
-              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Regularization & Issues</p>
+        <div className="lg:col-span-7 bg-white rounded-3xl shadow-[0_4px_25px_rgba(0,0,0,0.03)] p-5 flex flex-col lg:h-full lg:min-h-0 lg:overflow-hidden border-none justify-between">
+          <div className="flex flex-col lg:h-full lg:min-h-0 flex-grow">
+            <div className="pb-3 border-b border-slate-100 mb-4 text-left flex-none">
+              <h3 className="font-extrabold text-slate-800 text-sm tracking-wide uppercase">Adjustment Logs</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Regularization & Issues</p>
             </div>
 
             {/* Scrollable Adjustment Table (MNC level professional styling) */}
-            <div className="overflow-x-auto overflow-y-auto max-h-[360px] border border-slate-200/80 rounded-2xl bg-white shadow-xs">
+            <div className="overflow-x-auto overflow-y-auto lg:flex-1 lg:min-h-0 bg-white rounded-2xl">
               <table className="w-full text-left border-collapse text-[10px] select-text">
-                <thead className="sticky top-0 bg-slate-50/90 backdrop-blur-xs z-10 border-b border-slate-200">
-                  <tr className="text-slate-500 font-medium uppercase tracking-wider text-[8px]">
+                <thead className="sticky top-0 bg-slate-50/90 backdrop-blur-xs z-10">
+                  <tr className="text-slate-500 font-bold uppercase tracking-wider text-[8px] border-b border-slate-100">
                     <th className="py-3 px-4">Date</th>
                     <th className="py-3 px-4">Request Type & Reason</th>
                     <th className="py-3 px-4">Requested Shift</th>
                     <th className="py-3 px-4 text-center">Approval Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-normal text-slate-655">
+                <tbody className="divide-y divide-slate-50 font-normal text-slate-600">
                   {requests.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="py-8 text-center text-slate-404 italic">
+                      <td colSpan={4} className="py-8 text-center text-slate-400 italic">
                         No adjustment records found.
                       </td>
                     </tr>
@@ -1060,21 +1089,21 @@ const Attendance: React.FC = () => {
                       const cleanReason = req.reason.replace(/^\[Issue:\s*[^\]]+\]\s*/, '').replace(/^\[Regularization\]\s*/, '');
 
                       return (
-                        <tr key={req.id} className="hover:bg-blue-50/20 transition-all duration-150">
-                          <td className="py-3 px-4 tabular-nums font-normal text-slate-500">
+                        <tr key={req.id} className="hover:bg-blue-50/20 transition-all duration-150 border-b border-slate-50 last:border-0">
+                          <td className="py-3.5 px-4 tabular-nums font-medium text-slate-500">
                             {new Date(req.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
                           </td>
-                          <td className="py-3 px-4 max-w-[140px] truncate font-normal text-slate-500" title={req.reason}>
-                            <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-normal mr-1.5 ${isIssue ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
+                          <td className="py-3.5 px-4 max-w-[180px] truncate font-medium text-slate-700" title={req.reason}>
+                            <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-bold mr-1.5 ${isIssue ? 'bg-rose-50 text-rose-600 border border-rose-100/50' : 'bg-blue-50 text-blue-600 border border-blue-100/50'}`}>
                               {typeLabel}
                             </span>
                             <span>{cleanReason}</span>
                           </td>
-                          <td className="py-3 px-4 tabular-nums font-normal text-slate-500">
+                          <td className="py-3.5 px-4 tabular-nums font-medium text-slate-500">
                             {req.requestedIn === '-' ? 'N/A' : `${req.requestedIn} - ${req.requestedOut}`}
                           </td>
-                          <td className="py-3 px-4 text-center">
-                            <span className={`inline-block px-2.5 py-1 rounded-full text-[8px] font-normal border uppercase tracking-wider ${getStatusTagColor(req.status)}`}>
+                          <td className="py-3.5 px-4 text-center">
+                            <span className={`inline-block px-2.5 py-1 rounded-full text-[8px] font-bold border uppercase tracking-wider ${getStatusTagColor(req.status)}`}>
                               {req.status}
                             </span>
                           </td>
@@ -1087,7 +1116,7 @@ const Attendance: React.FC = () => {
             </div>
           </div>
 
-          <p className="text-[9px] text-slate-404 italic text-left mt-3">
+          <p className="text-[9px] text-slate-400 italic text-left mt-3 flex-none">
             * All tickets undergo automated compliance verification by HR.
           </p>
         </div>

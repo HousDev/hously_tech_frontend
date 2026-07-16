@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, Users, TrendingUp, Search, ClipboardList, Code, Handshake, ChevronRight } from 'lucide-react';
+import { Lightbulb, Users, TrendingUp, Search, ClipboardList, Code, Handshake, ChevronRight, Calendar, MapPin, Clock, Zap } from 'lucide-react';
 import { Link, useNavigate } from "react-router-dom";
 import Breadcrumb from '../../../components/Breadcrumb';
 import careerService from '../../../services/career.service'; // Adjust path as needed
@@ -31,6 +31,9 @@ const HouslyCareerPage: React.FC = () => {
   const [activeStep, setActiveStep] = useState<number>(0);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [walkInDrives, setWalkInDrives] = useState<any[]>([]);
+  const [driveVisible, setDriveVisible] = useState(false);
+  const [hoveredDrive, setHoveredDrive] = useState<number | null>(null);
   const navigate = useNavigate();
 
   const hiringSteps: HiringStep[] = [
@@ -108,6 +111,22 @@ const HouslyCareerPage: React.FC = () => {
 
     fetchJobs();
   }, []);
+
+  // Fetch walk-in drives
+  useEffect(() => {
+    const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+    fetch(`${base}/api/career/walk-in-drives`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) {
+          setWalkInDrives(data.data.filter((d: any) => d.status === 'Active'));
+          // Trigger animation after data loads
+          setTimeout(() => setDriveVisible(true), 100);
+        }
+      })
+      .catch(() => { });
+  }, []);
+
 
   const progressWidth = `${(activeStep / (hiringSteps.length - 1)) * 100}%`;
 
@@ -241,6 +260,140 @@ const HouslyCareerPage: React.FC = () => {
           </div>
         </div>
 
+        {/* ===== WALK-IN DRIVES SECTION ===== */}
+        {walkInDrives.length > 0 && (
+          <div className="py-14 px-4 bg-gradient-to-b from-white to-blue-50/30">
+            <div className="max-w-6xl mx-auto">
+
+              {/* Header */}
+              <div className={`text-center mb-10 transition-all duration-700 ${driveVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                <div className="inline-flex items-center gap-2.5 bg-gradient-to-r from-blue-600/10 to-cyan-500/10 border border-blue-200/60 rounded-full px-5 py-2 mb-5">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-xs font-extrabold text-blue-700 uppercase tracking-widest">Live Recruitment</span>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+                  Walk-in <span className="text-[#0270e1]">Recruitment</span> Drives
+                </h2>
+                <p className="text-gray-500 text-base max-w-xl mx-auto">
+                  No lengthy rounds. Just walk in, meet our team, and get hired on the spot.
+                </p>
+              </div>
+
+              {/* Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {walkInDrives.map((drive, i) => (
+                  <div
+                    key={drive.id}
+                    onMouseEnter={() => setHoveredDrive(drive.id)}
+                    onMouseLeave={() => setHoveredDrive(null)}
+                    className={`relative group rounded-2xl border overflow-hidden transition-all duration-500 ${driveVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                      } ${hoveredDrive === drive.id
+                        ? 'border-blue-300 shadow-xl shadow-blue-100/50 -translate-y-1'
+                        : 'border-gray-200 shadow-sm hover:shadow-md'
+                      } bg-white`}
+                    style={{ transitionDelay: `${i * 120 + 200}ms` }}
+                  >
+                    {/* Top gradient bar */}
+                    <div className={`h-1 bg-gradient-to-r from-[#0270e1] via-cyan-400 to-blue-500 transition-opacity duration-500 ${hoveredDrive === drive.id ? 'opacity-100' : 'opacity-40'}`} />
+
+                    {/* Hover glow */}
+                    <div className={`absolute inset-0 bg-gradient-to-br from-blue-50/30 to-cyan-50/10 transition-opacity duration-500 ${hoveredDrive === drive.id ? 'opacity-100' : 'opacity-0'} pointer-events-none`} />
+
+                    <div className="p-6 relative z-10">
+                      {/* Title row */}
+                      <div className="flex items-start justify-between gap-4 mb-4">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${hoveredDrive === drive.id ? 'bg-[#0270e1] text-white scale-110' : 'bg-blue-50 text-blue-600'}`}>
+                            <Zap className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className={`font-extrabold text-base leading-snug line-clamp-2 transition-colors duration-300 ${hoveredDrive === drive.id ? 'text-[#0270e1]' : 'text-gray-900'}`}>
+                              {drive.title}
+                            </h3>
+                          </div>
+                        </div>
+                        <span className="shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">
+                          Active
+                        </span>
+                      </div>
+
+                      {/* Date / Time / Location */}
+                      <div className="space-y-2 mb-5">
+                        <div className="flex items-center gap-2.5 text-sm text-gray-600">
+                          <Calendar className="w-4 h-4 text-[#0270e1] shrink-0" />
+                          <span className="font-semibold">{drive.date}</span>
+                          {drive.time && (
+                            <>
+                              <span className="text-gray-300">·</span>
+                              <Clock className="w-4 h-4 text-gray-400 shrink-0" />
+                              <span className="text-gray-500">{drive.time}</span>
+                            </>
+                          )}
+                        </div>
+                        {drive.location && (
+                          <div className="flex items-center gap-2.5 text-sm text-gray-500">
+                            <MapPin className="w-4 h-4 text-red-400 shrink-0" />
+                            <span className="line-clamp-1">{drive.location}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Description */}
+                      {drive.description && (
+                        <p className="text-sm text-gray-500 leading-relaxed mb-5 line-clamp-2">{drive.description}</p>
+                      )}
+
+                      {/* Skills */}
+                      {drive.skills && (
+                        <div className="flex flex-wrap gap-2 mb-5">
+                          {drive.skills.split(',').slice(0, 5).map((skill: string, idx: number) => (
+                            <span key={idx} className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-full">
+                              {skill.trim()}
+                            </span>
+                          ))}
+                          {drive.skills.split(',').length > 5 && (
+                            <span className="text-xs font-semibold px-2.5 py-1 bg-gray-100 text-gray-500 rounded-full">
+                              +{drive.skills.split(',').length - 5} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <span className="text-xs text-gray-400 font-medium flex items-center gap-1.5">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                          </span>
+                          Walk-in · No appointment needed
+                        </span>
+                        <Link
+                          to="/career/job"
+                          className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0270e1] hover:text-[#024a9e] transition-colors group/link"
+                        >
+                          View Jobs
+                          <ChevronRight className="w-4 h-4 transition-transform duration-300 group-hover/link:translate-x-1" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom note */}
+              <div className={`text-center mt-8 transition-all duration-700 delay-500 ${driveVisible ? 'opacity-100' : 'opacity-0'}`}>
+                <p className="text-sm text-gray-400">
+                  Bring your updated resume · Dress professionally · Come prepared
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Featured Job Openings - Only 3 Jobs */}
         <div className="bg-gray-50 py-10 px-4">
           <div className="max-w-6xl mx-auto">
@@ -344,6 +497,7 @@ const HouslyCareerPage: React.FC = () => {
             )}
           </div>
         </div>
+
 
         {/* How We Hire - Interactive Timeline */}
         <div className="bg-white py-10 px-4">

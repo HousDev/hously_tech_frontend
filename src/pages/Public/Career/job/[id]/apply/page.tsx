@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useParams, useNavigate } from "react-router-dom";
+import toast, { Toaster } from "react-hot-toast";
 import careerService, { type Job, type ApplicationFormData } from "../../../../../../services/career.service";
 import { settingsApi } from "../../../../../../lib/settingsApi";
 import { masterDataAPI } from "../../../../../../lib/masterApi";
@@ -847,20 +848,21 @@ export default function JobApplicationPage() {
         why_consider: whyConsider || undefined
       };
 
-      // Run both submission request and 5-second timer in parallel
-      const submitPromise = careerService.submitApplication(applicationPayload);
-      const delayPromise = new Promise(resolve => setTimeout(resolve, 5000));
-
-      const [response] = await Promise.all([submitPromise, delayPromise]);
+      const response = await careerService.submitApplication(applicationPayload);
 
       if (response.success) {
-        navigate("/career");
+        toast.success("Application submitted successfully! Redirecting...", { duration: 2000 });
+        setTimeout(() => {
+          navigate("/career");
+        }, 1500);
       } else {
         throw new Error(response.message || "Failed to submit application");
       }
     } catch (err: any) {
       console.error("Error submitting application:", err);
-      setSubmitError(err.message || "Something went wrong. Please try again.");
+      const errMsg = err.message || "Something went wrong. Please try again.";
+      setSubmitError(errMsg);
+      toast.error(errMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -982,16 +984,7 @@ export default function JobApplicationPage() {
 
   return (
     <div className="application-form-container min-h-screen bg-[#f6f7fb] text-[#14161f] pt-24 pb-20 select-text">
-      {isSubmitting && (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-md transition-all duration-300">
-          <img
-            src="/lodder.png"
-            alt="Loading..."
-            className="w-32 h-32 object-contain animate-spin"
-            style={{ animationDuration: '3s' }}
-          />
-        </div>
-      )}
+      <Toaster position="top-right" />
       {/* Scope HTML styling */}
       <style>{`
         .application-form-container {

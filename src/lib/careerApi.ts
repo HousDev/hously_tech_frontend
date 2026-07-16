@@ -100,6 +100,18 @@ export interface ApplicationStats {
   hired: number;
 }
 
+export interface WalkInDrive {
+  id: number;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  description: string | null;
+  skills: string | null;
+  status: 'Upcoming' | 'Active' | 'Completed';
+  created_at?: string;
+}
+
 export interface JobFilters {
   search?: string;
   department?: string;
@@ -360,6 +372,16 @@ export const careerApi = {
 
   importApplications: (applications: any[]): Promise<{ importedCount: number }> =>
     unwrap(api.post<ApiResponse<{ importedCount: number }>>('/career/applications/import', { applications })),
+
+  // Walk-in Drives
+  getAllWalkInDrives: (): Promise<WalkInDrive[]> =>
+    unwrap(api.get<ApiResponse<WalkInDrive[]>>('/career/walk-in-drives')),
+  createWalkInDrive: (data: Partial<WalkInDrive>): Promise<any> =>
+    unwrap(api.post<ApiResponse<any>>('/career/walk-in-drives', data)),
+  updateWalkInDrive: (id: number, data: Partial<WalkInDrive>): Promise<any> =>
+    unwrap(api.put<ApiResponse<any>>(`/career/walk-in-drives/${id}`, data)),
+  deleteWalkInDrive: (id: number): Promise<any> =>
+    unwrap(api.delete<ApiResponse<any>>(`/career/walk-in-drives/${id}`)),
 };
 
 

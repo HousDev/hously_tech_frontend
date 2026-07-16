@@ -1,79 +1,52 @@
+
 import React, { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import {
-  Clock,
-  CheckCircle2,
-  DollarSign,
-  TrendingUp,
-  Filter,
-  Search,
-  X,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Pencil,
-  Calendar,
-  User,
-  Hash,
-  FileText,
-  Wallet,
-  AlertCircle,
-  DownloadCloud,
-  CheckSquare,
-  Square,
-  Gift,
-  Info,
-  Sparkles,
-  AlertTriangle,
-  Trash2,
-  Award,
-  Plus,
   Calculator,
-  Building
+  User,
+  Info,
+  CheckCircle2,
+  AlertCircle,
+  Plus,
+  Trash2,
+  Search,
+  DollarSign,
+  ChevronDown,
+  Building,
+  RefreshCw,
+  Eye,
+  FileText
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
-// --- Custom Components ---
+// --- Types ---
+interface Employee {
+  name: string;
+  id: string;
+  dept: string;
+  designation: string;
+  email: string;
+  salary: number; // monthly base package
+}
 
-const StatCard = ({ icon: Icon, label, value, color, subtitle }: any) => {
-  const bgLightMap: any = {
-    "bg-purple-500": "bg-purple-50 text-purple-600 border-purple-100",
-    "bg-amber-500": "bg-amber-50 text-amber-600 border-amber-100",
-    "bg-blue-500": "bg-blue-50 text-blue-600 border-blue-100",
-    "bg-emerald-500": "bg-emerald-50 text-emerald-600 border-emerald-100",
-  };
-  const theme = bgLightMap[color] || "bg-slate-50 text-slate-600 border-slate-100";
-  const [bgClass, textClass, borderClass] = theme.split(" ");
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4 flex items-center gap-3.5 transition-all duration-300 hover:shadow-md hover:border-blue-500/20 group flex-1">
-      <div className={`p-2.5 rounded-lg border ${bgClass} ${borderClass} group-hover:scale-105 transition-transform duration-300`}>
-        <Icon className={`w-4.5 h-4.5 ${textClass}`} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-semibold text-gray-405 uppercase tracking-wider">{label}</p>
-        <h3 className="text-base font-bold text-gray-800 mt-0.5">{value}</h3>
-        {subtitle && <p className="text-[9px] text-gray-400 font-semibold mt-0.5">{subtitle}</p>}
-      </div>
-    </div>
-  );
-};
-
-const StatusBadge = ({ status }: { status: string }) => {
-  const config: Record<string, any> = {
-    "New Regime": { bg: "bg-blue-50 text-blue-700 border-blue-105" },
-    "Old Regime": { bg: "bg-purple-50 text-purple-700 border-purple-105" }
-  };
-  const { bg } = config[status] || { bg: "bg-slate-50 text-slate-700 border-slate-105" };
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold border ${bg}`}>
-      {status}
-    </span>
-  );
-};
-
-// --- Main Component ---
+interface TDSRecord {
+  id: string;
+  employeeName: string;
+  empId: string;
+  designation: string;
+  dept: string;
+  regime: "New Regime" | "Old Regime";
+  grossAnnual: number;
+  deductions80C: number;
+  deductions80D: number;
+  deductions24b: number;
+  deductions80CCD: number;
+  hraExemption: number;
+  standardDeduction: number;
+  taxableIncome: number;
+  annualTax: number;
+  monthlyTDS: number;
+}
 
 export default function TDS() {
   const { setHeaderTitle, setHeaderSubtitle } = useOutletContext<{
@@ -83,698 +56,540 @@ export default function TDS() {
 
   useEffect(() => {
     if (setHeaderTitle && setHeaderSubtitle) {
-      setHeaderTitle("Tax Deduction at Source (TDS)");
-      setHeaderSubtitle("Manage employee income tax regimes, investment declarations, and monthly YTD liability summaries");
+      setHeaderTitle("Easy TDS Calculator & Manager");
+      setHeaderSubtitle("Calculate, compare tax regimes, and apply monthly TDS deductions for your employees in seconds.");
     }
   }, [setHeaderTitle, setHeaderSubtitle]);
 
-  // States
-  const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  const [pageSize, setPageSize] = useState<number | string>(10);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showAddDeclaration, setShowAddDeclaration] = useState(false);
-  const [showEditDeclaration, setShowEditDeclaration] = useState<any | null>(null);
-  const [showViewDetails, setShowViewDetails] = useState<any | null>(null);
-  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
-  const [employeeSearchQuery, setEmployeeSearchQuery] = useState("");
+  // --- Tabs State ---
+  const [activeTab, setActiveTab] = useState<"calculator" | "records">("calculator");
 
-  // Delete Confirmation State
-  const [deleteConfirmation, setDeleteConfirmation] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: "",
-    message: "",
-    onConfirm: () => {}
-  });
-
-  // Column search filters
-  const [columnFilters, setColumnFilters] = useState({
-    employee: "",
-    regime: "all",
-    c80: "",
-    other: "",
-    ytdTds: ""
-  });
-
-  // Form inputs
-  const [formData, setFormData] = useState({
-    employee: "",
-    employeeId: "",
-    employeeDesignation: "",
-    employeeDept: "",
-    regime: "New Regime",
-    c80: "",
-    other: "",
-    ytdTds: ""
-  });
-
-  // Edit Form inputs
-  const [editFormData, setEditFormData] = useState({
-    id: "",
-    employee: "",
-    employeeId: "",
-    employeeDesignation: "",
-    employeeDept: "",
-    regime: "New Regime",
-    c80: "",
-    other: "",
-    ytdTds: ""
-  });
-
-  // Sample employee database for searchable selector dropdown
-  const availableEmployeesDb = [
-    { name: "Suraj Kumar", id: "EMP0019", dept: "Engineering", designation: "MTS-2", email: "suraj@hously.co" },
-    { name: "Anjali Sharma", id: "EMP0020", dept: "Marketing", designation: "Design Lead", email: "anjali@hously.co" },
-    { name: "Vikram Patel", id: "EMP0021", dept: "Sales", designation: "Account Executive", email: "vikram@hously.co" },
-    { name: "Kunal Sen", id: "EMP0022", dept: "HR", designation: "Recruiter Manager", email: "kunal@hously.co" },
-    { name: "Priya Mehta", id: "EMP0023", dept: "Design", designation: "Product Designer", email: "priya@hously.co" },
-    { name: "Rahul Verma", id: "EMP0024", dept: "Engineering", designation: "Staff Engineer", email: "rahul@hously.co" },
-    { name: "SHEKH ABDUL", id: "EMP0016", dept: "Operations", designation: "GENERAL MANAGER", email: "abdul@hously.co" }
+  // --- Static Employee Database for a new startup ---
+  const availableEmployees: Employee[] = [
+    { name: "Suraj Kumar", id: "EMP0019", dept: "Engineering", designation: "MTS-2", email: "suraj@hously.co", salary: 75000 },
+    { name: "Anjali Sharma", id: "EMP0020", dept: "Marketing", designation: "Design Lead", email: "anjali@hously.co", salary: 90000 },
+    { name: "Vikram Patel", id: "EMP0021", dept: "Sales", designation: "Account Executive", email: "vikram@hously.co", salary: 65000 },
+    { name: "Kunal Sen", id: "EMP0022", dept: "HR", designation: "Recruiter Manager", email: "kunal@hously.co", salary: 55000 },
+    { name: "Priya Mehta", id: "EMP0023", dept: "Design", designation: "Product Designer", email: "priya@hously.co", salary: 80000 },
+    { name: "Rahul Verma", id: "EMP0024", dept: "Engineering", designation: "Staff Engineer", email: "rahul@hously.co", salary: 140000 },
+    { name: "Shekh Abdul", id: "EMP0016", dept: "Operations", designation: "General Manager", email: "abdul@hously.co", salary: 120000 }
   ];
 
-  // Declarations list data
-  const [declarationsList, setDeclarationsList] = useState([
-    { id: "DEC-001", employeeName: "Suraj Kumar", empId: "EMP0019", designation: "MTS-2", dept: "Engineering", regime: "Old Regime", c80: 150000, other: 25000, ytdTds: 45000 },
-    { id: "DEC-002", employeeName: "Anjali Sharma", empId: "EMP0020", designation: "Design Lead", dept: "Marketing", regime: "New Regime", c80: 0, other: 0, ytdTds: 18200 },
-    { id: "DEC-003", employeeName: "Vikram Patel", empId: "EMP0021", designation: "Account Executive", dept: "Sales", regime: "Old Regime", c80: 120000, other: 15000, ytdTds: 38000 },
-    { id: "DEC-004", employeeName: "Kunal Sen", empId: "EMP0022", designation: "Recruiter Manager", dept: "HR", regime: "New Regime", c80: 0, other: 0, ytdTds: 12400 },
-    { id: "DEC-005", employeeName: "Priya Mehta", empId: "EMP0023", designation: "Product Designer", dept: "Design", regime: "Old Regime", c80: 150000, other: 30000, ytdTds: 22000 },
-    { id: "DEC-006", employeeName: "Rahul Verma", empId: "EMP0024", designation: "Staff Engineer", dept: "Engineering", regime: "New Regime", c80: 0, other: 0, ytdTds: 62000 }
+  // --- Saved TDS Log Database (Initial Static Data) ---
+  const [tdsRecords, setTdsRecords] = useState<TDSRecord[]>([
+    {
+      id: "DEC-001",
+      employeeName: "Suraj Kumar",
+      empId: "EMP0019",
+      designation: "MTS-2",
+      dept: "Engineering",
+      regime: "New Regime",
+      grossAnnual: 1275000,
+      deductions80C: 0,
+      deductions80D: 0,
+      deductions24b: 0,
+      deductions80CCD: 0,
+      hraExemption: 0,
+      standardDeduction: 75000,
+      taxableIncome: 1200000,
+      annualTax: 0,
+      monthlyTDS: 0
+    },
+    {
+      id: "DEC-002",
+      employeeName: "Anjali Sharma",
+      empId: "EMP0020",
+      designation: "Design Lead",
+      dept: "Marketing",
+      regime: "Old Regime",
+      grossAnnual: 1800000,
+      deductions80C: 150000,
+      deductions80D: 25000,
+      deductions24b: 50000,
+      deductions80CCD: 0,
+      hraExemption: 80000,
+      standardDeduction: 50000,
+      taxableIncome: 1445000,
+      annualTax: 255840,
+      monthlyTDS: 21320
+    },
+    {
+      id: "DEC-003",
+      employeeName: "Vikram Patel",
+      empId: "EMP0021",
+      designation: "Account Executive",
+      dept: "Sales",
+      regime: "New Regime",
+      grossAnnual: 780000,
+      deductions80C: 0,
+      deductions80D: 0,
+      deductions24b: 0,
+      deductions80CCD: 0,
+      hraExemption: 0,
+      standardDeduction: 75000,
+      taxableIncome: 705000,
+      annualTax: 0,
+      monthlyTDS: 0
+    },
+    {
+      id: "DEC-004",
+      employeeName: "Rahul Verma",
+      empId: "EMP0024",
+      designation: "Staff Engineer",
+      dept: "Engineering",
+      regime: "New Regime",
+      grossAnnual: 1680000,
+      deductions80C: 0,
+      deductions80D: 0,
+      deductions24b: 0,
+      deductions80CCD: 0,
+      hraExemption: 0,
+      standardDeduction: 75000,
+      taxableIncome: 1605000,
+      annualTax: 125840,
+      monthlyTDS: 10487
+    }
   ]);
 
-  // Statistics summaries
-  const stats = {
-    projectedTds: declarationsList.reduce((sum, item) => sum + item.ytdTds * 2.5, 0), // Mock factor projection
-    declaredCount: declarationsList.filter(item => item.c80 > 0 || item.other > 0).length,
-    totalEmployees: declarationsList.length,
-    taxRegimeNewCount: declarationsList.filter(item => item.regime === "New Regime").length
+  // --- Calculator Input States ---
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [showEmpDropdown, setShowEmpDropdown] = useState(false);
+  const [empSearchQuery, setEmpSearchQuery] = useState("");
+  
+  const [grossAnnualSalary, setGrossAnnualSalary] = useState<number>(0);
+  const [selectedRegime, setSelectedRegime] = useState<"New Regime" | "Old Regime">("New Regime");
+  
+  // Exemption inputs (applicable if Old Regime is selected)
+  const [deductions80C, setDeductions80C] = useState<number>(0);
+  const [deductions80D, setDeductions80D] = useState<number>(0);
+  const [deductions24b, setDeductions24b] = useState<number>(0);
+  const [deductions80CCD, setDeductions80CCD] = useState<number>(0);
+  const [hraExemption, setHraExemption] = useState<number>(0);
+
+  // --- UI Filter States (For Records Tab) ---
+  const [recordsSearchQuery, setRecordsSearchQuery] = useState("");
+  const [viewingRecordDetails, setViewingRecordDetails] = useState<TDSRecord | null>(null);
+  const [recordsRegimeFilter, setRecordsRegimeFilter] = useState<"New Regime" | "Old Regime">("New Regime");
+
+  // Pagination State for Saved Records Log
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [rowsPerPage, setRowsPerPage] = useState<number | "All">(10);
+
+  // --- Quick fill-in helper when selecting employee ---
+  const handleSelectEmployee = (emp: Employee) => {
+    setSelectedEmployee(emp);
+    setGrossAnnualSalary(emp.salary * 12);
+    setDeductions80C(0);
+    setDeductions80D(0);
+    setDeductions24b(0);
+    setDeductions80CCD(0);
+    setHraExemption(0);
+    setShowEmpDropdown(false);
+    setEmpSearchQuery("");
+    toast.success(`Loaded profile for ${emp.name}`);
   };
 
-  const formatCurrency = (val: number) => {
-    return "₹" + val.toLocaleString('en-IN');
-  };
+  // --- TDS Calculation Engine (FY 2026-27 India Slabs) ---
+  const calculateTDS = (
+    gross: number,
+    regime: "New Regime" | "Old Regime",
+    c80: number,
+    c80d: number,
+    c24b: number,
+    c80ccd: number,
+    hra: number
+  ) => {
+    const stdDeduction = regime === "New Regime" ? 75000 : 50000;
+    
+    // Capped values
+    const capped80C = Math.min(c80, 150000);
+    const capped80D = Math.min(c80d, 75000); // Self max 25k + Senior Parents max 50k
+    const capped24b = Math.min(c24b, 200000); // Home loan interest max 2L
+    const capped80CCD = Math.min(c80ccd, 50000); // Extra NPS max 50k
+    const cappedHRA = hra;
 
-  // Filter declarations list
-  const filteredDeclarations = declarationsList.filter(item => {
-    if (columnFilters.regime !== "all" && item.regime !== columnFilters.regime) return false;
-    if (columnFilters.employee && !item.employeeName.toLowerCase().includes(columnFilters.employee.toLowerCase()) && !item.empId.toLowerCase().includes(columnFilters.employee.toLowerCase())) {
-      return false;
-    }
-    if (columnFilters.c80 && !String(item.c80).includes(columnFilters.c80)) return false;
-    if (columnFilters.other && !String(item.other).includes(columnFilters.other)) return false;
-    if (columnFilters.ytdTds && !String(item.ytdTds).includes(columnFilters.ytdTds)) return false;
-    return true;
-  });
+    const totalDeductions = regime === "New Regime" 
+      ? stdDeduction 
+      : (stdDeduction + capped80C + capped80D + capped24b + capped80CCD + cappedHRA);
 
-  // Pagination calculation
-  const isPageSizeAll = pageSize === "All";
-  const numPageSize = isPageSizeAll ? filteredDeclarations.length : Number(pageSize);
-  const totalPages = isPageSizeAll ? 1 : Math.ceil(filteredDeclarations.length / numPageSize);
-  const paginatedDeclarations = isPageSizeAll ? filteredDeclarations : filteredDeclarations.slice((currentPage - 1) * numPageSize, currentPage * numPageSize);
+    const taxableIncome = Math.max(0, gross - totalDeductions);
 
-  // Search filtered employees capped strictly to 5 matches
-  const filteredEmployees = availableEmployeesDb.filter(emp => {
-    if (employeeSearchQuery.trim() === "") return true;
-    const q = employeeSearchQuery.toLowerCase();
-    return (
-      emp.name.toLowerCase().includes(q) ||
-      emp.id.toLowerCase().includes(q) ||
-      emp.email.toLowerCase().includes(q)
-    );
-  }).slice(0, 5);
+    let baseTax = 0;
+    const brackets: { label: string; tax: number }[] = [];
 
-  const toggleRow = (id: string) => {
-    setSelectedRows(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
-  };
+    if (regime === "New Regime") {
+      // New Tax Regime Slabs (FY 25-26 / FY 26-27 Budget):
+      // Up to 4,00,000 -> Nil
+      // 4,00,001 to 8,00,000 -> 5%
+      // 8,00,001 to 12,00,000 -> 10%
+      // 12,00,001 to 16,00,000 -> 15%
+      // 16,00,001 to 20,00,000 -> 20%
+      // 20,00,001 to 24,00,000 -> 25%
+      // Above 24,00,000 -> 30%
+      
+      const slabLimits = [400000, 800000, 1200000, 1600000, 2000000, 2400000];
+      const rates = [0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30];
 
-  const toggleAll = () => {
-    if (selectedRows.length === paginatedDeclarations.length) {
-      setSelectedRows([]);
+      let remainingIncome = taxableIncome;
+      let prevLimit = 0;
+
+      for (let i = 0; i < slabLimits.length; i++) {
+        const limit = slabLimits[i];
+        const range = limit - prevLimit;
+        const incomeInThisSlab = Math.min(Math.max(0, remainingIncome), range);
+        
+        if (incomeInThisSlab > 0) {
+          const slabTax = incomeInThisSlab * rates[i];
+          baseTax += slabTax;
+          const startL = prevLimit / 100000;
+          const endL = (prevLimit + incomeInThisSlab) / 100000;
+          brackets.push({
+            label: `\u20B9${startL}L - \u20B9${endL}L @ ${rates[i]*100}%`,
+            tax: slabTax
+          });
+        }
+        remainingIncome -= incomeInThisSlab;
+        prevLimit = limit;
+      }
+      
+      if (remainingIncome > 0) {
+        const slabTax = remainingIncome * rates[rates.length - 1];
+        baseTax += slabTax;
+        brackets.push({
+          label: `Above \u20B924L @ 30%`,
+          tax: slabTax
+        });
+      }
+
     } else {
-      setSelectedRows(paginatedDeclarations.map(item => item.id));
+      // Old Tax Regime Slabs (FY 26-27):
+      // Up to 2,50,000 -> Nil
+      // 2,50,001 to 5,00,000 -> 5%
+      // 5,00,001 to 10,00,000 -> 20%
+      // Above 10,00,000 -> 30%
+
+      const slabLimits = [250000, 500000, 1000000];
+      const rates = [0, 0.05, 0.20, 0.30];
+
+      let remainingIncome = taxableIncome;
+      let prevLimit = 0;
+
+      for (let i = 0; i < slabLimits.length; i++) {
+        const limit = slabLimits[i];
+        const range = limit - prevLimit;
+        const incomeInThisSlab = Math.min(Math.max(0, remainingIncome), range);
+        
+        if (incomeInThisSlab > 0) {
+          const slabTax = incomeInThisSlab * rates[i];
+          baseTax += slabTax;
+          const startL = prevLimit / 100000;
+          const endL = (prevLimit + incomeInThisSlab) / 100000;
+          brackets.push({
+            label: `\u20B9${startL}L - \u20B9${endL}L @ ${rates[i]*100}%`,
+            tax: slabTax
+          });
+        }
+        remainingIncome -= incomeInThisSlab;
+        prevLimit = limit;
+      }
+
+      if (remainingIncome > 0) {
+        const slabTax = remainingIncome * rates[rates.length - 1];
+        baseTax += slabTax;
+        brackets.push({
+          label: `Above \u20B910L @ 30%`,
+          tax: slabTax
+        });
+      }
     }
+
+    // Section 87A Rebate check
+    let rebate87A = 0;
+    if (regime === "New Regime") {
+      if (taxableIncome <= 1200000) {
+        rebate87A = baseTax;
+      }
+    } else {
+      if (taxableIncome <= 500000) {
+        rebate87A = baseTax;
+      }
+    }
+
+    const postRebateTax = baseTax - rebate87A;
+    
+    // Marginal Relief check for New Regime (FY 2026-27):
+    // Capped at excess income above 12,00,000
+    let marginalRelief = 0;
+    let finalTaxBeforeCess = postRebateTax;
+
+    if (regime === "New Regime" && taxableIncome > 1200000 && taxableIncome <= 1275000) {
+      const excessIncome = taxableIncome - 1200000;
+      if (postRebateTax > excessIncome) {
+        marginalRelief = postRebateTax - excessIncome;
+        finalTaxBeforeCess = excessIncome;
+      }
+    }
+
+    const cess = Math.round(finalTaxBeforeCess * 0.04);
+    const annualTax = Math.round(finalTaxBeforeCess + cess);
+    const monthlyTDS = Math.round(annualTax / 12);
+
+    return {
+      standardDeduction: stdDeduction,
+      taxableIncome,
+      baseTax,
+      rebate87A,
+      marginalRelief,
+      cess,
+      annualTax,
+      monthlyTDS,
+      brackets
+    };
   };
 
-  const handleClearFilters = () => {
-    setColumnFilters({
-      employee: "",
-      regime: "all",
-      c80: "",
-      other: "",
-      ytdTds: ""
-    });
-    toast.success("Filters cleared");
-  };
+  // Live calculated results
+  const currentCalculation = calculateTDS(
+    grossAnnualSalary,
+    selectedRegime,
+    selectedRegime === "Old Regime" ? deductions80C : 0,
+    selectedRegime === "Old Regime" ? deductions80D : 0,
+    selectedRegime === "Old Regime" ? deductions24b : 0,
+    selectedRegime === "Old Regime" ? deductions80CCD : 0,
+    selectedRegime === "Old Regime" ? hraExemption : 0
+  );
 
-  const handleAddDeclaration = () => {
-    if (!formData.employee) {
-      toast.error("Please select an employee");
+  // Compare New vs Old regime to advise user
+  const comparisonNew = calculateTDS(grossAnnualSalary, "New Regime", 0, 0, 0, 0, 0);
+  const comparisonOld = calculateTDS(
+    grossAnnualSalary,
+    "Old Regime",
+    selectedRegime === "Old Regime" ? deductions80C : 0,
+    selectedRegime === "Old Regime" ? deductions80D : 0,
+    selectedRegime === "Old Regime" ? deductions24b : 0,
+    selectedRegime === "Old Regime" ? deductions80CCD : 0,
+    selectedRegime === "Old Regime" ? hraExemption : 0
+  );
+  
+  const betterRegime = comparisonNew.annualTax < comparisonOld.annualTax ? "New Regime" : "Old Regime";
+  const taxDifference = Math.abs(comparisonNew.annualTax - comparisonOld.annualTax);
+
+  // --- Save / Record Action ---
+  const handleApplyTDS = () => {
+    if (!selectedEmployee) {
+      toast.error("Please select an employee first!");
       return;
     }
-    const c80Val = formData.regime === "New Regime" ? 0 : parseFloat(formData.c80 || "0");
-    const otherVal = formData.regime === "New Regime" ? 0 : parseFloat(formData.other || "0");
-    const tdsVal = parseFloat(formData.ytdTds || "0");
 
-    if (isNaN(c80Val) || isNaN(otherVal) || isNaN(tdsVal)) {
-      toast.error("Enter valid numeric tax values");
-      return;
-    }
-
-    const newDec = {
-      id: `DEC-00${declarationsList.length + 1}`,
-      employeeName: formData.employee,
-      empId: formData.employeeId,
-      designation: formData.employeeDesignation,
-      dept: formData.employeeDept,
-      regime: formData.regime,
-      c80: c80Val,
-      other: otherVal,
-      ytdTds: tdsVal
+    // Add to list or update existing
+    const existingIndex = tdsRecords.findIndex(r => r.empId === selectedEmployee.id);
+    const newRecord: TDSRecord = {
+      id: existingIndex >= 0 ? tdsRecords[existingIndex].id : `DEC-00${tdsRecords.length + 1}`,
+      employeeName: selectedEmployee.name,
+      empId: selectedEmployee.id,
+      designation: selectedEmployee.designation,
+      dept: selectedEmployee.dept,
+      regime: selectedRegime,
+      grossAnnual: grossAnnualSalary,
+      deductions80C: selectedRegime === "Old Regime" ? deductions80C : 0,
+      deductions80D: selectedRegime === "Old Regime" ? deductions80D : 0,
+      deductions24b: selectedRegime === "Old Regime" ? deductions24b : 0,
+      deductions80CCD: selectedRegime === "Old Regime" ? deductions80CCD : 0,
+      hraExemption: selectedRegime === "Old Regime" ? hraExemption : 0,
+      standardDeduction: currentCalculation.standardDeduction,
+      taxableIncome: currentCalculation.taxableIncome,
+      annualTax: currentCalculation.annualTax,
+      monthlyTDS: currentCalculation.monthlyTDS
     };
 
-    setDeclarationsList([newDec, ...declarationsList]);
-    setFormData({
-      employee: "",
-      employeeId: "",
-      employeeDesignation: "",
-      employeeDept: "",
-      regime: "New Regime",
-      c80: "",
-      other: "",
-      ytdTds: ""
-    });
-    setShowAddDeclaration(false);
-    toast.success("Tax declaration added successfully!");
-  };
-
-  const handleEditDeclaration = (item: any) => {
-    setEditFormData({
-      id: item.id,
-      employee: item.employeeName,
-      employeeId: item.empId,
-      employeeDesignation: item.designation,
-      employeeDept: item.dept,
-      regime: item.regime,
-      c80: String(item.c80),
-      other: String(item.other),
-      ytdTds: String(item.ytdTds)
-    });
-    setShowEditDeclaration(item);
-  };
-
-  const handleUpdateDeclaration = () => {
-    const c80Val = editFormData.regime === "New Regime" ? 0 : parseFloat(editFormData.c80 || "0");
-    const otherVal = editFormData.regime === "New Regime" ? 0 : parseFloat(editFormData.other || "0");
-    const tdsVal = parseFloat(editFormData.ytdTds || "0");
-
-    if (isNaN(c80Val) || isNaN(otherVal) || isNaN(tdsVal)) {
-      toast.error("Please enter valid numeric parameters");
-      return;
+    if (existingIndex >= 0) {
+      const updated = [...tdsRecords];
+      updated[existingIndex] = newRecord;
+      setTdsRecords(updated);
+      toast.success(`TDS parameters updated for ${selectedEmployee.name}.`);
+    } else {
+      setTdsRecords([newRecord, ...tdsRecords]);
+      toast.success(`Monthly TDS of \u20B9${newRecord.monthlyTDS} applied to ${selectedEmployee.name}'s profile!`);
     }
 
-    setDeclarationsList(prev => prev.map(item =>
-      item.id === editFormData.id ? {
-        ...item,
-        regime: editFormData.regime,
-        c80: c80Val,
-        other: otherVal,
-        ytdTds: tdsVal
-      } : item
-    ));
-
-    setShowEditDeclaration(null);
-    toast.success("Declaration adjustments updated successfully!");
+    // Switch tab to see entry
+    setActiveTab("records");
   };
 
-  const handleDeleteDeclaration = (id: string) => {
-    setDeleteConfirmation({
-      isOpen: true,
-      title: "Confirm Deletion",
-      message: "Are you sure you want to delete this employee's tax declaration request? This action cannot be undone.",
-      onConfirm: () => {
-        setDeclarationsList(prev => prev.filter(d => d.id !== id));
-        setSelectedRows(prev => prev.filter(r => r !== id));
-        setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
-        toast.success("Tax declaration record deleted");
-      }
-    });
+  const handleDeleteRecord = (id: string) => {
+    setTdsRecords(prev => prev.filter(r => r.id !== id));
+    toast.success("TDS Settings deleted successfully.");
   };
 
-  const handleBulkDelete = () => {
-    setDeleteConfirmation({
-      isOpen: true,
-      title: "Confirm Bulk Deletion",
-      message: `Are you sure you want to delete the ${selectedRows.length} selected employee tax declarations? This action cannot be undone.`,
-      onConfirm: () => {
-        setDeclarationsList(prev => prev.filter(d => !selectedRows.includes(d.id)));
-        setSelectedRows([]);
-        setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
-        toast.success("Selected records deleted successfully");
-      }
-    });
+  // --- Formatters ---
+  const formatCurrency = (val: number) => {
+    return "\u20B9" + Math.round(val).toLocaleString('en-IN');
   };
+
+  // --- Filtered lists ---
+  const filteredEmployeesList = availableEmployees.filter(emp => {
+    const q = empSearchQuery.toLowerCase();
+    return emp.name.toLowerCase().includes(q) || emp.id.toLowerCase().includes(q) || emp.dept.toLowerCase().includes(q);
+  });
+
+  const filteredRecords = tdsRecords.filter(rec => {
+    const q = recordsSearchQuery.toLowerCase();
+    const matchesSearch = rec.employeeName.toLowerCase().includes(q) || rec.empId.toLowerCase().includes(q) || rec.dept.toLowerCase().includes(q);
+    const matchesRegime = rec.regime === recordsRegimeFilter;
+    return matchesSearch && matchesRegime;
+  });
+
+  const paginatedRecords = (() => {
+    if (rowsPerPage === "All") return filteredRecords;
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return filteredRecords.slice(startIndex, startIndex + rowsPerPage);
+  })();
+
+  const totalPages = rowsPerPage === "All" ? 1 : Math.ceil(filteredRecords.length / Number(rowsPerPage));
 
   return (
-    <div className="p-6 w-full space-y-6 bg-gray-50/50 lg:h-[calc(100vh-40px)] lg:overflow-hidden flex flex-col min-h-screen lg:min-h-0 text-gray-655 font-medium">
+    <div className="p-6 w-full space-y-6 bg-slate-50/50 min-h-screen text-slate-700 font-medium">
       <Toaster position="top-right" />
-
-      {/* Inject animation styles */}
       <style>{`
-        @keyframes scaleUp {
-          from { transform: scale(0.96); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
         }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .modal-animate-scale {
-          animation: scaleUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .fade-in-backdrop {
-          animation: fadeIn 0.18s ease-out forwards;
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
 
-      {/* Dynamic Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
-        <StatCard
-          icon={Calculator}
-          label="Projected Annual TDS"
-          value={formatCurrency(stats.projectedTds)}
-          color="bg-purple-500"
-          subtitle="Estimated totals for FY 2026-27"
-        />
-        <StatCard
-          icon={CheckCircle2}
-          label="Declarations Verified"
-          value={`${stats.declaredCount} / ${stats.totalEmployees}`}
-          color="bg-amber-500"
-          subtitle="Submitted investment declarations"
-        />
-        <StatCard
-          icon={FileText}
-          label="Tax Regime Allocations"
-          value={`${stats.taxRegimeNewCount} Default`}
-          color="bg-blue-500"
-          subtitle="Employees under New default Regime"
-        />
-        <StatCard
-          icon={DollarSign}
-          label="Form 16 Filing Status"
-          value="Q1 Filed"
-          color="bg-emerald-500"
-          subtitle="Successfully uploaded to NSDL portal"
-        />
-      </div>
-
-      {/* Main Grid: Declarations table and Slabs Summary panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
-        
-        {/* Declarations list card */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex flex-col min-h-0 overflow-hidden">
-          {/* Table header menu */}
-          <div className="p-4 border-b border-gray-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-xs text-gray-700 uppercase tracking-wider">Employee Declarations</h3>
-              <span className="bg-blue-50 text-blue-600 font-bold border border-blue-100 px-2 py-0.5 rounded text-[10px]">
-                {filteredDeclarations.length} records
-              </span>
+      {/* Sticky Header Group: Top Dashboard Stats & Navigation Tabs */}
+      <div className="md:sticky md:top-0 bg-slate-50/95 backdrop-blur-xs z-30 pt-4 pb-2.5 space-y-4 border-b border-slate-200/60">
+        {/* --- Top Dashboard Stats --- */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 flex items-center gap-4 transition-all duration-300 hover:shadow-md">
+            <div className="p-3.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
+              <Calculator className="w-5 h-5" />
             </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Clear filters trigger */}
-              {Object.values(columnFilters).some(v => v !== "" && v !== "all") && (
-                <button
-                  onClick={handleClearFilters}
-                  className="px-3 py-1.5 border border-gray-200 bg-white text-gray-500 hover:bg-slate-55 text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  <span>Reset Filters</span>
-                </button>
-              )}
-
-              {/* Bulk Actions trigger */}
-              {selectedRows.length > 0 && (
-                <button
-                  onClick={handleBulkDelete}
-                  className="px-3 py-1.5 bg-rose-50 text-rose-650 hover:bg-rose-100 text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer transition-all border border-rose-100 shadow-xs"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete Selected ({selectedRows.length})</span>
-                </button>
-              )}
-
-              {/* Record Declaration Trigger */}
-              <button
-                onClick={() => setShowAddDeclaration(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm px-4 py-1.5 inline-flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                <Plus size={14} />
-                <span>Add Declaration</span>
-              </button>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Deductions</p>
+              <h3 className="text-xl font-black text-slate-800 mt-1">{tdsRecords.length} Employees</h3>
+              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">With custom configured TDS</p>
             </div>
           </div>
 
-          {/* Scrollable Declarations Table wrapper */}
-          <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
-            <table className="w-full border-collapse text-left text-xs">
-              <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm border-b border-gray-200">
-                <tr className="bg-slate-50 text-gray-500 font-semibold select-none">
-                  <th className="p-3 pl-6 w-10">
-                    <button onClick={toggleAll} className="hover:text-gray-700 cursor-pointer transition-colors">
-                      {selectedRows.length === paginatedDeclarations.length && paginatedDeclarations.length > 0 ? (
-                        <CheckSquare className="w-4 h-4 text-blue-600" />
-                      ) : (
-                        <Square className="w-4 h-4 text-gray-300" />
-                      )}
-                    </button>
-                  </th>
-                  <th className="p-3 min-w-[170px]">
-                    <div className="space-y-1">
-                      <span>Employee Name</span>
-                      <input
-                        type="text"
-                        placeholder="Search employee..."
-                        value={columnFilters.employee}
-                        onChange={(e) => { setColumnFilters({ ...columnFilters, employee: e.target.value }); setCurrentPage(1); }}
-                        className="w-full font-semibold bg-white border border-gray-200 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 transition-colors shadow-xs"
-                      />
-                    </div>
-                  </th>
-                  <th className="p-3 min-w-[115px]">
-                    <div className="space-y-1">
-                      <span>Tax Regime</span>
-                      <select
-                        value={columnFilters.regime}
-                        onChange={(e) => { setColumnFilters({ ...columnFilters, regime: e.target.value }); setCurrentPage(1); }}
-                        className="w-full font-semibold bg-white border border-gray-200 rounded-lg px-2 py-0.5 text-[10px] focus:outline-none focus:border-blue-500 cursor-pointer shadow-xs"
-                      >
-                        <option value="all">All</option>
-                        <option value="New Regime">New Regime</option>
-                        <option value="Old Regime">Old Regime</option>
-                      </select>
-                    </div>
-                  </th>
-                  <th className="p-3 min-w-[125px]">
-                    <div className="space-y-1">
-                      <span>80C Declarations</span>
-                      <input
-                        type="text"
-                        placeholder="Search 80C..."
-                        value={columnFilters.c80}
-                        onChange={(e) => { setColumnFilters({ ...columnFilters, c80: e.target.value }); setCurrentPage(1); }}
-                        className="w-full font-semibold bg-white border border-gray-200 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 transition-colors shadow-xs"
-                      />
-                    </div>
-                  </th>
-                  <th className="p-3 min-w-[125px]">
-                    <div className="space-y-1">
-                      <span>80D / Exemptions</span>
-                      <input
-                        type="text"
-                        placeholder="Search 80D..."
-                        value={columnFilters.other}
-                        onChange={(e) => { setColumnFilters({ ...columnFilters, other: e.target.value }); setCurrentPage(1); }}
-                        className="w-full font-semibold bg-white border border-gray-200 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 transition-colors shadow-xs"
-                      />
-                    </div>
-                  </th>
-                  <th className="p-3 min-w-[125px]">
-                    <div className="space-y-1">
-                      <span>YTD TDS Deducted</span>
-                      <input
-                        type="text"
-                        placeholder="Search TDS..."
-                        value={columnFilters.ytdTds}
-                        onChange={(e) => { setColumnFilters({ ...columnFilters, ytdTds: e.target.value }); setCurrentPage(1); }}
-                        className="w-full font-semibold bg-white border border-gray-200 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 transition-colors shadow-xs"
-                      />
-                    </div>
-                  </th>
-                  <th className="p-3 pr-6 text-right w-[140px]">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-gray-500 font-medium">
-                {paginatedDeclarations.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="p-3 pl-6">
-                      <button onClick={() => toggleRow(item.id)} className="hover:text-gray-700 cursor-pointer transition-colors">
-                        {selectedRows.includes(item.id) ? (
-                          <CheckSquare className="w-4 h-4 text-blue-600" />
-                        ) : (
-                          <Square className="w-4 h-4 text-gray-300" />
-                        )}
-                      </button>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-[#155dfc] flex items-center justify-center text-white text-[10px] font-bold border border-blue-100 shadow-xs flex-shrink-0">
-                          {item.employeeName.split(' ').map(n => n[0]).join('')}
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-800 text-xs">{item.employeeName}</p>
-                          <p className="text-[9px] text-gray-400 font-semibold">{item.empId} • {item.dept}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <StatusBadge status={item.regime} />
-                    </td>
-                    <td className="p-3 font-semibold text-gray-750">
-                      {item.regime === "New Regime" ? "N/A (New Regime)" : formatCurrency(item.c80)}
-                    </td>
-                    <td className="p-3 font-semibold text-gray-750">
-                      {item.regime === "New Regime" ? "N/A" : formatCurrency(item.other)}
-                    </td>
-                    <td className="p-3 font-bold text-gray-850">
-                      {formatCurrency(item.ytdTds)}
-                    </td>
-                    <td className="p-3 pr-6 text-right">
-                      <div className="flex items-center justify-end gap-1.5 text-gray-405">
-                        <button
-                          onClick={() => setShowViewDetails(item)}
-                          className="p-1.5 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all shadow-xs cursor-pointer"
-                          title="View Detailed Computation"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleEditDeclaration(item)}
-                          className="p-1.5 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all shadow-xs cursor-pointer"
-                          title="Edit Parameters"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteDeclaration(item.id)}
-                          className="p-1.5 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all shadow-xs cursor-pointer"
-                          title="Delete declaration"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filteredDeclarations.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="p-12 text-center text-gray-400 font-bold italic bg-white">
-                      No matching employee tax declarations found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 flex items-center gap-4 transition-all duration-300 hover:shadow-md">
+            <div className="p-3.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
+              <DollarSign className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Monthly TDS Collection</p>
+              <h3 className="text-xl font-black text-slate-800 mt-1">
+                {formatCurrency(tdsRecords.reduce((sum, item) => sum + item.monthlyTDS, 0))}
+              </h3>
+              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">To deposit in Govt. Portal</p>
+            </div>
           </div>
 
-          {/* Table Pagination Footer */}
-          <div className="border-t border-gray-200 px-5 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50/50 flex-shrink-0">
-            <div className="flex items-center gap-3 text-gray-400">
-              <span className="text-xs font-semibold">Rows per page:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(e.target.value === "All" ? "All" : Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="text-xs border border-gray-200 rounded-lg px-2.5 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-bold text-gray-655 cursor-pointer shadow-xs"
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value="All">All</option>
-              </select>
-              <span className="text-xs font-semibold">
-                Showing {filteredDeclarations.length > 0 ? `${(currentPage - 1) * numPageSize + 1}-${Math.min(currentPage * numPageSize, filteredDeclarations.length)}` : 0} of {filteredDeclarations.length} records
-              </span>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 flex items-center gap-4 transition-all duration-300 hover:shadow-md">
+            <div className="p-3.5 bg-purple-50 text-purple-600 rounded-xl border border-purple-100">
+              <Building className="w-5 h-5" />
             </div>
-
-            <div className="flex items-center gap-1.5 text-gray-500">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1 || isPageSizeAll}
-                className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-slate-55 disabled:opacity-40 disabled:hover:bg-white disabled:cursor-not-allowed transition-all shadow-sm cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                <button
-                  key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${currentPage === pageNum
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-white text-gray-655 border border-gray-200 hover:bg-slate-55"
-                    }`}
-                >
-                  {pageNum}
-                </button>
-              ))}
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages || totalPages === 0 || isPageSizeAll}
-                className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-slate-55 disabled:opacity-40 disabled:hover:bg-white disabled:cursor-not-allowed transition-all shadow-sm cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Annual TDS Collection</p>
+              <h3 className="text-xl font-black text-slate-800 mt-1">
+                {formatCurrency(tdsRecords.reduce((sum, item) => sum + item.annualTax, 0))}
+              </h3>
+              <p className="text-[10px] text-purple-500 font-semibold mt-0.5">Projected yearly deposits</p>
             </div>
           </div>
         </div>
 
-        {/* Income Tax Slabs Panel (MNC layout) */}
-        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-5 space-y-4 overflow-y-auto lg:max-h-full">
-          <div className="flex items-center gap-2 border-b border-gray-100 pb-3 flex-shrink-0">
-            <Building className="w-4 h-4 text-blue-600" />
-            <h3 className="font-bold text-xs text-gray-705 uppercase tracking-wider">Income Tax Slabs (FY 2026-27)</h3>
-          </div>
-
-          <div className="space-y-4 text-xs">
-            {/* New Tax Regime default */}
-            <div className="bg-slate-50 border border-gray-200 rounded-xl p-3.5 space-y-2">
-              <div className="flex justify-between items-center font-bold text-gray-800">
-                <span>New Tax Regime</span>
-                <span className="text-[9px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-150">Default FY 26-27</span>
-              </div>
-              <p className="text-[10px] text-gray-400 font-semibold leading-relaxed">No deductions (80C, HRA) allowed. Section 87A rebate applies up to ₹7,00,000 taxable net salary.</p>
-              
-              <div className="divide-y divide-gray-150/50 text-[10px] font-semibold text-gray-600 pt-1 space-y-1">
-                <div className="flex justify-between py-1"><span>Up to ₹3,00,000</span> <span className="font-bold text-gray-800">Nil</span></div>
-                <div className="flex justify-between py-1"><span>₹3,00,001 - ₹7,00,000</span> <span className="font-bold text-gray-800">5%</span></div>
-                <div className="flex justify-between py-1"><span>₹7,00,001 - ₹10,00,000</span> <span className="font-bold text-gray-800">10%</span></div>
-                <div className="flex justify-between py-1"><span>₹10,00,001 - ₹12,00,000</span> <span className="font-bold text-gray-800">15%</span></div>
-                <div className="flex justify-between py-1"><span>₹12,00,001 - ₹15,00,000</span> <span className="font-bold text-gray-800">20%</span></div>
-                <div className="flex justify-between py-1"><span>Above ₹15,00,000</span> <span className="font-bold text-gray-800">30%</span></div>
-              </div>
-            </div>
-
-            {/* Old Tax Regime card */}
-            <div className="bg-slate-50 border border-gray-200 rounded-xl p-3.5 space-y-2">
-              <div className="flex justify-between items-center font-bold text-gray-800">
-                <span>Old Tax Regime</span>
-                <span className="text-[9px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded border border-purple-150">FY 26-27 Options</span>
-              </div>
-              <p className="text-[10px] text-gray-400 font-semibold leading-relaxed">Exemptions allowed (80C up to ₹1.5L, 80D up to ₹25k, HRA, LTA, Interest on home loan up to ₹2L).</p>
-
-              <div className="divide-y divide-gray-150/50 text-[10px] font-semibold text-gray-600 pt-1 space-y-1">
-                <div className="flex justify-between py-1"><span>Up to ₹2,50,000</span> <span className="font-bold text-gray-800">Nil</span></div>
-                <div className="flex justify-between py-1"><span>₹2,50,001 - ₹5,00,000</span> <span className="font-bold text-gray-800">5%</span></div>
-                <div className="flex justify-between py-1"><span>₹5,00,001 - ₹10,00,000</span> <span className="font-bold text-gray-800">20%</span></div>
-                <div className="flex justify-between py-1"><span>Above ₹10,00,000</span> <span className="font-bold text-gray-800">30%</span></div>
-              </div>
-            </div>
-
-            {/* Helpful tip box */}
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5 flex gap-2 text-blue-800">
-              <Info className="w-4.5 h-4.5 flex-shrink-0 mt-0.5 text-blue-600" />
-              <div className="space-y-0.5 font-semibold text-[10px] text-blue-700 leading-relaxed">
-                <p className="font-bold text-blue-850">Form 12BB Declaration</p>
-                <p>Ensure declarations match physical proofs received by Jan 31st to prevent excess TDS deductions in Q4 payroll runs.</p>
-              </div>
-            </div>
-          </div>
+        {/* --- Switch Navigation Tabs --- */}
+        <div className="flex gap-2 pb-0.5">
+          <button
+            onClick={() => setActiveTab("calculator")}
+            className={`pb-2 px-4 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer relative ${
+              activeTab === "calculator"
+                ? "text-blue-600 border-b-2 border-blue-600 font-black"
+                : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            1. TDS Calculator & Deductor (Easy Calculator)
+          </button>
+          <button
+            onClick={() => setActiveTab("records")}
+            className={`pb-2 px-4 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer relative ${
+              activeTab === "records"
+                ? "text-blue-600 border-b-2 border-blue-600 font-black"
+                : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            2. Saved Records Log ({tdsRecords.length})
+          </button>
         </div>
       </div>
 
-      {/* --- MODAL 1: Add Tax Declaration --- */}
-      <div className={`fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 ${showAddDeclaration ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
-        <div className={`bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-md overflow-visible flex flex-col transition-all duration-300 transform ${showAddDeclaration ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
+      {/* --- Tab 1: Interactive Easy TDS Calculator --- */}
+      {activeTab === "calculator" && (
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           
-          <div className="bg-slate-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center flex-shrink-0">
-            <div className="flex items-center gap-2.5">
-              <div className="bg-blue-500/10 p-2 rounded-lg text-blue-600">
-                <Calculator className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm text-gray-800">Record Tax Declaration</h3>
-                <p className="text-[10px] text-gray-400 font-semibold">Add tax regime parameter and declared YTD amounts</p>
-              </div>
+          {/* Left Inputs Column */}
+          <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-6">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded">STEP 1</span>
+              <h3 className="font-bold text-sm text-slate-850">Employee & Base Salary Settings</h3>
             </div>
-            <button onClick={() => { setShowAddDeclaration(false); setShowEmployeeDropdown(false); }} className="text-gray-450 hover:text-gray-700 p-1.5 rounded-lg transition-colors cursor-pointer">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
 
-          <div className="p-6 space-y-4 flex-1 text-xs overflow-visible">
-            
-            {/* Searchable Custom Employee Selector Dropdown */}
+            {/* A. Search and Select Employee dropdown */}
             <div className="space-y-1.5 relative">
-              <label className="text-[10px] font-bold text-gray-400 uppercase block">Select Employee <span className="text-red-500">*</span></label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase block">Choose Employee <span className="text-rose-500">*</span></label>
               <div
-                onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
-                className="w-full bg-slate-50 border border-blue-500 rounded-xl p-2.5 text-xs font-semibold flex justify-between items-center cursor-pointer hover:bg-slate-100/50"
+                onClick={() => setShowEmpDropdown(!showEmpDropdown)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold flex justify-between items-center cursor-pointer hover:bg-slate-100/30"
               >
-                <span className={formData.employee ? "text-gray-900" : "text-gray-400"}>
-                  {formData.employee ? `${formData.employee} (${formData.employeeId})` : "Choose an employee..."}
-                </span>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
+                {selectedEmployee ? (
+                  <div className="flex items-center gap-2 text-slate-800">
+                    <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[9px] font-black">
+                      {selectedEmployee.name.split(" ").map(n => n[0]).join("")}
+                    </div>
+                    <span>{selectedEmployee.name} ({selectedEmployee.id} - {selectedEmployee.designation})</span>
+                  </div>
+                ) : (
+                  <span className="text-slate-400">Please choose an employee...</span>
+                )}
+                <ChevronDown className="w-4 h-4 text-slate-400" />
               </div>
 
-              {showEmployeeDropdown && (
+              {showEmpDropdown && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowEmployeeDropdown(false)} />
-                  <div className="absolute top-[60px] left-0 right-0 bg-white rounded-xl shadow-xl z-50 p-2 space-y-2">
+                  <div className="fixed inset-0 z-40" onClick={() => setShowEmpDropdown(false)} />
+                  <div className="absolute top-[65px] left-0 right-0 bg-white rounded-xl shadow-xl border border-slate-200 z-50 p-2.5 space-y-2">
                     <div className="relative">
-                      <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
-                        placeholder="Search by ID, name, email..."
-                        value={employeeSearchQuery}
-                        onChange={(e) => setEmployeeSearchQuery(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-[11px] focus:outline-none focus:border-blue-500 bg-slate-50 font-semibold"
+                        placeholder="Search by ID or Name..."
+                        value={empSearchQuery}
+                        onChange={(e) => setEmpSearchQuery(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 border border-slate-200 bg-slate-50 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-500"
                         autoFocus
                       />
                     </div>
-                    <div className="max-h-[180px] overflow-y-auto divide-y divide-gray-100">
-                      {filteredEmployees.map((emp) => (
+                    <div className="max-h-[180px] overflow-y-auto no-scrollbar divide-y divide-slate-100">
+                      {filteredEmployeesList.map((emp) => (
                         <div
                           key={emp.id}
-                          onClick={() => {
-                            setFormData(prev => ({
-                              ...prev,
-                              employee: emp.name,
-                              employeeId: emp.id,
-                              employeeDesignation: emp.designation,
-                              employeeDept: emp.dept
-                            }));
-                            setShowEmployeeDropdown(false);
-                            setEmployeeSearchQuery("");
-                          }}
-                          className="p-2 hover:bg-slate-55 cursor-pointer text-[11px] flex justify-between items-center transition-colors font-medium"
+                          onClick={() => handleSelectEmployee(emp)}
+                          className="p-2 hover:bg-slate-50 cursor-pointer text-xs flex justify-between items-center transition-colors font-semibold"
                         >
                           <div>
-                            <p className="font-bold text-gray-850">{emp.name}</p>
-                            <p className="text-[9px] text-gray-400 font-semibold">{emp.id} • {emp.email}</p>
+                            <p className="text-slate-800">{emp.name}</p>
+                            <p className="text-[10px] text-slate-400">{emp.id} • {emp.dept}</p>
                           </div>
-                          <span className="text-[9px] text-slate-400 italic font-bold">{emp.designation}</span>
+                          <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded">
+                            {formatCurrency(emp.salary * 12)}/yr
+                          </span>
                         </div>
                       ))}
-                      {filteredEmployees.length === 0 && (
-                        <p className="p-3 text-center text-gray-450 italic text-[11px]">No matching employees found.</p>
+                      {filteredEmployeesList.length === 0 && (
+                        <p className="p-3 text-center text-slate-400 italic text-[11px]">No matching employees found.</p>
                       )}
                     </div>
                   </div>
@@ -782,283 +597,761 @@ export default function TDS() {
               )}
             </div>
 
-            {/* Tax Regime select option */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase block">Selected Tax Regime <span className="text-red-500">*</span></label>
-              <select
-                value={formData.regime}
-                onChange={(e) => setFormData({ ...formData, regime: e.target.value })}
-                className="w-full text-xs border border-gray-200 rounded-xl p-2.5 bg-slate-50 focus:outline-none font-semibold text-gray-750 cursor-pointer"
-              >
-                <option value="New Regime">New Tax Regime (Default)</option>
-                <option value="Old Regime">Old Tax Regime (Form 12BB option)</option>
-              </select>
-            </div>
-
-            {/* Old Regime parameters conditional input boxes */}
-            {formData.regime === "Old Regime" ? (
-              <div className="grid grid-cols-2 gap-3">
+            {/* B. Salary Base Inputs */}
+            {selectedEmployee && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block">80C Investments (₹) <span className="text-red-500">*</span></label>
-                  <input
-                    type="number"
-                    placeholder="Max 150000"
-                    value={formData.c80}
-                    onChange={(e) => setFormData({ ...formData, c80: e.target.value })}
-                    className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
-                  />
+                  <label className="text-[10px] font-bold text-slate-400 uppercase block">Monthly Base Salary (Automated)</label>
+                  <div className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-500 cursor-not-allowed">
+                    {formatCurrency(selectedEmployee.salary)} / month
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block">Other Exemptions (₹) <span className="text-red-500">*</span></label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase block">Gross Annual CTC (\u20B9) <span className="text-rose-500">*</span></label>
                   <input
                     type="number"
-                    placeholder="e.g. 80D, 24B..."
-                    value={formData.other}
-                    onChange={(e) => setFormData({ ...formData, other: e.target.value })}
-                    className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
+                    value={grossAnnualSalary || ""}
+                    onChange={(e) => setGrossAnnualSalary(Number(e.target.value))}
+                    placeholder="e.g. 1000000"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold focus:outline-none focus:border-blue-500"
                   />
                 </div>
-              </div>
-            ) : (
-              <div className="p-3.5 bg-slate-50 border border-gray-200 rounded-xl text-gray-400 font-semibold leading-relaxed">
-                New regime does not allow Section 80C or Section 80D deductions. Declared values will be set to ₹0.
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase block">YTD TDS Deducted (₹)</label>
-              <input
-                type="number"
-                placeholder="Total tax already deducted this FY"
-                value={formData.ytdTds}
-                onChange={(e) => setFormData({ ...formData, ytdTds: e.target.value })}
-                className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
+            {/* C. Tax Regime Selector */}
+            {selectedEmployee && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-2 mt-4">
+                  <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded">STEP 2</span>
+                  <h3 className="font-bold text-xs text-slate-855 uppercase">Select Regime Scheme</h3>
+                </div>
 
-          <div className="bg-slate-50 border-t border-gray-100 px-6 py-4 flex justify-between items-center flex-shrink-0">
-            <button
-              onClick={() => setShowAddDeclaration(false)}
-              className="px-4 py-2 border border-gray-200 bg-white hover:bg-slate-55 rounded-xl text-xs font-semibold text-gray-500 shadow-sm cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAddDeclaration}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm px-5 py-2 inline-flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Plus size={14} />
-              <span>Record Declaration</span>
-            </button>
-          </div>
-        </div>
-      </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => setSelectedRegime("New Regime")}
+                    className={`p-4 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
+                      selectedRegime === "New Regime"
+                        ? "border-blue-600 bg-blue-50/50 ring-2 ring-blue-600/10"
+                        : "border-slate-200 hover:border-slate-300 bg-white"
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-black text-xs text-slate-800">New Tax Regime</span>
+                      {betterRegime === "New Regime" && (
+                        <span className="text-[8px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Cheaper</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                      Slabs revised for FY 26-27. Standard deduction: \u20B975,000. Exemptions (80C, HRA) are not allowed. Tax free up to \u20B912.75L CTC.
+                    </p>
+                  </button>
 
-      {/* --- MODAL 2: Edit Declaration parameters --- */}
-      <div className={`fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 ${showEditDeclaration ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
-        <div className={`bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-md overflow-hidden flex flex-col transition-all duration-300 transform ${showEditDeclaration ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
-          {showEditDeclaration && (
-            <>
-              <div className="bg-slate-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center flex-shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="bg-green-500/10 p-2 rounded-lg text-green-600">
-                    <Pencil className="w-4 h-4" />
+                  <button
+                    onClick={() => setSelectedRegime("Old Regime")}
+                    className={`p-4 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
+                      selectedRegime === "Old Regime"
+                        ? "border-purple-600 bg-purple-50/50 ring-2 ring-purple-600/10"
+                        : "border-slate-200 hover:border-slate-300 bg-white"
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-black text-xs text-slate-800">Old Tax Regime</span>
+                      {betterRegime === "Old Regime" && (
+                        <span className="text-[8px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Cheaper</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                      Deductions are allowed (HRA, Section 80C, health insurance). Standard deduction: \u20B950,000.
+                    </p>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* D. Old Regime Deductions Input parameters */}
+            {selectedEmployee && selectedRegime === "Old Regime" && (
+              <div className="space-y-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100 animate-fadeIn">
+                <div className="flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                  <Info className="w-3.5 h-3.5 text-purple-600" />
+                  <h4 className="font-bold text-[11px] text-slate-700 uppercase">Old Regime Deductions (Investment Declarations)</h4>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3.5">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 block whitespace-nowrap overflow-hidden text-ellipsis" title="Section 80C (PF, LIC, ELSS)">Section 80C (PF/LIC/ELSS)</label>
+                    <input
+                      type="number"
+                      max={150000}
+                      value={deductions80C || ""}
+                      onChange={(e) => setDeductions80C(Math.min(150000, Number(e.target.value)))}
+                      placeholder={"Max \u20B91,50,000"}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-bold focus:outline-none focus:border-purple-500"
+                    />
+                    <span className="text-[9px] text-blue-600 font-bold">{"Maximum limit is \u20B91,50,000"}</span>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-sm text-gray-800">Modify Tax Parameters</h3>
-                    <p className="text-[10px] text-gray-400 font-semibold">Edit tax regime structures for {editFormData.employee}</p>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 block whitespace-nowrap overflow-hidden text-ellipsis" title="Section 80D (Health Insurance)">Section 80D (Health Ins.)</label>
+                    <input
+                      type="number"
+                      max={75000}
+                      value={deductions80D || ""}
+                      onChange={(e) => setDeductions80D(Math.min(75000, Number(e.target.value)))}
+                      placeholder={"Max \u20B975,000"}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-bold focus:outline-none focus:border-purple-500"
+                    />
+                    <span className="text-[9px] text-blue-600 font-bold">{"Maximum limit is \u20B975,000"}</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 block whitespace-nowrap overflow-hidden text-ellipsis" title="Section 24(b) (Home Loan Interest)">Section 24(b) (Home Loan)</label>
+                    <input
+                      type="number"
+                      max={200000}
+                      value={deductions24b || ""}
+                      onChange={(e) => setDeductions24b(Math.min(200000, Number(e.target.value)))}
+                      placeholder={"Max \u20B92,00,000"}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-bold focus:outline-none focus:border-purple-500"
+                    />
+                    <span className="text-[9px] text-blue-600 font-bold">{"Maximum limit is \u20B92,00,000"}</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 block whitespace-nowrap overflow-hidden text-ellipsis" title="Section 80CCD(1B) (Extra NPS)">Section 80CCD (Extra NPS)</label>
+                    <input
+                      type="number"
+                      max={50000}
+                      value={deductions80CCD || ""}
+                      onChange={(e) => setDeductions80CCD(Math.min(50000, Number(e.target.value)))}
+                      placeholder={"Max \u20B950,000"}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-bold focus:outline-none focus:border-purple-500"
+                    />
+                    <span className="text-[9px] text-blue-600 font-bold">{"Maximum limit is \u20B950,000"}</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 block whitespace-nowrap overflow-hidden text-ellipsis" title="House Rent Allowance (HRA)">HRA Exemption</label>
+                    <input
+                      type="number"
+                      value={hraExemption || ""}
+                      onChange={(e) => setHraExemption(Number(e.target.value))}
+                      placeholder={"Enter HRA Exemption"}
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-bold focus:outline-none focus:border-purple-500"
+                    />
+                    <span className="text-[9px] text-blue-600 font-bold">{"Max limit: Actual HRA Component"}</span>
                   </div>
                 </div>
-                <button onClick={() => setShowEditDeclaration(null)} className="text-gray-455 hover:text-gray-700 p-1.5 rounded-lg transition-colors cursor-pointer">
-                  <X className="w-4 h-4" />
-                </button>
+              </div>
+            )}
+
+            {!selectedEmployee && (
+              <div className="flex flex-col items-center justify-center p-12 text-center space-y-3 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                <Calculator className="w-10 h-10 text-slate-300 animate-pulse" />
+                <div>
+                  <h4 className="font-bold text-slate-800 text-xs">Please Select an Employee</h4>
+                  <p className="text-[10px] text-slate-400 mt-1 max-w-xs leading-relaxed">
+                    Choose an employee from the selection bar above to load their salary information and calculate TDS in real time.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Calculations and slabs visualization card */}
+          <div className="lg:col-span-2 space-y-6 lg:sticky lg:top-[170px] self-start">
+            
+            {/* Direct Tax summary card */}
+            <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-lg border border-slate-800 flex flex-col justify-between min-h-[390px] h-fit gap-6 relative overflow-hidden">
+              {/* Background ambient light */}
+              <div className="absolute top-0 right-0 w-36 h-36 bg-blue-600/10 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-36 h-36 bg-emerald-600/10 rounded-full blur-3xl" />
+
+              <div className="space-y-4 relative z-10">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                  <span className="text-[10px] font-black uppercase text-blue-400 tracking-wider">LIVE TAX CALCULATION</span>
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${
+                    selectedRegime === "New Regime" 
+                      ? "border-blue-500/30 text-blue-400 bg-blue-950/20" 
+                      : "border-purple-500/30 text-purple-400 bg-purple-950/20"
+                  }`}>
+                    {selectedRegime}
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Gross Annual Income:</span>
+                    <span className="font-bold text-white">{formatCurrency(grossAnnualSalary)}</span>
+                  </div>
+
+                  <div className="flex justify-between text-slate-400">
+                    <span>(-) Standard Deduction:</span>
+                    <span className="font-bold text-white">-{formatCurrency(currentCalculation.standardDeduction)}</span>
+                  </div>
+
+                  {selectedRegime === "Old Regime" && (
+                    <div className="flex justify-between text-slate-400">
+                      <span>(-) Total Exemptions:</span>
+                      <span className="font-bold text-white">
+                        -{formatCurrency(Math.min(deductions80C, 150000) + Math.min(deductions80D, 75000) + Math.min(deductions24b, 200000) + Math.min(deductions80CCD, 50000) + hraExemption)}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-800 text-xs">
+                    <span className="text-slate-300 font-bold uppercase">Net Taxable Income:</span>
+                    <span className="text-base font-black text-white">{formatCurrency(currentCalculation.taxableIncome)}</span>
+                  </div>
+                </div>
+
+                {/* Slabs computation details */}
+                <div className="space-y-1.5 pt-3 border-t border-slate-800">
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Slab Calculations (\u20B9 Bracket):</p>
+                  {currentCalculation.brackets.length === 0 ? (
+                    <div className="flex justify-between text-[10px] font-semibold text-slate-400">
+                      <span>Up to \u20B94L @ 0%</span>
+                      <span className="font-bold text-slate-200">\u20B90</span>
+                    </div>
+                  ) : (
+                    currentCalculation.brackets.map((slab, i) => (
+                      <div key={i} className="flex justify-between text-[10px] font-semibold text-slate-400">
+                        <span>{slab.label}</span>
+                        <span className="font-bold text-slate-200">{formatCurrency(slab.tax)}</span>
+                      </div>
+                    ))
+                  )}
+
+                  {/* Calculations breakdown for Rebate & Cess */}
+                  {grossAnnualSalary > 0 && (
+                    <div className="border-t border-slate-800/60 pt-1.5 mt-1.5 space-y-1">
+                      <div className="flex justify-between text-[10px] font-semibold text-slate-450">
+                        <span>Base Slab Tax:</span>
+                        <span className="font-bold text-slate-200">{formatCurrency(currentCalculation.baseTax)}</span>
+                      </div>
+                      
+                      {currentCalculation.rebate87A > 0 && (
+                        <div className="flex justify-between text-[10px] font-bold text-emerald-400">
+                          <span>(-) Section 87A Rebate:</span>
+                          <span>-{formatCurrency(currentCalculation.rebate87A)}</span>
+                        </div>
+                      )}
+                      
+                      {currentCalculation.marginalRelief > 0 && (
+                        <div className="flex justify-between text-[10px] font-bold text-purple-400">
+                          <span>(-) Marginal Relief:</span>
+                          <span>-{formatCurrency(currentCalculation.marginalRelief)}</span>
+                        </div>
+                      )}
+                      
+                      {currentCalculation.cess > 0 && (
+                        <div className="flex justify-between text-[10px] font-semibold text-slate-450">
+                          <span>(+) Cess @ 4%:</span>
+                          <span>+{formatCurrency(currentCalculation.cess)}</span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between text-[10px] font-black text-white pt-1 border-t border-slate-850/40">
+                        <span>Total Tax Payable:</span>
+                        <span>{formatCurrency(currentCalculation.annualTax)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="p-6 space-y-4 flex-1 text-xs">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block">Selected Employee</label>
-                  <input
-                    type="text"
-                    disabled
-                    value={`${editFormData.employee} (${editFormData.employeeId})`}
-                    className="w-full bg-slate-100 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold text-gray-400 cursor-not-allowed"
-                  />
+              {/* Total Deduction Box */}
+              <div className="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center relative z-10">
+                <div>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase">Estimated Monthly TDS</p>
+                  <h2 className="text-2xl font-black text-emerald-400">{formatCurrency(currentCalculation.monthlyTDS)} <span className="text-[10px] text-slate-400 font-medium">/ month</span></h2>
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block">Select Tax Regime <span className="text-red-500">*</span></label>
-                  <select
-                    value={editFormData.regime}
-                    onChange={(e) => setEditFormData({ ...editFormData, regime: e.target.value })}
-                    className="w-full text-xs border border-gray-200 rounded-xl p-2.5 bg-slate-50 focus:outline-none font-semibold text-gray-750 cursor-pointer"
+                {selectedEmployee && (
+                  <button
+                    onClick={handleApplyTDS}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-1.5"
                   >
-                    <option value="New Regime">New Tax Regime (Default)</option>
-                    <option value="Old Regime">Old Tax Regime (Form 12BB option)</option>
-                  </select>
+                    <span>Apply to Payroll</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Smart regime advisor card */}
+            {selectedEmployee && (
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-2 py-0.5 rounded">Smart Advisor</span>
+                  <h4 className="font-bold text-xs text-slate-855">Which regime is best?</h4>
                 </div>
 
-                {editFormData.regime === "Old Regime" ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase block">80C Investments (₹) <span className="text-red-500">*</span></label>
-                      <input
-                        type="number"
-                        placeholder="Max 150000"
-                        value={editFormData.c80}
-                        onChange={(e) => setEditFormData({ ...editFormData, c80: e.target.value })}
-                        className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
-                      />
+                <div className="text-xs space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                      <p className="text-[9px] text-slate-400 font-bold uppercase">New Regime Tax</p>
+                      <p className="text-sm font-black text-slate-700 mt-0.5">{formatCurrency(comparisonNew.annualTax)}/yr</p>
                     </div>
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                      <p className="text-[9px] text-slate-400 font-bold uppercase">Old Regime Tax</p>
+                      <p className="text-sm font-black text-slate-700 mt-0.5">{formatCurrency(comparisonOld.annualTax)}/yr</p>
+                    </div>
+                  </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase block">Other Exemptions (₹) <span className="text-red-500">*</span></label>
-                      <input
-                        type="number"
-                        placeholder="e.g. 80D, 24B..."
-                        value={editFormData.other}
-                        onChange={(e) => setEditFormData({ ...editFormData, other: e.target.value })}
-                        className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
-                      />
+                  {taxDifference === 0 ? (
+                    <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
+                      Total tax is identical in both regimes (\u20B90 Tax). We recommend the default **New Tax Regime**.
+                    </p>
+                  ) : (
+                    <div className="bg-blue-50 border border-blue-100 text-blue-800 rounded-xl p-3.5 flex gap-2">
+                      <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-600" />
+                      <p className="text-[10px] text-blue-700 font-semibold leading-relaxed">
+                        You should choose the **{betterRegime}**. This will save the employee **{formatCurrency(taxDifference)}** per year!
+                      </p>
                     </div>
-                  </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* --- Tab 2: Saved TDS Logs Table --- */}
+      {activeTab === "records" && (
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col overflow-hidden min-h-[485px] justify-between">
+          
+          <div className="flex-grow flex flex-col">
+            {/* Header Actions Menu */}
+            <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Employee Active TDS Records</h3>
+                <span className="bg-blue-50 text-blue-600 font-bold border border-blue-100 px-2 py-0.5 rounded text-[10px]">
+                  {filteredRecords.length} records
+                </span>
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search records by name/ID..."
+                  value={recordsSearchQuery}
+                  onChange={(e) => {
+                    setRecordsSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500 shadow-xs bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Sub-tabs to filter table views based on Regime */}
+            <div className="flex gap-2 p-4 pt-2 bg-slate-50/30 border-b border-slate-100 flex-shrink-0">
+              <button
+                onClick={() => {
+                  setRecordsRegimeFilter("New Regime");
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  recordsRegimeFilter === "New Regime"
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                New Regime Log ({tdsRecords.filter(r => r.regime === "New Regime").length})
+              </button>
+              <button
+                onClick={() => {
+                  setRecordsRegimeFilter("Old Regime");
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  recordsRegimeFilter === "Old Regime"
+                    ? "bg-purple-600 text-white shadow-xs"
+                    : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                Old Regime Log ({tdsRecords.filter(r => r.regime === "Old Regime").length})
+              </button>
+            </div>
+
+            {/* Table Container - Dynamic Columns based on Selected Filter */}
+            <div className="overflow-x-auto flex-grow no-scrollbar">
+              <table className="w-full border-collapse text-left text-[10px]">
+                {recordsRegimeFilter === "New Regime" ? (
+                  // --- NEW REGIME TABLE HEADERS ---
+                  <thead>
+                    <tr className="bg-slate-100/50 text-slate-500 font-bold select-none border-b border-slate-200">
+                      <th className="py-2.5 px-2 pl-4 whitespace-nowrap">Employee Info</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap">Gross CTC</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap">Std. Deduct.</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap">Taxable Income</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap">Tax (Pre-Rebate)</th>
+                      <th className="py-2.5 px-2 text-right text-emerald-655 whitespace-nowrap">87A Rebate</th>
+                      <th className="py-2.5 px-2 text-right text-purple-655 whitespace-nowrap">Marginal Relief</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap">Cess (4%)</th>
+                      <th className="py-2.5 px-2 text-right text-slate-800 whitespace-nowrap">Final Annual Tax</th>
+                      <th className="py-2.5 px-2 text-right text-emerald-600 whitespace-nowrap pr-4">Monthly TDS</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap pr-4">Actions</th>
+                    </tr>
+                  </thead>
                 ) : (
-                  <div className="p-3.5 bg-slate-50 border border-gray-200 rounded-xl text-gray-400 font-semibold leading-relaxed">
-                    New regime does not allow Section 80C or Section 80D deductions. Declared values will be reset to ₹0.
-                  </div>
+                  // --- OLD REGIME TABLE HEADERS ---
+                  <thead>
+                    <tr className="bg-slate-100/50 text-slate-500 font-bold select-none border-b border-slate-200">
+                      <th className="py-2.5 px-2 pl-4 whitespace-nowrap">Employee Info</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap">Gross CTC</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap">Std. Deduct.</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap text-blue-600">Sec 80C</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap text-blue-600">Sec 80D</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap text-blue-600">Sec 24(b)</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap text-blue-600">Sec 80CCD</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap text-blue-600">HRA Exemp.</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap">Taxable Income</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap">Tax (Pre-Rebate)</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap">Cess (4%)</th>
+                      <th className="py-2.5 px-2 text-right text-slate-800 whitespace-nowrap">Final Annual Tax</th>
+                      <th className="py-2.5 px-2 text-right text-emerald-600 whitespace-nowrap pr-4">Monthly TDS</th>
+                      <th className="py-2.5 px-2 text-right whitespace-nowrap pr-4">Actions</th>
+                    </tr>
+                  </thead>
                 )}
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block">YTD TDS Deducted (₹) <span className="text-red-500">*</span></label>
-                  <input
-                    type="number"
-                    value={editFormData.ytdTds}
-                    onChange={(e) => setEditFormData({ ...editFormData, ytdTds: e.target.value })}
-                    className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
+                <tbody className="divide-y divide-slate-100 text-slate-500">
+                  {paginatedRecords.map((item) => {
+                    const calc = calculateTDS(
+                      item.grossAnnual,
+                      item.regime,
+                      item.deductions80C,
+                      item.deductions80D,
+                      item.deductions24b,
+                      item.deductions80CCD,
+                      item.hraExemption
+                    );
 
-              <div className="bg-slate-50 border-t border-gray-100 px-6 py-4 flex justify-between items-center flex-shrink-0">
-                <button
-                  onClick={() => setShowEditDeclaration(null)}
-                  className="px-4 py-2 border border-gray-200 bg-white hover:bg-slate-55 rounded-xl text-xs font-semibold text-gray-500 shadow-sm cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdateDeclaration}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm px-5 py-2 inline-flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <CheckCircle2 size={14} />
-                  <span>Update parameters</span>
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* --- MODAL 3: View detailed Tax Computation --- */}
-      <div className={`fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 ${showViewDetails ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
-        <div className={`bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-sm overflow-hidden flex flex-col transition-all duration-300 transform ${showViewDetails ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
-          {showViewDetails && (
-            <>
-              <div className="bg-slate-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-[#155dfc] flex items-center justify-center text-white text-xs font-bold border border-blue-200">
-                    {showViewDetails.employeeName?.split(' ').map((n: string) => n[0]).join('')}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm text-gray-805">{showViewDetails.employeeName}</h3>
-                    <p className="text-[10px] text-gray-400 font-semibold">Investment declarations details ({showViewDetails.id})</p>
-                  </div>
-                </div>
-                <button onClick={() => setShowViewDetails(null)} className="text-gray-450 hover:text-gray-700 p-1.5 rounded-lg transition-colors cursor-pointer">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4 text-xs font-semibold text-gray-600">
-                <div className="border border-slate-150 rounded-xl p-3.5 bg-slate-50/50 space-y-2">
-                  <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Employee Reference info</p>
-                  <div className="grid grid-cols-2 gap-2 text-gray-750">
-                    <p>Reference ID:</p>
-                    <p className="font-bold text-gray-855 text-right">{showViewDetails.empId}</p>
-                    <p>Department:</p>
-                    <p className="font-bold text-gray-855 text-right">{showViewDetails.dept}</p>
-                    <p>Designation:</p>
-                    <p className="font-bold text-gray-855 text-right">{showViewDetails.designation}</p>
-                  </div>
-                </div>
-
-                <div className="border border-slate-150 rounded-xl p-3.5 bg-slate-50/50 space-y-2">
-                  <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Declaration & Exemptions</p>
-                  <div className="grid grid-cols-2 gap-2 text-gray-750">
-                    <p>Tax Regime Scheme:</p>
-                    <p className="font-bold text-blue-600 text-right">{showViewDetails.regime}</p>
-                    <p>Section 80C Limit:</p>
-                    <p className="font-bold text-gray-855 text-right">{showViewDetails.regime === "New Regime" ? "N/A" : formatCurrency(showViewDetails.c80)}</p>
-                    <p>Section 80D/Other:</p>
-                    <p className="font-bold text-gray-855 text-right">{showViewDetails.regime === "New Regime" ? "N/A" : formatCurrency(showViewDetails.other)}</p>
-                    <p>Total Exemptions sum:</p>
-                    <p className="font-bold text-purple-650 text-right">{showViewDetails.regime === "New Regime" ? "N/A" : formatCurrency(showViewDetails.c80 + showViewDetails.other)}</p>
-                  </div>
-                </div>
-
-                <div className="border border-slate-150 rounded-xl p-3.5 bg-emerald-50/50 border-emerald-100 space-y-2">
-                  <div className="grid grid-cols-2 gap-2 text-emerald-800">
-                    <p>YTD TDS Deducted:</p>
-                    <p className="font-bold text-right">{formatCurrency(showViewDetails.ytdTds)}</p>
-                    <p>Projected Liability:</p>
-                    <p className="font-bold text-right">{formatCurrency(showViewDetails.ytdTds * 2.5)}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 border-t border-gray-100 px-6 py-4 flex justify-end">
-                <button
-                  onClick={() => setShowViewDetails(null)}
-                  className="px-4 py-2 border border-gray-200 bg-white hover:bg-slate-55 rounded-xl text-xs font-semibold text-gray-550 shadow-sm cursor-pointer"
-                >
-                  Close View
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* --- POPUP MODAL: Delete Confirmation Dialog --- */}
-      <div className={`fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 ${deleteConfirmation.isOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
-        <div className={`bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-sm overflow-hidden flex flex-col transition-all duration-300 transform ${deleteConfirmation.isOpen ? "scale-100 translate-y-0 opacity-100" : "scale-95 translate-y-4 opacity-0"}`}>
-          <div className="p-5 flex flex-col items-center text-center space-y-3">
-            <div className="w-12 h-12 bg-red-50 text-rose-650 rounded-full flex items-center justify-center border border-red-100">
-              <AlertTriangle className="w-5 h-5 text-red-600 animate-none" />
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-800 text-sm">{deleteConfirmation.title}</h3>
-              <p className="text-[11px] text-gray-450 font-semibold mt-1.5 leading-relaxed">{deleteConfirmation.message}</p>
+                    return recordsRegimeFilter === "New Regime" ? (
+                      // --- NEW REGIME ROWS ---
+                      <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-2 px-2 pl-4">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-6 h-6 rounded-full bg-blue-600/10 text-blue-700 flex items-center justify-center text-[9px] font-bold flex-shrink-0">
+                              {item.employeeName.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-800 text-[10px] whitespace-nowrap leading-tight">{item.employeeName}</p>
+                              <p className="text-[8px] text-slate-400 font-semibold leading-none">{item.empId}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-2 px-2 text-right font-bold text-slate-700 whitespace-nowrap">{formatCurrency(item.grossAnnual)}</td>
+                        <td className="py-2 px-2 text-right font-semibold text-slate-500 whitespace-nowrap">-{formatCurrency(calc.standardDeduction)}</td>
+                        <td className="py-2 px-2 text-right font-bold text-slate-800 whitespace-nowrap">{formatCurrency(calc.taxableIncome)}</td>
+                        <td className="py-2 px-2 text-right font-semibold text-slate-700 whitespace-nowrap">{formatCurrency(calc.baseTax)}</td>
+                        <td className="py-2 px-2 text-right font-bold text-emerald-600 whitespace-nowrap">
+                          {calc.rebate87A > 0 ? `-${formatCurrency(calc.rebate87A)}` : "-"}
+                        </td>
+                        <td className="py-2 px-2 text-right font-bold text-purple-600 whitespace-nowrap">
+                          {calc.marginalRelief > 0 ? `-${formatCurrency(calc.marginalRelief)}` : "-"}
+                        </td>
+                        <td className="py-2 px-2 text-right font-semibold text-slate-500 whitespace-nowrap">
+                          {calc.cess > 0 ? `+${formatCurrency(calc.cess)}` : "-"}
+                        </td>
+                        <td className="py-2 px-2 text-right font-black text-slate-800 whitespace-nowrap">{formatCurrency(calc.annualTax)}</td>
+                        <td className="py-2 px-2 text-right font-black text-emerald-600 bg-emerald-50/20 whitespace-nowrap pr-4">{formatCurrency(calc.monthlyTDS)}</td>
+                        <td className="py-2 px-2 text-right whitespace-nowrap pr-4">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => setViewingRecordDetails(item)}
+                              className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all cursor-pointer"
+                              title="View Details"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const emp = availableEmployees.find(e => e.id === item.empId);
+                                if (emp) {
+                                  setSelectedEmployee(emp);
+                                  setGrossAnnualSalary(item.grossAnnual);
+                                  setSelectedRegime(item.regime);
+                                  setDeductions80C(item.deductions80C);
+                                  setDeductions80D(item.deductions80D);
+                                  setDeductions24b(item.deductions24b || 0);
+                                  setDeductions80CCD(item.deductions80CCD || 0);
+                                  setHraExemption(item.hraExemption);
+                                  setActiveTab("calculator");
+                                  toast.success(`Loaded ${item.employeeName} into Calculator.`);
+                                }
+                              }}
+                              className="p-1 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-all cursor-pointer"
+                              title="Recalculate / Edit"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRecord(item.id)}
+                              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-all cursor-pointer"
+                              title="Delete Record"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      // --- OLD REGIME ROWS ---
+                      <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-2 px-2 pl-4">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-6 h-6 rounded-full bg-blue-600/10 text-blue-700 flex items-center justify-center text-[9px] font-bold flex-shrink-0">
+                              {item.employeeName.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-800 text-[10px] whitespace-nowrap leading-tight">{item.employeeName}</p>
+                              <p className="text-[8px] text-slate-400 font-semibold leading-none">{item.empId}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-2 px-2 text-right font-bold text-slate-700 whitespace-nowrap">{formatCurrency(item.grossAnnual)}</td>
+                        <td className="py-2 px-2 text-right font-semibold text-slate-500 whitespace-nowrap">-{formatCurrency(calc.standardDeduction)}</td>
+                        <td className="py-2 px-2 text-right font-semibold text-blue-600 whitespace-nowrap">
+                          {item.deductions80C > 0 ? `-${formatCurrency(item.deductions80C)}` : "-"}
+                        </td>
+                        <td className="py-2 px-2 text-right font-semibold text-blue-600 whitespace-nowrap">
+                          {item.deductions80D > 0 ? `-${formatCurrency(item.deductions80D)}` : "-"}
+                        </td>
+                        <td className="py-2 px-2 text-right font-semibold text-blue-600 whitespace-nowrap">
+                          {item.deductions24b > 0 ? `-${formatCurrency(item.deductions24b)}` : "-"}
+                        </td>
+                        <td className="py-2 px-2 text-right font-semibold text-blue-600 whitespace-nowrap">
+                          {item.deductions80CCD > 0 ? `-${formatCurrency(item.deductions80CCD)}` : "-"}
+                        </td>
+                        <td className="py-2 px-2 text-right font-semibold text-blue-600 whitespace-nowrap">
+                          {item.hraExemption > 0 ? `-${formatCurrency(item.hraExemption)}` : "-"}
+                        </td>
+                        <td className="py-2 px-2 text-right font-bold text-slate-800 whitespace-nowrap">{formatCurrency(calc.taxableIncome)}</td>
+                        <td className="py-2 px-2 text-right font-semibold text-slate-700 whitespace-nowrap">{formatCurrency(calc.baseTax)}</td>
+                        <td className="py-2 px-2 text-right font-semibold text-slate-500 whitespace-nowrap">
+                          {calc.cess > 0 ? `+${formatCurrency(calc.cess)}` : "-"}
+                        </td>
+                        <td className="py-2 px-2 text-right font-black text-slate-800 whitespace-nowrap">{formatCurrency(calc.annualTax)}</td>
+                        <td className="py-2 px-2 text-right font-black text-emerald-600 bg-emerald-50/20 whitespace-nowrap pr-4">{formatCurrency(calc.monthlyTDS)}</td>
+                        <td className="py-2 px-2 text-right whitespace-nowrap pr-4">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => setViewingRecordDetails(item)}
+                              className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all cursor-pointer"
+                              title="View Details"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const emp = availableEmployees.find(e => e.id === item.empId);
+                                if (emp) {
+                                  setSelectedEmployee(emp);
+                                  setGrossAnnualSalary(item.grossAnnual);
+                                  setSelectedRegime(item.regime);
+                                  setDeductions80C(item.deductions80C);
+                                  setDeductions80D(item.deductions80D);
+                                  setDeductions24b(item.deductions24b || 0);
+                                  setDeductions80CCD(item.deductions80CCD || 0);
+                                  setHraExemption(item.hraExemption);
+                                  setActiveTab("calculator");
+                                  toast.success(`Loaded ${item.employeeName} into Calculator.`);
+                                }
+                              }}
+                              className="p-1 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-all cursor-pointer"
+                              title="Recalculate / Edit"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRecord(item.id)}
+                              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-all cursor-pointer"
+                              title="Delete Record"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filteredRecords.length === 0 && (
+                    <tr>
+                      <td colSpan={recordsRegimeFilter === "New Regime" ? 11 : 14} className="p-12 text-center text-slate-400 font-bold italic bg-white">
+                        No active TDS records found for this regime.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-          <div className="bg-slate-50 px-5 py-3 flex gap-2 justify-end border-t border-gray-100">
-            <button
-              onClick={() => setDeleteConfirmation(prev => ({ ...prev, isOpen: false }))}
-              className="px-3.5 py-1.5 border border-gray-200 bg-white hover:bg-slate-50 text-gray-550 rounded-lg text-[11px] font-semibold cursor-pointer shadow-xs"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={deleteConfirmation.onConfirm}
-              className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-semibold cursor-pointer shadow-xs"
-            >
-              Confirm Delete
-            </button>
+
+          {/* Pagination bar at the very bottom */}
+          <div className="p-4 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs font-semibold text-slate-500 flex-shrink-0">
+            {/* Rows selector */}
+            <div className="flex items-center gap-2">
+              <span>Rows per page:</span>
+              <select
+                value={rowsPerPage}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setRowsPerPage(val === "All" ? "All" : Number(val));
+                  setCurrentPage(1);
+                }}
+                className="bg-white border border-slate-200 rounded-lg p-1.5 px-2.5 text-xs font-bold focus:outline-none focus:border-blue-500 cursor-pointer shadow-xs"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value="All">All</option>
+              </select>
+            </div>
+
+            {/* Pagination Controls */}
+            {rowsPerPage !== "All" && totalPages > 1 ? (
+              <div className="flex items-center gap-1.5">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-xs"
+                >
+                  Prev
+                </button>
+                <span className="px-2 text-[11px] text-slate-500">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-xs"
+                >
+                  Next
+                </button>
+              </div>
+            ) : (
+              <span className="text-slate-400 font-medium italic">Showing all {filteredRecords.length} records</span>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
+      {/* --- Detail Computation View Modal --- */}
+      {viewingRecordDetails && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+            <div className="bg-slate-50 border-b border-slate-100 px-6 py-4 flex justify-between items-center">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                  {viewingRecordDetails.employeeName.split(' ').map(n => n[0]).join('')}
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-800">{viewingRecordDetails.employeeName}</h3>
+                  <p className="text-[10px] text-slate-400 font-semibold">{viewingRecordDetails.empId} • {viewingRecordDetails.designation}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setViewingRecordDetails(null)} 
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                <span className="text-lg">&times;</span>
+              </button>
+            </div>
+
+            {(() => {
+              const calc = calculateTDS(
+                viewingRecordDetails.grossAnnual,
+                viewingRecordDetails.regime,
+                viewingRecordDetails.deductions80C,
+                viewingRecordDetails.deductions80D,
+                viewingRecordDetails.deductions24b,
+                viewingRecordDetails.deductions80CCD,
+                viewingRecordDetails.hraExemption
+              );
+
+              return (
+                <div className="p-6 space-y-4 text-xs font-semibold text-slate-600">
+                  <div className="border border-slate-100 rounded-xl p-3.5 bg-slate-50/50 space-y-2">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Salary Structure Summary</p>
+                    <div className="grid grid-cols-2 gap-2 text-slate-700">
+                      <p>Gross Annual CTC:</p>
+                      <p className="font-bold text-slate-850 text-right">{formatCurrency(viewingRecordDetails.grossAnnual)}</p>
+                      <p>Standard Deduction:</p>
+                      <p className="font-bold text-slate-850 text-right">-{formatCurrency(calc.standardDeduction)}</p>
+                      {viewingRecordDetails.regime === "Old Regime" && (
+                        <>
+                          <p>Section 80C (PF, LIC):</p>
+                          <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.deductions80C)}</p>
+                          <p>Section 80D (Health):</p>
+                          <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.deductions80D)}</p>
+                          <p>Section 24(b) (Home Loan):</p>
+                          <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.deductions24b)}</p>
+                          <p>Section 80CCD (NPS):</p>
+                          <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.deductions80CCD)}</p>
+                          <p>HRA Exemption:</p>
+                          <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.hraExemption)}</p>
+                        </>
+                      )}
+                      <div className="col-span-2 pt-2 border-t border-slate-100 flex justify-between font-bold text-slate-900">
+                        <span>Taxable Net Income:</span>
+                        <span>{formatCurrency(calc.taxableIncome)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border border-slate-100 rounded-xl p-3.5 bg-slate-50/50 space-y-2">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tax Calculation Breakdown</p>
+                    <div className="grid grid-cols-2 gap-2 text-slate-700">
+                      <p>Base Slab Tax:</p>
+                      <p className="font-bold text-slate-850 text-right">{formatCurrency(calc.baseTax)}</p>
+                      {calc.rebate87A > 0 && (
+                        <>
+                          <p className="text-emerald-700">(-) Sec 87A Rebate:</p>
+                          <p className="font-bold text-emerald-700 text-right">-{formatCurrency(calc.rebate87A)}</p>
+                        </>
+                      )}
+                      {calc.marginalRelief > 0 && (
+                        <>
+                          <p className="text-purple-700">(-) Marginal Relief:</p>
+                          <p className="font-bold text-purple-700 text-right">-{formatCurrency(calc.marginalRelief)}</p>
+                        </>
+                      )}
+                      {calc.cess > 0 && (
+                        <>
+                          <p>(+) Cess @ 4%:</p>
+                          <p className="font-bold text-slate-850 text-right">+{formatCurrency(calc.cess)}</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border border-emerald-100 rounded-xl p-3.5 bg-emerald-50/50 space-y-2">
+                    <div className="grid grid-cols-2 gap-2 text-emerald-800">
+                      <p className="font-bold">Total Annual Tax:</p>
+                      <p className="font-black text-right text-sm">{formatCurrency(calc.annualTax)}</p>
+                      <p className="font-bold">Monthly TDS Deduction:</p>
+                      <p className="font-black text-right text-sm text-emerald-600">{formatCurrency(calc.monthlyTDS)}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="bg-slate-50 border-t border-slate-100 px-6 py-4 flex justify-end">
+              <button
+                onClick={() => setViewingRecordDetails(null)}
+                className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-550 cursor-pointer shadow-xs"
+              >
+                Close View
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

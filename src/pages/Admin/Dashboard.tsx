@@ -90,6 +90,39 @@ interface DashboardStats {
   today: number;
 }
 
+const getMobileTitle = (title: string) => {
+  if (!title) return '';
+  const map: Record<string, string> = {
+    'Job Applicants': 'Applicants',
+    'Home Page CMS': 'Home CMS',
+    'Services CMS': 'Services',
+    'Blogs CMS': 'Blogs',
+    'Testimonials CMS': 'Testimonial',
+    'Meeting Schedules': 'Meetings',
+    'Case Studies CMS': 'Case Studies',
+    'Careers CMS': 'Careers',
+    'Notification Center': 'Notifications',
+    'Team Members': 'Team',
+    'General Setting': 'Settings',
+    'Task Management': 'Tasks',
+    'Employee Management': 'Employees',
+    'Performance Management': 'Performance',
+  };
+  return map[title] || title;
+};
+
+const getMobileSubtitle = (sub: string) => {
+  if (!sub) return '';
+  if (sub.length > 30) {
+    const firstPart = sub.split(' and ')[0] || sub.split(' & ')[0] || sub;
+    if (firstPart.length > 30) {
+      return firstPart.substring(0, 27) + '...';
+    }
+    return firstPart;
+  }
+  return sub;
+};
+
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -214,6 +247,9 @@ const AdminDashboard = () => {
 
   // Expense notifications
   const [expenseNotifications, setExpenseNotifications] = useState<any[]>([]);
+
+  // Task notifications
+  const [taskNotifications, setTaskNotifications] = useState<any[]>([]);
 
   // Enquiry notifications
   const [enquiryNotifications, setEnquiryNotifications] = useState<EnquiryNotification[]>([]);
@@ -363,6 +399,16 @@ const AdminDashboard = () => {
     }
   }, []);
 
+  // ─── Fetch task notifications ───────────────────────────────────────────────────
+  const fetchTaskNotifications = useCallback(async () => {
+    try {
+      const data = await apiClient.get<any[]>('/tasks/notifications');
+      setTaskNotifications(data ?? []);
+    } catch (error) {
+      console.error('Failed to fetch task notifications:', error);
+    }
+  }, []);
+
   // ─── Fetch recent enquiries ───────────────────────────────────────────────────
   const fetchRecentEnquiries = async () => {
     try {
@@ -483,6 +529,26 @@ const AdminDashboard = () => {
     }
   };
 
+  // ─── Mark task notification as read ──────────────────────────────────────────
+  const markTaskNotificationAsRead = async (id: number) => {
+    try {
+      await apiClient.patch(`/tasks/notifications/${id}/read`);
+      fetchTaskNotifications();
+    } catch (error) {
+      console.error('Failed to mark task notification as read:', error);
+    }
+  };
+
+  // ─── Mark all task notifications as read ─────────────────────────────────────
+  const markAllTaskNotificationsAsRead = async () => {
+    try {
+      await apiClient.patch('/tasks/notifications/read-all');
+      fetchTaskNotifications();
+    } catch (error) {
+      console.error('Failed to mark all task notifications as read:', error);
+    }
+  };
+
   // ─── Format date/time ────────────────────────────────────────────────────────
   const formatDateTime = (dateString: string) => {
     if (!dateString) return 'Unknown';
@@ -530,7 +596,10 @@ const AdminDashboard = () => {
   // Helper to remove duplicate leading emoji or database fallback characters from title
   const cleanNotificationTitle = (title: string) => {
     if (!title) return '';
-    return title.replace(/^[🎫📅📋📥🔄📝👤💼📢🔔❌?\s]+/, '').trim();
+    return title
+      .replace(/^[🎫📅📋📥🔄📝👤💼📢🔔❌⚙⚙️💬\uFFFD?\s]+/, '')
+      .replace(/[\uFFFD]/g, '')
+      .trim();
   };
 
   // ─── Notification icon ───────────────────────────────────────────────────────
@@ -616,6 +685,7 @@ const AdminDashboard = () => {
       fetchCareerNotifications();
       fetchTicketNotifications();
       fetchExpenseNotifications();
+      fetchTaskNotifications();
     });
 
     socket.on('unread_count_update', (data) => {
@@ -674,7 +744,7 @@ const AdminDashboard = () => {
       if (careerFetchTimeoutRef.current) clearTimeout(careerFetchTimeoutRef.current);
       if (enquiryFetchTimeoutRef.current) clearTimeout(enquiryFetchTimeoutRef.current);
     };
-  }, [user, fetchLeaveNotifications, fetchTicketNotifications, fetchExpenseNotifications]);
+  }, [user, fetchLeaveNotifications, fetchTicketNotifications, fetchExpenseNotifications, fetchTaskNotifications]);
 
   // ─── Main init effect ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -690,6 +760,7 @@ const AdminDashboard = () => {
     fetchLeaveNotifications();
     fetchTicketNotifications();
     fetchExpenseNotifications();
+    fetchTaskNotifications();
 
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
@@ -711,7 +782,8 @@ const AdminDashboard = () => {
     ...careerNotifications.filter(n => !n.is_read && n.career_application_id),
     ...leaveNotifications.filter(n => !n.is_read),
     ...ticketNotifications.filter(n => !n.is_read),
-    ...expenseNotifications.filter(n => !n.is_read)
+    ...expenseNotifications.filter(n => !n.is_read),
+    ...taskNotifications.filter(n => !n.is_read || (n.is_read as any) === '0' || (n.is_read as any) === 0)
   ].length;
 
   // ─── Breadcrumbs ─────────────────────────────────────────────────────────────
@@ -1616,12 +1688,14 @@ const AdminDashboard = () => {
                 </button>
 
                 <div className="flex flex-col select-none">
-                  <h1 className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight leading-tight">
-                    {pageTitleOverride || headerTitle || pageTitle}
+                  <h1 className="text-sm sm:text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight leading-tight">
+                    <span className="inline sm:hidden">{getMobileTitle(pageTitleOverride || headerTitle || pageTitle)}</span>
+                    <span className="hidden sm:inline">{pageTitleOverride || headerTitle || pageTitle}</span>
                   </h1>
                   {(pageSubtitleOverride || headerSubtitle) && (
-                    <p className="text-[10px] sm:text-xs text-slate-500 font-semibold tracking-wide leading-none mt-0.5">
-                      {pageSubtitleOverride || headerSubtitle}
+                    <p className="text-[9px] sm:text-xs text-slate-500 font-semibold tracking-wide leading-none mt-1">
+                      <span className="inline sm:hidden">{getMobileSubtitle(pageSubtitleOverride || headerSubtitle)}</span>
+                      <span className="hidden sm:inline">{pageSubtitleOverride || headerSubtitle}</span>
                     </p>
                   )}
                 </div>
@@ -1662,6 +1736,7 @@ const AdminDashboard = () => {
                               await markAllLeaveNotificationsAsRead();
                               await markAllTicketNotificationsAsRead();
                               await markAllExpenseNotificationsAsRead();
+                              await markAllTaskNotificationsAsRead();
                             }}
                             className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
                           >
@@ -1677,7 +1752,7 @@ const AdminDashboard = () => {
                       </div>
 
                       <div className="max-h-96 overflow-y-auto">
-                        {enquiryNotifications.length === 0 && careerNotifications.length === 0 && leaveNotifications.length === 0 && ticketNotifications.length === 0 && expenseNotifications.length === 0 ? (
+                        {enquiryNotifications.length === 0 && careerNotifications.length === 0 && leaveNotifications.length === 0 && ticketNotifications.length === 0 && expenseNotifications.length === 0 && taskNotifications.length === 0 ? (
                           <div className="p-4 text-center">
                             <Bell className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                             <p className="text-gray-500 text-sm">No notifications</p>
@@ -1690,13 +1765,15 @@ const AdminDashboard = () => {
                               ...careerNotifications,
                               ...leaveNotifications.map(l => ({ ...l, isLeave: true })),
                               ...ticketNotifications.map(t => ({ ...t, isTicket: true })),
-                              ...expenseNotifications.map(e => ({ ...e, isExpense: true }))
+                              ...expenseNotifications.map(e => ({ ...e, isExpense: true })),
+                              ...taskNotifications.map(t => ({ ...t, isTask: true }))
                             ]
                               .filter((notification, index, self) => {
                                 const getUniqueKey = (n: any) => {
                                   if (n.isTicket) return `ticket_${n.id}`;
                                   if (n.isLeave) return `leave_${n.id}`;
                                   if (n.isExpense) return `expense_${n.id}`;
+                                  if (n.isTask) return `task_${n.id}`;
                                   if (n.career_application_id !== null && n.career_application_id !== undefined) return `career_${n.id}`;
                                   if (n.meeting_id !== null && n.meeting_id !== undefined) return `meeting_${n.id}`;
                                   return `enquiry_${n.id}`;
@@ -1709,13 +1786,14 @@ const AdminDashboard = () => {
                                 const isTicket = (notification as any).isTicket === true;
                                 const isLeave = !isTicket && (notification as any).isLeave === true;
                                 const isExpense = !isTicket && !isLeave && (notification as any).isExpense === true;
-                                const isCareer = !isTicket && !isLeave && !isExpense && notification.career_application_id !== null &&
+                                const isTask = !isTicket && !isLeave && !isExpense && (notification as any).isTask === true;
+                                const isCareer = !isTicket && !isLeave && !isExpense && !isTask && notification.career_application_id !== null &&
                                   notification.career_application_id !== undefined;
-                                const isMeeting = !isTicket && !isLeave && !isExpense && notification.meeting_id !== null &&
+                                const isMeeting = !isTicket && !isLeave && !isExpense && !isTask && notification.meeting_id !== null &&
                                   notification.meeting_id !== undefined;
                                 return (
                                   <div
-                                    key={`${isTicket ? 'ticket' : isLeave ? 'leave' : isExpense ? 'expense' : isCareer ? 'career' : isMeeting ? 'meeting' : 'enquiry'}_${notification.id}`}
+                                    key={`${isTicket ? 'ticket' : isLeave ? 'leave' : isExpense ? 'expense' : isTask ? 'task' : isCareer ? 'career' : isMeeting ? 'meeting' : 'enquiry'}_${notification.id}`}
                                     className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition ${!notification.is_read ? 'bg-blue-50' : ''
                                       }`}
                                     onClick={() => {
@@ -1728,6 +1806,9 @@ const AdminDashboard = () => {
                                       } else if (isExpense) {
                                         markExpenseNotificationAsRead(notification.id);
                                         navigate('/dashboard/hrms/expenses');
+                                      } else if (isTask) {
+                                        markTaskNotificationAsRead(notification.id);
+                                        navigate('/dashboard/tasks');
                                       } else if (isCareer) {
                                         markCareerNotificationAsRead(notification.id);
                                         navigate('/dashboard/career');
@@ -1751,7 +1832,7 @@ const AdminDashboard = () => {
                                             <span className="w-2 h-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></span>
                                           )}
                                         </div>
-                                        <p className="text-xs text-gray-550 mt-0.5">{notification.message}</p>
+                                        <p className="text-xs text-gray-550 mt-0.5">{notification.message?.replace(/[\uFFFD]/g, '')}</p>
                                         <p className="text-xs text-gray-400 mt-1.5">
                                           {formatDateTime(notification.created_at)}
                                         </p>

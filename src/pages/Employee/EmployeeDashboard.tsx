@@ -20,6 +20,8 @@ import {
   ChevronDown,
   FileText,
   Receipt,
+  ClipboardList,
+  DollarSign,
 } from 'lucide-react';
 import { FiExternalLink } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
@@ -28,11 +30,17 @@ import Attendance from './Attendance';
 import Leave from './Leave';
 import Ticket from './Ticket';
 import Expenses from './Expenses';
+import Tasks from './Tasks';
+import Profile from './Profile';
+import PaymentHistory from './payroll/PaymentHistory';
+import AdvanceSalary from './payroll/AdvanceSalary';
+import TaxDeclaration from './payroll/TaxDeclaration';
 import toast, { Toaster } from 'react-hot-toast';
 import { apiClient } from '../../lib/api';
 import { useLeaveSocket } from '../../hooks/useLeaveSocket';
 import { useTicketSocket } from '../../hooks/useTicketSocket';
 import { useExpenseSocket } from '../../hooks/useExpenseSocket';
+import { useTaskSocket } from '../../hooks/useTaskSocket';
 import { playNotificationSound } from '../../lib/sound';
 
 interface NotificationItem {
@@ -78,23 +86,43 @@ const formatRelativeTime = (dateStr: string) => {
   return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
 };
 
+const resolveAvatarUrl = (url: any): string | null => {
+  if (!url) return null;
+  if (typeof url === 'string') return url;
+  if (url && typeof url === 'object' && url.type === 'Buffer' && Array.isArray(url.data)) {
+    try {
+      const bytes = new Uint8Array(url.data);
+      let binary = '';
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return binary;
+    } catch (e) {
+      console.error("Failed to decode avatar buffer:", e);
+    }
+  }
+  return null;
+};
+
 const EmployeeDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'attendance' | 'leave' | 'ticket' | 'expenses'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'attendance' | 'leave' | 'ticket' | 'expenses' | 'tasks' | 'profile' | 'payroll-history' | 'payroll-advance' | 'payroll-declarations'>('dashboard');
+  const [payrollMenuOpen, setPayrollMenuOpen] = useState(false);
   const { user, logout } = useAuth();
 
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
-      setUserAvatar(user.avatar_url || (user as any).avatarUrl || null);
+      setUserAvatar(resolveAvatarUrl(user.avatar_url || (user as any).avatarUrl));
       const fetchLatestProfile = async () => {
         try {
           const profile = await apiClient.get<any>('/auth/profile');
           if (profile) {
             const imgUrl = profile.avatar_url || profile.avatarUrl || null;
-            setUserAvatar(imgUrl);
+            setUserAvatar(resolveAvatarUrl(imgUrl));
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
               const parsedUser = JSON.parse(storedUser);
@@ -123,6 +151,7 @@ const EmployeeDashboard = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [ticketNotifications, setTicketNotifications] = useState<any[]>([]);
   const [expenseNotifications, setExpenseNotifications] = useState<any[]>([]);
+  const [taskNotifications, setTaskNotifications] = useState<any[]>([]);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -156,11 +185,21 @@ const EmployeeDashboard = () => {
     }
   }, []);
 
+  const fetchTaskNotifications = useCallback(async () => {
+    try {
+      const data = await apiClient.get<any[]>('/tasks/notifications');
+      setTaskNotifications(data ?? []);
+    } catch (err) {
+      console.error('Failed to fetch employee task notifications:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchNotifications();
     fetchTicketNotifications();
     fetchExpenseNotifications();
-  }, [fetchNotifications, fetchTicketNotifications, fetchExpenseNotifications]);
+    fetchTaskNotifications();
+  }, [fetchNotifications, fetchTicketNotifications, fetchExpenseNotifications, fetchTaskNotifications]);
 
   useLeaveSocket((event, data) => {
     console.log(`[EmployeeDashboard] useLeaveSocket callback: event="${event}"`, data);
@@ -190,6 +229,20 @@ const EmployeeDashboard = () => {
     if (event === 'expense_status_changed') {
       playNotificationSound();
       toast.success(`💵 Expense status updated: ${data.claim_no} is now ${data.status}`);
+    }
+  });
+
+  useTaskSocket((event, data) => {
+    console.log(`[EmployeeDashboard] useTaskSocket callback: event="${event}"`, data);
+    fetchTaskNotifications();
+    if (event === 'new_notification') {
+      playNotificationSound();
+      toast.success(data.message || data.title || `New Task Notification!`);
+    } else if (event === 'task_status_updated') {
+      playNotificationSound();
+      toast.success(` Task status updated!`);
+    } else if (event === 'task_comment_added') {
+      playNotificationSound();
     }
   });
 
@@ -269,17 +322,37 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const markTaskNotificationRead = async (id: number) => {
+    try {
+      await apiClient.patch(`/tasks/notifications/${id}/read`);
+      fetchTaskNotifications();
+    } catch (err) {
+      console.error('Failed to mark task notification read:', err);
+    }
+  };
+
+  const markAllTaskNotificationsRead = async () => {
+    try {
+      await apiClient.patch('/tasks/notifications/read-all');
+      fetchTaskNotifications();
+    } catch (err) {
+      console.error('Failed to mark all task notifications read:', err);
+    }
+  };
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'text-blue-500' },
     { id: 'attendance', label: 'Attendance', icon: Calendar, color: 'text-amber-500' },
     { id: 'leave', label: 'Leave', icon: Briefcase, color: 'text-rose-500' },
     { id: 'ticket', label: 'Ticket', icon: ListTodo, color: 'text-purple-500' },
     { id: 'expenses', icon: Receipt, label: 'Expenses', color: 'text-emerald-500' },
+    { id: 'tasks', label: 'My Tasks', icon: ClipboardList, color: 'text-indigo-500' },
   ];
 
   const unreadCount = notifications.filter(n => !n.is_read || (n.is_read as any) === '0').length +
     ticketNotifications.filter(n => !n.is_read || (n.is_read as any) === '0').length +
-    expenseNotifications.filter(n => !n.is_read || (n.is_read as any) === '0').length;
+    expenseNotifications.filter(n => !n.is_read || (n.is_read as any) === '0').length +
+    taskNotifications.filter(n => !n.is_read || (n.is_read as any) === '0').length;
 
   // KPI Cards
   const kpiCards = [
@@ -329,16 +402,52 @@ const EmployeeDashboard = () => {
     attendance: 'Attendance',
     leave: 'Leave Management',
     ticket: 'Helpdesk Tickets',
-    expenses: 'Expenses Management'
-  }[activeTab];
+    expenses: 'Expenses Management',
+    tasks: 'My Tasks',
+    profile: 'My Profile',
+    'payroll-history': 'Salary Payment History',
+    'payroll-advance': 'Salary Advance & Loans',
+    'payroll-declarations': 'TDS & Tax Savings Declarations'
+  }[activeTab] || 'Dashboard';
+
+  const mobileHeaderTitle = {
+    dashboard: 'Dashboard',
+    attendance: 'Attendance',
+    leave: 'Leaves',
+    ticket: 'Tickets',
+    expenses: 'Expenses',
+    tasks: 'Tasks',
+    profile: 'Profile',
+    'payroll-history': 'Payments',
+    'payroll-advance': 'Advances',
+    'payroll-declarations': 'Tax Declarations'
+  }[activeTab] || 'Dashboard';
 
   const headerSubtitle = {
     dashboard: 'Overview of your activities, tasks, and meetings',
     attendance: 'Track your daily punch-in, punch-out, and logs',
     leave: 'Apply for leaves and track your leave balances',
     ticket: 'Raise support tickets and view their progress',
-    expenses: 'Track your expenses and view their progress'
-  }[activeTab];
+    expenses: 'Track your expenses and view their progress',
+    tasks: 'View, progress, and log hours for your tasks',
+    profile: 'View and manage your personal and employment information',
+    'payroll-history': 'Track month-on-month payslips and salary credit status',
+    'payroll-advance': 'Request emergency short-term salary advance and review repayment status',
+    'payroll-declarations': 'Choose tax regimes and upload investment declaration proofs'
+  }[activeTab] || 'Overview of your activities, tasks, and meetings';
+
+  const mobileHeaderSubtitle = {
+    dashboard: 'Activity summary',
+    attendance: 'Punch-in/out logs',
+    leave: 'Balances & applications',
+    ticket: 'Support progress',
+    expenses: 'Reimbursement claims',
+    tasks: 'Log hours & tasks',
+    profile: 'Personal info',
+    'payroll-history': 'Payslips history',
+    'payroll-advance': 'Emergency advances',
+    'payroll-declarations': 'Tax exemptions'
+  }[activeTab] || 'Activity summary';
 
   return (
     <div className="min-h-screen bg-[#f0f4f9] font-sans">
@@ -360,24 +469,83 @@ const EmployeeDashboard = () => {
           <img src={houslyLogo} alt="Hously" className={`${sidebarOpen ? 'h-12 w-auto' : 'h-8 w-auto'}`} />
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1.5">
           {menuItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => {
-                  setActiveTab(item.id as 'dashboard' | 'attendance' | 'leave' | 'ticket' | 'expenses');
+                  setActiveTab(item.id as any);
                   setMobileSidebarOpen(false);
                 }}
-                className={`flex items-center w-full rounded-lg transition-all duration-200 px-3 py-2.5 text-left cursor-pointer
-                  ${isActive ? 'bg-[#0D47A1] text-white shadow-md' : 'text-gray-600 hover:bg-slate-100 hover:text-gray-900'}`}
+                className={`flex items-center w-full rounded-xl transition-all duration-200 group px-3 py-2.5 text-left cursor-pointer
+                  ${isActive
+                    ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                    : 'text-gray-700 hover:text-slate-900 hover:bg-slate-100/80'}`}
               >
-                <item.icon className={`w-5 h-5 mr-3 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
-                {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
+                <item.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white scale-110' : item.color}`} />
+                {sidebarOpen && <span className="text-sm font-semibold tracking-wide">{item.label}</span>}
               </button>
             );
           })}
+
+          {/* Collapsible Payroll Menu */}
+          {(() => {
+            const isPayrollActive = ['payroll-summary', 'payroll-history', 'payroll-advance', 'payroll-declarations'].includes(activeTab);
+            return (
+              <div className="space-y-1">
+                <button
+                  onClick={() => setPayrollMenuOpen(!payrollMenuOpen)}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group cursor-pointer
+                    ${isPayrollActive
+                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold border-transparent'
+                      : 'bg-slate-50 text-slate-800 hover:bg-slate-100'}`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Briefcase className={`w-4 h-4 group-hover:rotate-12 transition-transform duration-300 ${isPayrollActive ? 'text-white' : 'text-[#0D47A1]'}`} />
+                    {sidebarOpen && (
+                      <span className={`text-sm font-semibold tracking-wide ${isPayrollActive ? 'text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>
+                        My Payroll
+                      </span>
+                    )}
+                  </div>
+                  {sidebarOpen && (
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isPayrollActive ? 'text-white/80' : 'text-slate-400'} ${payrollMenuOpen ? 'rotate-180' : ''}`} />
+                  )}
+                </button>
+
+                {/* Sub Menu with connecting vertical line */}
+                {payrollMenuOpen && sidebarOpen && (
+                  <div className="pl-4 ml-3.5 border-l border-slate-200/80 flex flex-col gap-0.5 mt-1 text-left">
+                    {[
+                      { id: 'payroll-history', label: 'Payment History', icon: FileText, color: 'text-teal-500' },
+                      { id: 'payroll-advance', label: 'Salary Advance', icon: DollarSign, color: 'text-purple-500' },
+                      { id: 'payroll-declarations', label: 'Tax Declarations', icon: Layers, color: 'text-emerald-500' },
+                    ].map((sub) => {
+                      const isSubActive = activeTab === sub.id;
+                      return (
+                        <button
+                          key={sub.id}
+                          onClick={() => {
+                            setActiveTab(sub.id as any);
+                            setMobileSidebarOpen(false);
+                          }}
+                          className={`flex items-center rounded-lg transition-all duration-200 group px-3 py-2 text-left cursor-pointer
+                            ${isSubActive
+                              ? 'bg-[#0D47A1]/10 text-[#0D47A1] font-bold border-l-2 border-[#1976D2] pl-2.5'
+                              : 'text-gray-650 hover:text-slate-900 hover:bg-slate-100/80'}`}
+                        >
+                          <sub.icon className={`w-3.5 h-3.5 mr-2.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isSubActive ? 'text-[#0D47A1] scale-110' : sub.color}`} />
+                          <span className="text-xs font-semibold tracking-wide">{sub.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </nav>
 
         <div className="px-3 pb-4 pt-2 border-t border-slate-100 flex flex-col gap-1">
@@ -411,8 +579,14 @@ const EmployeeDashboard = () => {
                 <Menu className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="text-xl font-bold text-slate-800 leading-tight">{headerTitle}</h1>
-                <p className="text-[10px] text-gray-500 font-medium">{headerSubtitle}</p>
+                <h1 className="text-sm sm:text-xl font-bold text-slate-800 leading-tight">
+                  <span className="inline sm:hidden">{mobileHeaderTitle}</span>
+                  <span className="hidden sm:inline">{headerTitle}</span>
+                </h1>
+                <p className="text-[9px] sm:text-[10px] text-gray-500 font-medium">
+                  <span className="inline sm:hidden">{mobileHeaderSubtitle}</span>
+                  <span className="hidden sm:inline">{headerSubtitle}</span>
+                </p>
               </div>
             </div>
 
@@ -436,6 +610,7 @@ const EmployeeDashboard = () => {
                             await markAllNotificationsRead();
                             await markAllTicketNotificationsRead();
                             await markAllExpenseNotificationsRead();
+                            await markAllTaskNotificationsRead();
                           }}
                           className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer bg-transparent border-0"
                         >
@@ -444,7 +619,7 @@ const EmployeeDashboard = () => {
                       )}
                     </div>
                     <div className="max-h-72 overflow-y-auto">
-                      {notifications.length === 0 && ticketNotifications.length === 0 && expenseNotifications.length === 0 ? (
+                      {notifications.length === 0 && ticketNotifications.length === 0 && expenseNotifications.length === 0 && taskNotifications.length === 0 ? (
                         <div className="p-8 text-center text-slate-400">
                           <Bell size={24} className="mx-auto text-slate-300 mb-2" />
                           <p className="text-xs font-semibold">No notifications yet</p>
@@ -453,16 +628,18 @@ const EmployeeDashboard = () => {
                         [
                           ...notifications,
                           ...ticketNotifications.map(t => ({ ...t, isTicket: true })),
-                          ...expenseNotifications.map(e => ({ ...e, isExpense: true }))
+                          ...expenseNotifications.map(e => ({ ...e, isExpense: true })),
+                          ...taskNotifications.map(t => ({ ...t, isTask: true }))
                         ]
                           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                           .map((n) => {
                             const fmtTime = formatRelativeTime(n.created_at);
                             const isTicket = (n as any).isTicket === true;
                             const isExpense = (n as any).isExpense === true;
+                            const isTask = (n as any).isTask === true;
                             return (
                               <div
-                                key={isTicket ? `ticket_${n.id}` : isExpense ? `expense_${n.id}` : `leave_${n.id}`}
+                                key={isTicket ? `ticket_${n.id}` : isExpense ? `expense_${n.id}` : isTask ? `task_${n.id}` : `leave_${n.id}`}
                                 onClick={() => {
                                   if (isTicket) {
                                     markTicketNotificationRead(n.id);
@@ -470,6 +647,9 @@ const EmployeeDashboard = () => {
                                   } else if (isExpense) {
                                     markExpenseNotificationRead(n.id);
                                     setActiveTab('expenses');
+                                  } else if (isTask) {
+                                    markTaskNotificationRead(n.id);
+                                    setActiveTab('tasks');
                                   } else {
                                     markNotificationRead(n.id);
                                     setActiveTab('leave');
@@ -479,7 +659,7 @@ const EmployeeDashboard = () => {
                                 className={`p-3 border-b border-gray-50 hover:bg-slate-50 transition cursor-pointer select-none ${(!n.is_read || (n.is_read as any) === '0') ? 'bg-blue-50/25 border-l-2 border-blue-500' : ''}`}
                               >
                                 <div className="flex items-start gap-2">
-                                  <span className="text-sm mt-0.5">{isTicket ? '🎫' : isExpense ? '💵' : '🔔'}</span>
+                                  <span className="text-sm mt-0.5">{isTicket ? '🎫' : isExpense ? '💵' : isTask ? '📋' : '🔔'}</span>
                                   <div className="min-w-0 flex-1">
                                     <p className="text-xs font-bold text-slate-800">
                                       {n.title.replace(/^[🎫📅📋📥🔄📝👤💼📢🔔❌?\s]+/, '').trim()}
@@ -526,7 +706,13 @@ const EmployeeDashboard = () => {
                       <p className="text-xs text-gray-500">{user?.email || 'staff@houslytech.com'}</p>
                     </div>
                     <div className="p-1">
-                      <button className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition">
+                      <button
+                        onClick={() => {
+                          setActiveTab('profile');
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition"
+                      >
                         <User className="w-4 h-4" /><span>Profile</span>
                       </button>
                       <button className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition">
@@ -544,7 +730,7 @@ const EmployeeDashboard = () => {
         </header>
 
         {/* Content Area */}
-        <main className={`p-4 md:p-6 ${activeTab === 'expenses' ? 'md:overflow-hidden' : 'overflow-y-auto'}`} style={{ height: 'calc(100vh - 64px)' }}>
+        <main className={`p-4 md:p-6 ${(activeTab === 'expenses' || activeTab === 'payroll-advance' || activeTab === 'payroll-history') ? 'md:overflow-hidden' : 'overflow-y-auto'}`} style={{ height: 'calc(100vh - 64px)' }}>
           {activeTab === 'attendance' && <Attendance />}
 
           {activeTab === 'leave' && <Leave />}
@@ -552,6 +738,18 @@ const EmployeeDashboard = () => {
           {activeTab === 'ticket' && <Ticket />}
 
           {activeTab === 'expenses' && <Expenses />}
+
+          {activeTab === 'tasks' && <Tasks />}
+
+          {activeTab === 'profile' && <Profile />}
+
+          {activeTab === 'payroll-history' && <PaymentHistory />}
+
+          {activeTab === 'payroll-advance' && <AdvanceSalary />}
+
+          {activeTab === 'payroll-declarations' && <TaxDeclaration />}
+
+
 
           {activeTab === 'dashboard' && (
             <div className="max-w-full space-y-6">

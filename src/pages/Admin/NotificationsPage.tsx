@@ -16,8 +16,13 @@ import {
   RefreshCw,
   SlidersHorizontal,
   CircleDot,
+  ChevronDown,
+  ClipboardList,
 } from 'lucide-react';
 import { apiClient } from '../../lib/api';
+import { settingsApi } from '../../lib/settingsApi';
+import { masterDataAPI } from '../../lib/masterApi';
+import { employeeApi, type EmployeeRecord } from '../../lib/employeeApi';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface AnyNotification {
@@ -32,12 +37,13 @@ interface AnyNotification {
   isLeave?: boolean;
   isTicket?: boolean;
   isExpense?: boolean;
+  isTask?: boolean;
   employee_name?: string;
   department?: string;
   branch?: string;
 }
 
-type NotificationKind = 'all' | 'enquiry' | 'career' | 'leave' | 'ticket' | 'expense' | 'meeting';
+type NotificationKind = 'all' | 'enquiry' | 'career' | 'leave' | 'ticket' | 'expense' | 'meeting' | 'task';
 
 const KIND_LABELS: Record<NotificationKind, string> = {
   all: 'All',
@@ -47,6 +53,7 @@ const KIND_LABELS: Record<NotificationKind, string> = {
   ticket: 'Ticket',
   expense: 'Expense',
   meeting: 'Meeting',
+  task: 'Task',
 };
 
 const KIND_ICONS: Record<NotificationKind, React.ComponentType<{ className?: string }>> = {
@@ -57,6 +64,7 @@ const KIND_ICONS: Record<NotificationKind, React.ComponentType<{ className?: str
   ticket: Ticket,
   expense: Receipt,
   meeting: Calendar,
+  task: ClipboardList,
 };
 
 // Minimal, professional accent colors per kind
@@ -68,6 +76,7 @@ const KIND_ACCENT: Record<NotificationKind, { dot: string; badge: string; icon: 
   ticket: { dot: 'bg-violet-500', badge: 'bg-violet-50 text-violet-700', icon: 'text-violet-500' },
   expense: { dot: 'bg-rose-500', badge: 'bg-rose-50 text-rose-700', icon: 'text-rose-500' },
   meeting: { dot: 'bg-teal-500', badge: 'bg-teal-50 text-teal-700', icon: 'text-teal-500' },
+  task: { dot: 'bg-indigo-500', badge: 'bg-indigo-50 text-indigo-700', icon: 'text-indigo-500' },
 };
 
 // Icon bg for notification avatar (neutral, no heavy gradient)
@@ -79,6 +88,7 @@ const KIND_ICON_BG: Record<NotificationKind, string> = {
   ticket: 'bg-violet-50',
   expense: 'bg-rose-50',
   meeting: 'bg-teal-50',
+  task: 'bg-indigo-50',
 };
 
 const EMOJI_MAP: Record<string, string> = {
@@ -99,6 +109,7 @@ function getKind(n: AnyNotification): NotificationKind {
   if (n.isTicket) return 'ticket';
   if (n.isLeave) return 'leave';
   if (n.isExpense) return 'expense';
+  if (n.isTask) return 'task';
   if (n.career_application_id != null) return 'career';
   if (n.meeting_id != null) return 'meeting';
   return 'enquiry';
@@ -107,6 +118,7 @@ function getKind(n: AnyNotification): NotificationKind {
 function getEmoji(n: AnyNotification): string {
   if (n.isTicket) return '🎫';
   if (n.isExpense) return '💵';
+  if (n.isTask) return '✅';
   return EMOJI_MAP[n.type] || '📢';
 }
 
@@ -134,7 +146,10 @@ function formatRelativeTime(dateString: string): string {
 
 function cleanTitle(title: string): string {
   if (!title) return '';
-  return title.replace(/^[🎫📅📋📥🔄📝👤💼📢🔔❌?\s]+/, '').trim();
+  return title
+    .replace(/^[🎫📅📋📥🔄📝👤💼📢🔔❌⚙⚙️💬\uFFFD?\s]+/, '')
+    .replace(/[\uFFFD]/g, '')
+    .trim();
 }
 
 const PAGE_SIZE = 20;
@@ -148,6 +163,7 @@ export default function NotificationsPage() {
   const [leaveNotifs, setLeaveNotifs] = useState<AnyNotification[]>([]);
   const [ticketNotifs, setTicketNotifs] = useState<AnyNotification[]>([]);
   const [expenseNotifs, setExpenseNotifs] = useState<AnyNotification[]>([]);
+  const [taskNotifs, setTaskNotifs] = useState<AnyNotification[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -170,15 +186,27 @@ export default function NotificationsPage() {
 
   const drawerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Filter data from APIs ──────────────────────────────────────────────────
+  const [branchOptions, setBranchOptions] = useState<{ id: string; name: string }[]>([]);
+  const [deptOptions, setDeptOptions] = useState<string[]>([]);
+
+  // Employee search inside drawer
+  const [empSearchQuery, setEmpSearchQuery] = useState('');
+  const [empOptions, setEmpOptions] = useState<EmployeeRecord[]>([]);
+  const [empLoading, setEmpLoading] = useState(false);
+  const empSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Open / close drawer with animation
+  // Sync draft from applied when opening
   const openDrawer = () => {
-    // Sync draft with current applied values
     setDraftDept(appliedDept);
     setDraftBranch(appliedBranch);
     setDraftEmployee(appliedEmployee);
     setDraftUnreadOnly(appliedUnreadOnly);
+    // Reset employee search
+    setEmpSearchQuery('');
+    setEmpOptions([]);
     setDrawerOpen(true);
     requestAnimationFrame(() => setDrawerVisible(true));
   };
@@ -188,7 +216,10 @@ export default function NotificationsPage() {
     drawerTimerRef.current = setTimeout(() => setDrawerOpen(false), 300);
   };
 
-  useEffect(() => () => { if (drawerTimerRef.current) clearTimeout(drawerTimerRef.current); }, []);
+  useEffect(() => () => {
+    if (drawerTimerRef.current) clearTimeout(drawerTimerRef.current);
+    if (empSearchTimer.current) clearTimeout(empSearchTimer.current);
+  }, []);
 
   const applyFilters = () => {
     setAppliedDept(draftDept);
@@ -203,27 +234,74 @@ export default function NotificationsPage() {
     setDraftBranch('all');
     setDraftEmployee('all');
     setDraftUnreadOnly(false);
+    setEmpSearchQuery('');
+    setEmpOptions([]);
   };
 
   const hasActiveFilters = appliedDept !== 'all' || appliedBranch !== 'all' || appliedEmployee !== 'all' || appliedUnreadOnly;
+
+  // ── Fetch branches from settingsApi ───────────────────────────────────────
+  useEffect(() => {
+    settingsApi.getCompanies().then(companies => {
+      const branches = companies.flatMap(c =>
+        (c.branches || []).filter(b => b.status === 'active').map(b => ({ id: b.id, name: b.name }))
+      );
+      setBranchOptions(branches);
+    }).catch(() => {});
+  }, []);
+
+  // ── Fetch departments from masterAPI ───────────────────────────────────────
+  useEffect(() => {
+    masterDataAPI.getAllMasterTypes('common').then(async (types: any[]) => {
+      const deptType = types.find((t: any) => t.name?.toLowerCase().includes('department'));
+      if (deptType) {
+        const vals = await masterDataAPI.getMasterValues(deptType.id);
+        setDeptOptions(vals.filter((v: any) => v.status === 'Active').map((v: any) => v.value));
+      }
+    }).catch(() => {});
+  }, []);
+
+  // ── Employee search with debounce ──────────────────────────────────────────
+  const searchEmployees = useCallback((query: string) => {
+    if (empSearchTimer.current) clearTimeout(empSearchTimer.current);
+    empSearchTimer.current = setTimeout(async () => {
+      setEmpLoading(true);
+      try {
+        const results = await employeeApi.getAll(query ? { search: query } : undefined);
+        setEmpOptions(results.slice(0, 50)); // cap at 50
+      } catch { setEmpOptions([]); } finally { setEmpLoading(false); }
+    }, 300);
+  }, []);
+
+  // Load employees when drawer opens
+  useEffect(() => {
+    if (drawerOpen) searchEmployees('');
+  }, [drawerOpen, searchEmployees]);
+
+  // Re-search on query change
+  useEffect(() => {
+    if (drawerOpen) searchEmployees(empSearchQuery);
+  }, [empSearchQuery, drawerOpen, searchEmployees]);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchAll = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const [enq, car, lea, tic, exp] = await Promise.allSettled([
+      const [enq, car, lea, tic, exp, tsk] = await Promise.allSettled([
         apiClient.get<AnyNotification[]>('/enquiries/notifications/all'),
         apiClient.get<AnyNotification[]>('/career/notifications/all'),
         apiClient.get<AnyNotification[]>('/leaves/notifications'),
         apiClient.get<AnyNotification[]>('/tickets/notifications'),
         apiClient.get<AnyNotification[]>('/expenses/notifications'),
+        apiClient.get<AnyNotification[]>('/tasks/notifications'),
       ]);
       setEnquiryNotifs(enq.status === 'fulfilled' ? (enq.value ?? []) : []);
       setCareerNotifs(car.status === 'fulfilled' ? (car.value ?? []) : []);
       setLeaveNotifs(lea.status === 'fulfilled' ? (lea.value ?? []).map(l => ({ ...l, isLeave: true })) : []);
       setTicketNotifs(tic.status === 'fulfilled' ? (tic.value ?? []).map(t => ({ ...t, isTicket: true })) : []);
       setExpenseNotifs(exp.status === 'fulfilled' ? (exp.value ?? []).map(e => ({ ...e, isExpense: true })) : []);
+      setTaskNotifs(tsk.status === 'fulfilled' ? (tsk.value ?? []).map(t => ({ ...t, isTask: true })) : []);
     } catch (err) {
       console.error('[NotificationsPage] fetch error:', err);
     } finally {
@@ -242,6 +320,7 @@ export default function NotificationsPage() {
       apiClient.patch('/leaves/notifications/read-all'),
       apiClient.patch('/tickets/notifications/read-all'),
       apiClient.patch('/expenses/notifications/read-all'),
+      apiClient.patch('/tasks/notifications/read-all'),
     ]);
     fetchAll(true);
   };
@@ -251,6 +330,7 @@ export default function NotificationsPage() {
       if (n.isTicket) await apiClient.patch(`/tickets/notifications/${n.id}/read`);
       else if (n.isLeave) await apiClient.patch(`/leaves/notifications/${n.id}/read`);
       else if (n.isExpense) await apiClient.patch(`/expenses/notifications/${n.id}/read`);
+      else if (n.isTask) await apiClient.patch(`/tasks/notifications/${n.id}/read`);
       else if (n.career_application_id != null) await apiClient.put(`/career/notifications/${n.id}/read`);
       else await apiClient.put(`/enquiries/notifications/${n.id}/read`);
       fetchAll(true);
@@ -262,6 +342,7 @@ export default function NotificationsPage() {
     if (n.isTicket) navigate('/dashboard/hrms/tickets');
     else if (n.isLeave) navigate('/dashboard/hrms/leaves');
     else if (n.isExpense) navigate('/dashboard/hrms/expenses');
+    else if (n.isTask) navigate('/dashboard/tasks');
     else if (n.career_application_id != null) navigate('/dashboard/job-applicants');
     else if (n.meeting_id != null) navigate('/dashboard/meetings');
     else navigate('/dashboard/enquiries');
@@ -269,7 +350,7 @@ export default function NotificationsPage() {
 
   // ── Combined + deduped ────────────────────────────────────────────────────
   const allNotifications: AnyNotification[] = (() => {
-    const combined = [...enquiryNotifs, ...careerNotifs, ...leaveNotifs, ...ticketNotifs, ...expenseNotifs];
+    const combined = [...enquiryNotifs, ...careerNotifs, ...leaveNotifs, ...ticketNotifs, ...expenseNotifs, ...taskNotifs];
     const seen = new Set<string>();
     return combined
       .filter(n => {
@@ -281,17 +362,13 @@ export default function NotificationsPage() {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   })();
 
-  const uniqueDepts = ['all', ...Array.from(new Set(allNotifications.map(n => n.department).filter(Boolean) as string[]))];
-  const uniqueBranches = ['all', ...Array.from(new Set(allNotifications.map(n => n.branch).filter(Boolean) as string[]))];
-  const uniqueEmployees = ['all', ...Array.from(new Set(allNotifications.map(n => n.employee_name).filter(Boolean) as string[]))];
-
   // ── Apply filters ──────────────────────────────────────────────────────────
   const filtered = allNotifications.filter(n => {
     if (kindFilter !== 'all' && getKind(n) !== kindFilter) return false;
     if (appliedUnreadOnly && n.is_read) return false;
-    if (appliedDept !== 'all' && n.department !== appliedDept) return false;
-    if (appliedBranch !== 'all' && n.branch !== appliedBranch) return false;
-    if (appliedEmployee !== 'all' && n.employee_name !== appliedEmployee) return false;
+    if (appliedDept !== 'all' && n.department?.toLowerCase() !== appliedDept.toLowerCase()) return false;
+    if (appliedBranch !== 'all' && n.branch?.toLowerCase() !== appliedBranch.toLowerCase()) return false;
+    if (appliedEmployee !== 'all' && n.employee_name?.toLowerCase() !== appliedEmployee.toLowerCase()) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
@@ -318,6 +395,7 @@ export default function NotificationsPage() {
     ticket: ticketNotifs.length,
     expense: expenseNotifs.length,
     meeting: enquiryNotifs.filter(n => n.meeting_id != null).length,
+    task: taskNotifs.length,
   };
 
   // ─── Loading ──────────────────────────────────────────────────────────────
@@ -527,7 +605,7 @@ export default function NotificationsPage() {
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-1 leading-relaxed">{n.message}</p>
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-1 leading-relaxed">{n.message?.replace(/[\uFFFD]/g, '')}</p>
 
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                       <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${accent.badge}`}>
@@ -646,7 +724,7 @@ export default function NotificationsPage() {
 
               <div className="h-px bg-slate-100" />
 
-              {/* Branch */}
+              {/* Branch — from settingsApi */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Branch</label>
                 <div className="relative">
@@ -658,17 +736,16 @@ export default function NotificationsPage() {
                       focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1]/50
                       cursor-pointer transition-all hover:border-slate-300"
                   >
-                    {uniqueBranches.map(b => (
-                      <option key={b} value={b}>{b === 'all' ? 'All Branches' : b}</option>
+                    <option value="all">All Branches</option>
+                    {branchOptions.map(b => (
+                      <option key={b.id} value={b.name}>{b.name}</option>
                     ))}
                   </select>
-                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
-                  </span>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 </div>
               </div>
 
-              {/* Department */}
+              {/* Department — from masterAPI */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Department</label>
                 <div className="relative">
@@ -680,38 +757,106 @@ export default function NotificationsPage() {
                       focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1]/50
                       cursor-pointer transition-all hover:border-slate-300"
                   >
-                    {uniqueDepts.map(d => (
-                      <option key={d} value={d}>{d === 'all' ? 'All Departments' : d}</option>
+                    <option value="all">All Departments</option>
+                    {deptOptions.map(d => (
+                      <option key={d} value={d}>{d}</option>
                     ))}
                   </select>
-                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
-                  </span>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 </div>
               </div>
 
-              {/* Employee */}
+              {/* Employee — searchable, 5 visible, from employeeApi */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Employee</label>
-                <div className="relative">
-                  <select
-                    value={draftEmployee}
-                    onChange={e => setDraftEmployee(e.target.value)}
-                    className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 pr-8
-                      text-sm text-slate-700 font-medium
-                      focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1]/50
-                      cursor-pointer transition-all hover:border-slate-300"
-                  >
-                    {uniqueEmployees.map(emp => (
-                      <option key={emp} value={emp}>{emp === 'all' ? 'All Employees' : emp}</option>
-                    ))}
-                  </select>
-                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
-                  </span>
+
+                {/* Search input */}
+                <div className="relative mb-2">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={empSearchQuery}
+                    onChange={e => setEmpSearchQuery(e.target.value)}
+                    placeholder="Name or Employee ID…"
+                    className="w-full pl-8 pr-7 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg
+                      focus:outline-none focus:ring-1 focus:ring-[#0D47A1]/30 focus:border-[#0D47A1]/50
+                      transition-all text-slate-700 placeholder-slate-400"
+                  />
+                  {empSearchQuery && (
+                    <button onClick={() => setEmpSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
+
+                {/* Employee list — 5 visible, scroll */}
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  {/* All option */}
+                  <button
+                    onClick={() => setDraftEmployee('all')}
+                    className={`w-full text-left px-3 py-2 text-sm border-b border-slate-100 transition-colors ${
+                      draftEmployee === 'all'
+                        ? 'bg-[#0D47A1]/8 text-[#0D47A1] font-semibold'
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                    style={{ backgroundColor: draftEmployee === 'all' ? 'rgba(13,71,161,0.06)' : undefined }}
+                  >
+                    <span className="text-xs">All Employees</span>
+                  </button>
+
+                  {/* Scrollable list */}
+                  <div className="overflow-y-auto" style={{ maxHeight: '185px' }}>
+                    {empLoading ? (
+                      <div className="flex items-center justify-center py-4">
+                        <div className="w-4 h-4 border-2 border-slate-200 border-t-[#0D47A1] rounded-full animate-spin" />
+                        <span className="text-xs text-slate-400 ml-2">Loading…</span>
+                      </div>
+                    ) : empOptions.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-4">No employees found</p>
+                    ) : (
+                      empOptions.map(emp => {
+                        const fullName = `${emp.firstName} ${emp.lastName}`;
+                        const isSelected = draftEmployee === fullName;
+                        return (
+                          <button
+                            key={emp.id}
+                            onClick={() => setDraftEmployee(fullName)}
+                            className={`w-full text-left px-3 py-2 border-b border-slate-50 last:border-0 transition-colors ${
+                              isSelected
+                                ? 'font-semibold'
+                                : 'text-slate-600 hover:bg-slate-50'
+                            }`}
+                            style={{ backgroundColor: isSelected ? 'rgba(13,71,161,0.06)' : undefined, color: isSelected ? '#0D47A1' : undefined }}
+                          >
+                            <div className="flex items-center gap-2">
+                              {/* Avatar */}
+                              <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-slate-600 uppercase overflow-hidden">
+                                {emp.avatarUrl
+                                  ? <img src={emp.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                  : emp.firstName?.[0]}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium truncate">{fullName}</p>
+                                <p className="text-[10px] text-slate-400">{emp.employeeId} · {emp.department}</p>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Selected indicator */}
+                {draftEmployee !== 'all' && (
+                  <div className="mt-1.5 flex items-center justify-between">
+                    <span className="text-[11px] text-[#0D47A1] font-semibold">✓ {draftEmployee}</span>
+                    <button onClick={() => setDraftEmployee('all')} className="text-[10px] text-red-400 hover:text-red-600">Clear</button>
+                  </div>
+                )}
               </div>
             </div>
+
 
             {/* Drawer footer */}
             <div className="px-5 py-4 border-t border-slate-100 flex gap-2">

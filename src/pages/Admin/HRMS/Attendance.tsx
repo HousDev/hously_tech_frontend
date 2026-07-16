@@ -8,7 +8,7 @@ import {
   BarChart3, CalendarDays, ChevronDown,
   Building2, ClipboardList, ClipboardCheck,
   CheckCircle, XCircle, Clock4, Edit3,
-  FileText, AlertTriangle, Send, Filter,
+  FileText, AlertTriangle, Send, Filter, Palmtree
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { attendanceApi } from "../../../lib/attendanceApi";
@@ -1456,22 +1456,22 @@ const EmployeeAttendanceView = ({
 
                 if (rec) {
                   if (rec.status === "present") {
-                    statusColor = "bg-emerald-100 border-emerald-300 text-emerald-800 cursor-pointer hover:scale-105 hover:shadow-sm";
+                    statusColor = "bg-emerald-500 border-emerald-600 text-white cursor-pointer hover:scale-105 hover:shadow-sm font-semibold shadow-xs";
                   } else if (rec.status === "absent" || (rec as any).leaveType === "unpaid_leave" || (rec as any).leaveType === "half_day_leave") {
-                    statusColor = "bg-red-100 border-red-300 text-red-800 cursor-pointer hover:scale-105 hover:shadow-sm";
+                    statusColor = "bg-red-500 border-red-600 text-white cursor-pointer hover:scale-105 hover:shadow-sm font-semibold shadow-xs";
                   } else if (rec.status === "late") {
-                    statusColor = "bg-amber-100 border-amber-300 text-amber-800 cursor-pointer hover:scale-105 hover:shadow-sm";
+                    statusColor = "bg-emerald-500 border-emerald-600 text-white cursor-pointer hover:scale-105 hover:shadow-sm font-semibold shadow-xs";
                   } else if (rec.status === "half_day") {
-                    statusColor = "bg-sky-100 border-sky-300 text-sky-800 cursor-pointer hover:scale-105 hover:shadow-sm";
+                    statusColor = "bg-orange-500 border-orange-600 text-white cursor-pointer hover:scale-105 hover:shadow-sm font-semibold shadow-xs";
                   } else if (rec.status === "on_leave" || (rec as any).leaveType === "paid_leave") {
-                    statusColor = "bg-purple-100 border-purple-300 text-purple-800 cursor-pointer hover:scale-105 hover:shadow-sm";
+                    statusColor = "bg-purple-600 border-purple-700 text-white cursor-pointer hover:scale-105 hover:shadow-sm font-semibold shadow-xs";
                   } else if (rec.status === "holiday") {
-                    statusColor = "bg-indigo-100 border-indigo-300 text-indigo-800 cursor-pointer hover:scale-105 hover:shadow-sm";
+                    statusColor = "bg-[#0d75db] border-[#0c6ecf] text-white cursor-pointer hover:scale-105 hover:shadow-sm font-semibold shadow-xs";
                   } else if (rec.status === "week_off") {
-                    statusColor = "bg-white border-slate-200 text-slate-500 cursor-pointer hover:scale-105 hover:shadow-sm";
+                    statusColor = "bg-slate-50 border-slate-200 text-slate-400 cursor-pointer hover:scale-105 hover:shadow-sm font-semibold";
                   }
                 } else if (cell.isWeekend) {
-                  statusColor = "bg-white border-slate-200 text-slate-500 cursor-pointer hover:scale-105 hover:shadow-sm opacity-85";
+                  statusColor = "bg-slate-50 border-slate-200 text-slate-400 cursor-pointer hover:scale-105 hover:shadow-sm opacity-85 font-semibold";
                 }
 
                 return (
@@ -1481,10 +1481,22 @@ const EmployeeAttendanceView = ({
                     onClick={() => {
                       handleSelectCell(cell.dateStr, rec);
                     }}
-                    className={`w-full aspect-square border rounded-2xl flex items-center justify-center transition-all duration-150 text-xs font-bold focus:outline-none ${statusColor} ${isToday ? "ring-2 ring-[#0D47A1] ring-offset-1" : ""
+                    className={`w-full aspect-square border rounded-2xl flex flex-col items-center justify-center transition-all duration-150 text-xs font-bold focus:outline-none ${statusColor} ${isToday ? "ring-2 ring-[#0D47A1] ring-offset-1" : ""
                       }`}
                   >
-                    {cell.dayNum}
+                    <span>{cell.dayNum}</span>
+                    {rec && rec.status === "late" && (
+                      <span className="text-[7px] font-black tracking-wider mt-0.5 text-yellow-300 uppercase">LATE</span>
+                    )}
+                    {rec && rec.status === "half_day" && (
+                      <span className="text-[6.5px] font-black tracking-wider mt-0.5 text-white/90 uppercase">HALF DAY</span>
+                    )}
+                    {rec && (rec.status === "on_leave" || (rec as any).leaveType === "paid_leave") && (
+                      <span className="text-[7px] font-black tracking-wider mt-0.5 text-white/90 uppercase">LEAVE</span>
+                    )}
+                    {rec && rec.status === "holiday" && (
+                      <Palmtree size={12} className="mt-0.5 text-white/90" />
+                    )}
                   </button>
                 );
               })}
