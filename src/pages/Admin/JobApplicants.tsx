@@ -1295,7 +1295,6 @@ const JobApplicants: React.FC = () => {
 
     return (
       <div className="flex flex-col h-full p-4 bg-[#f8fafc] border border-slate-200/60 rounded-xl overflow-hidden select-text animate-modal-content space-y-4 outline-none focus:outline-none focus:ring-0">
-        <Toaster position="top-right" />
         {/* Back Button */}
         <div className="flex-shrink-0">
           <button
