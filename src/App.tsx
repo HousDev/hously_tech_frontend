@@ -634,17 +634,26 @@ function AppContent() {
     if (loading) return;
     setIsChecking(false);
 
-    // MNC Level auto-login: if already logged in and landing on welcome "/" or "/homes", redirect to dashboard
-    if (isAuthenticated) {
-      if (location.pathname === "/" || location.pathname === "/homes") {
+    // ✅ fromAdmin param detect karo aur sessionStorage mein save karo
+    const params = new URLSearchParams(location.search);
+    if (params.get('fromAdmin') === 'true') {
+      sessionStorage.setItem('visitingAsAdmin', 'true');
+    }
+
+    // ✅ Check: kya admin ne "Visit Website" click kiya hai?
+    const isVisitingWebsite = sessionStorage.getItem('visitingAsAdmin') === 'true';
+
+    // ✅ Auto-redirect: sirf tab ke normal access pe karo, "Visit Website" pe nahi
+    if (isAuthenticated && !isVisitingWebsite) {
+      if (location.pathname === '/' || location.pathname === '/homes') {
         if (isAdmin()) {
-          navigate("/dashboard");
+          navigate('/dashboard');
         } else {
-          navigate("/employee");
+          navigate('/employee');
         }
       }
     }
-  }, [loading, isAuthenticated, location.pathname, navigate]);
+  }, [loading, isAuthenticated, location.pathname, location.search, navigate]);
 
   const handleSectorClick = (sectorId: string) => {
     if (sectorId === "real-estate" || sectorId === "finance") {

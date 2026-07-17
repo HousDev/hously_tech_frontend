@@ -1633,7 +1633,7 @@ const AdminDashboard = () => {
           <button
             onClick={() => {
               const baseUrl = window.location.origin;
-              window.open(`${baseUrl}/homes`, "_blank");
+              window.open(`${baseUrl}/homes?fromAdmin=true`, "_blank");
             }}
             className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-slate-100/80 hover:text-slate-900 transition-all duration-200 group cursor-pointer ${!sidebarOpen ? 'justify-center' : ''}`}
             title="Visit Website"

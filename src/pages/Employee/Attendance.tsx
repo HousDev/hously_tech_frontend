@@ -111,6 +111,11 @@ const Attendance: React.FC = () => {
   const [assignedBranch, setAssignedBranch] = useState<{ name: string; address: string; latitude: number; longitude: number } | null>(null);
   const [securitySettings, setSecuritySettings] = useState<any>(null);
   const [weekOffDays, setWeekOffDays] = useState<string[]>([]);
+  const [weeklySchedule, setWeeklySchedule] = useState<any>(null);
+  const [punchInTime, setPunchInTime] = useState<string | null>(null);
+  const [punchOutTime, setPunchOutTime] = useState<string | null>(null);
+  const [employeeShift, setEmployeeShift] = useState<string | null>(null);
+  const [deductIfLateByMoreThan, setDeductIfLateByMoreThan] = useState<number>(10);
   const [loading, setLoading] = useState(true);
 
   // Biometric scanner state simulation
@@ -156,6 +161,23 @@ const Attendance: React.FC = () => {
       if ((statusData as any).weekOffDays) {
         setWeekOffDays((statusData as any).weekOffDays);
       }
+      if ((statusData as any).weeklySchedule) {
+        try {
+          const parsed = typeof (statusData as any).weeklySchedule === 'string'
+            ? JSON.parse((statusData as any).weeklySchedule)
+            : (statusData as any).weeklySchedule;
+          setWeeklySchedule(parsed);
+        } catch (_) {}
+      }
+      if ((statusData as any).punchInTime) setPunchInTime((statusData as any).punchInTime);
+      if ((statusData as any).punchOutTime) setPunchOutTime((statusData as any).punchOutTime);
+      if ((statusData as any).shift) {
+        setEmployeeShift((statusData as any).shift);
+        setSelectedShift((statusData as any).shift);
+      }
+      if ((statusData as any).deductIfLateByMoreThan) {
+        setDeductIfLateByMoreThan(Number((statusData as any).deductIfLateByMoreThan));
+      }
 
       const logsData = await attendanceApi.getLogs();
       setLogs(logsData);
@@ -170,6 +192,49 @@ const Attendance: React.FC = () => {
       toast.error('Failed to load attendance configurations.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const isTimePassed = (timeStr: string | null): boolean => {
+    if (!timeStr) return true;
+    try {
+      const now = new Date();
+      let h = 0, m = 0;
+      if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) {
+        const parts = timeStr.trim().split(' ');
+        const timeParts = parts[0].split(':');
+        h = parseInt(timeParts[0]);
+        m = parseInt(timeParts[1] || '0');
+        const ampm = parts[1]?.toLowerCase();
+        if (ampm === 'pm' && h !== 12) h += 12;
+        if (ampm === 'am' && h === 12) h = 0;
+      } else {
+        const parts = timeStr.split(':');
+        h = parseInt(parts[0]);
+        m = parseInt(parts[1] || '0');
+      }
+      const targetTime = new Date();
+      targetTime.setHours(h, m, 0, 0);
+      return now >= targetTime;
+    } catch (_) {
+      return true;
+    }
+  };
+
+  const formatTimeStr = (timeStr: string | null): string => {
+    if (!timeStr) return '';
+    try {
+      if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) {
+        return timeStr;
+      }
+      const parts = timeStr.split(':');
+      const h = parseInt(parts[0]);
+      const m = parseInt(parts[1] || '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const displayHours = h % 12 || 12;
+      return `${displayHours}:${String(m).padStart(2, '0')} ${ampm}`;
+    } catch (_) {
+      return timeStr || '';
     }
   };
 
@@ -378,6 +443,25 @@ const Attendance: React.FC = () => {
   const todayDayName = DAY_NAMES[today.getDay()];
   const isWeeklyOff = weekOffDays.length > 0 && weekOffDays.includes(todayDayName);
 
+  const isFlexible = employeeShift?.toLowerCase() === 'flexible' || selectedShift?.toLowerCase() === 'flexible';
+  const todayDateKey = getLocalDateString(today);
+  let configForToday = null;
+  if (weeklySchedule) {
+    if (weeklySchedule[todayDateKey]) {
+      configForToday = weeklySchedule[todayDateKey];
+    } else if (weeklySchedule[todayDayName]) {
+      configForToday = weeklySchedule[todayDayName];
+    }
+  }
+
+  // Work mode is determined by shift TYPE first (Fixed = Office, Flexible = WFH/Remote).
+  // Any stored workMode in configForToday is only used for Flexible shifts.
+  const todayDisplayWorkMode = isFlexible
+    ? (configForToday && typeof configForToday === 'object'
+        ? (configForToday.workMode || 'Remote')
+        : 'Remote')
+    : 'Office';
+
   const getDayStatusColor = (dayNum: number) => {
     const formattedDay = `${calendarDate.getFullYear()}-${String(calendarDate.getMonth() + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
     const log = logs.find(l => l.date === formattedDay);
@@ -547,14 +631,20 @@ const Attendance: React.FC = () => {
         selfie = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop";
       }
 
+      const todayShiftVal = configForToday 
+        ? (typeof configForToday === 'object' 
+            ? (configForToday.shift || employeeShift || selectedShift) 
+            : (employeeShift || selectedShift)) 
+        : (employeeShift || selectedShift);
+
       const response = await attendanceApi.punch({
         isCheckingIn,
         latitude: lat,
         longitude: lng,
         selfieBase64: selfie,
         deviceInfo: navigator.userAgent,
-        workMode,
-        shift: selectedShift
+        workMode: todayDisplayWorkMode,
+        shift: todayShiftVal
       });
 
       // 6. Success
@@ -898,14 +988,182 @@ const Attendance: React.FC = () => {
               </div>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => handleOpenPunchPopup(isCheckedIn)}
-              className="bg-[#0D47A1] hover:bg-blue-800 text-white font-bold text-xs py-2.5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform active:scale-95 flex items-center space-x-2 cursor-pointer"
-            >
-              <Clock className="w-4 h-4 text-blue-200 animate-pulse" />
-              <span>Mark {isCheckedIn ? 'Check-Out' : 'Check-In'}</span>
-            </button>
+            <>
+              {(() => {
+                let todayShift = {
+                  shift: employeeShift || selectedShift || 'General (10AM–7PM)',
+                  isWeekOff: false,
+                  startTime: null,
+                  allowPunchInHours: null,
+                  allowPunchInMinutes: null,
+                  allowPunchOutHours: null,
+                  allowPunchOutMinutes: null
+                } as any;
+
+                if (weeklySchedule) {
+                  const todayStr = getLocalDateString(new Date());
+                  if (weeklySchedule[todayStr] && typeof weeklySchedule[todayStr] === 'object') {
+                    todayShift = { ...todayShift, ...weeklySchedule[todayStr] };
+                  } else if (weeklySchedule[todayDayName] && typeof weeklySchedule[todayDayName] === 'object') {
+                    todayShift = { ...todayShift, ...weeklySchedule[todayDayName] };
+                  }
+                }
+
+                const parseStartFromStr = (sName: string) => {
+                  if (!sName) return null;
+                  const match = sName.match(/\(([^)]+)\)/);
+                  if (match && match[1]) {
+                    const parts = match[1].split(/[–-]/);
+                    if (parts.length === 2) {
+                      const timeStr = parts[0].trim();
+                      const matchTime = timeStr.match(/(\d+)(?::(\d+))?\s*(AM|PM)?/i);
+                      if (matchTime) {
+                        let hour = parseInt(matchTime[1]);
+                        const minute = matchTime[2] ? parseInt(matchTime[2]) : 0;
+                        const ampm = matchTime[3] ? matchTime[3].toUpperCase() : null;
+                        if (ampm === 'PM' && hour !== 12) hour += 12;
+                        if (ampm === 'AM' && hour === 12) hour = 0;
+                        return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+                      }
+                    }
+                  }
+                  return null;
+                };
+
+                const parseEndFromStr = (sName: string) => {
+                  if (!sName) return null;
+                  const match = sName.match(/\(([^)]+)\)/);
+                  if (match && match[1]) {
+                    const parts = match[1].split(/[–-]/);
+                    if (parts.length === 2) {
+                      const timeStr = parts[1].trim();
+                      const matchTime = timeStr.match(/(\d+)(?::(\d+))?\s*(AM|PM)?/i);
+                      if (matchTime) {
+                        let hour = parseInt(matchTime[1]);
+                        const minute = matchTime[2] ? parseInt(matchTime[2]) : 0;
+                        const ampm = matchTime[3] ? matchTime[3].toUpperCase() : null;
+                        if (ampm === 'PM' && hour !== 12) hour += 12;
+                        if (ampm === 'AM' && hour === 12) hour = 0;
+                        return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+                      }
+                    }
+                  }
+                  return null;
+                };
+
+                const shiftStartTime = todayShift.startTime || parseStartFromStr(todayShift.shift) || punchInTime || '10:00:00';
+                const shiftEndTime = todayShift.endTime || parseEndFromStr(todayShift.shift) || punchOutTime || '19:00:00';
+                
+                let latestCheckInTimeStr = shiftStartTime.substring(0, 5);
+                let latestCheckInTotalMins = 1440;
+                let hasCheckInLimit = false;
+
+                try {
+                  if (todayShift.allowPunchInHours !== undefined && todayShift.allowPunchInHours !== null && todayShift.allowPunchInHours !== '') {
+                    hasCheckInLimit = true;
+                    let limitH = Number(todayShift.allowPunchInHours);
+                    let limitM = Number(todayShift.allowPunchInMinutes) || 0;
+
+                    const [shH] = shiftStartTime.split(':').map(Number);
+                    const isShiftPM = shH >= 12;
+                    if (isShiftPM && limitH < 12) {
+                      limitH += 12;
+                    } else if (!isShiftPM && limitH === 12) {
+                      limitH = 0;
+                    }
+
+                    latestCheckInTotalMins = limitH * 60 + limitM;
+                    latestCheckInTimeStr = `${String(limitH).padStart(2, '0')}:${String(limitM).padStart(2, '0')}`;
+                  }
+                } catch (_) {}
+
+                const isCheckInAllowed = (() => {
+                  const now = new Date();
+                  const currentMins = now.getHours() * 60 + now.getMinutes();
+                  if (hasCheckInLimit) {
+                    return currentMins <= latestCheckInTotalMins;
+                  } else {
+                    const [shH, shM] = shiftStartTime.split(':').map(Number);
+                    const shiftStartMins = shH * 60 + shM;
+                    return currentMins >= shiftStartMins;
+                  }
+                })();
+
+                let latestCheckOutTimeStr = shiftEndTime.substring(0, 5);
+                let latestCheckOutTotalMins = 1440;
+                let hasCheckOutLimit = false;
+
+                try {
+                  if (todayShift.allowPunchOutHours !== undefined && todayShift.allowPunchOutHours !== null && todayShift.allowPunchOutHours !== '') {
+                    hasCheckOutLimit = true;
+                    let limitH = Number(todayShift.allowPunchOutHours);
+                    let limitM = Number(todayShift.allowPunchOutMinutes) || 0;
+
+                    const [sheH] = shiftEndTime.split(':').map(Number);
+                    const isShiftEndPM = sheH >= 12;
+                    if (isShiftEndPM && limitH < 12) {
+                      limitH += 12;
+                    } else if (!isShiftEndPM && limitH === 12) {
+                      limitH = 0;
+                    }
+
+                    latestCheckOutTotalMins = limitH * 60 + limitM;
+                    latestCheckOutTimeStr = `${String(limitH).padStart(2, '0')}:${String(limitM).padStart(2, '0')}`;
+                  }
+                } catch (_) {}
+
+                const isCheckOutAllowed = (() => {
+                  if (!hasCheckOutLimit) return true;
+                  const now = new Date();
+                  const currentMins = now.getHours() * 60 + now.getMinutes();
+                  return currentMins <= latestCheckOutTotalMins;
+                })();
+
+                const canPunch = !isCheckedIn ? isCheckInAllowed : isCheckOutAllowed;
+
+                return (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      disabled={!canPunch}
+                      onClick={() => handleOpenPunchPopup(isCheckedIn)}
+                      className={`font-bold text-xs py-2.5 px-6 rounded-xl shadow-md transition-all duration-200 flex items-center space-x-2 ${
+                        canPunch 
+                          ? 'bg-[#0D47A1] hover:bg-blue-800 text-white transform active:scale-95 cursor-pointer shadow-md hover:shadow-lg' 
+                          : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none border border-slate-200/50'
+                      }`}
+                    >
+                      <Clock className={`w-4 h-4 ${canPunch ? 'text-blue-200 animate-pulse' : 'text-slate-300'}`} />
+                      <span>Mark {isCheckedIn ? 'Check-Out' : 'Check-In'}</span>
+                    </button>
+                    {!canPunch && !isCheckedIn && (
+                      <div className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-100 rounded-xl text-amber-700 text-[10px] font-bold">
+                        <span>⚠️</span>
+                        <span>
+                          {hasCheckInLimit 
+                            ? `Punch-In closed at ${formatTimeStr(latestCheckInTimeStr)}` 
+                            : `Punch-In opens at ${formatTimeStr(shiftStartTime.substring(0, 5))}`}
+                        </span>
+                      </div>
+                    )}
+                    {!canPunch && isCheckedIn && (
+                      <div className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 text-[10px] font-bold">
+                        <span>⚠️</span>
+                        <span>
+                          Punch-Out closed at {formatTimeStr(latestCheckOutTimeStr)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-100 rounded-xl">
+                <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Scheduled Work Mode:</span>
+                <span className="text-xs font-extrabold bg-[#0D47A1] text-white px-2 py-0.5 rounded-md">
+                  {todayDisplayWorkMode === 'Remote' ? 'WFH' : todayDisplayWorkMode}
+                </span>
+              </div>
+            </>
           )}
 
           <button
