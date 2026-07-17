@@ -46,6 +46,8 @@ interface TDSRecord {
   taxableIncome: number;
   annualTax: number;
   monthlyTDS: number;
+  verificationStatus?: "Accept" | "Reject" | "Pending" | "Reviewed";
+  documents?: Array<{ name: string; category: string; url: string }>;
 }
 
 export default function TDS() {
@@ -93,7 +95,8 @@ export default function TDS() {
       standardDeduction: 75000,
       taxableIncome: 1200000,
       annualTax: 0,
-      monthlyTDS: 0
+      monthlyTDS: 0,
+      verificationStatus: "Pending"
     },
     {
       id: "DEC-002",
@@ -111,7 +114,15 @@ export default function TDS() {
       standardDeduction: 50000,
       taxableIncome: 1445000,
       annualTax: 255840,
-      monthlyTDS: 21320
+      monthlyTDS: 21320,
+      verificationStatus: "Pending",
+      documents: [
+        { name: "80C_Investment_Proof.pdf", category: "80C", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+        { name: "80D_Health_Insurance_Premium.pdf", category: "80D", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+        { name: "Sec_24b_Home_Loan_Interest_Cert.pdf", category: "24(b)", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+        { name: "HRA_Rent_Agreement.pdf", category: "HRA", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+        { name: "HRA_Rent_Receipts.pdf", category: "HRA", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
+      ]
     },
     {
       id: "DEC-003",
@@ -129,7 +140,8 @@ export default function TDS() {
       standardDeduction: 75000,
       taxableIncome: 705000,
       annualTax: 0,
-      monthlyTDS: 0
+      monthlyTDS: 0,
+      verificationStatus: "Pending"
     },
     {
       id: "DEC-004",
@@ -147,7 +159,8 @@ export default function TDS() {
       standardDeduction: 75000,
       taxableIncome: 1605000,
       annualTax: 125840,
-      monthlyTDS: 10487
+      monthlyTDS: 10487,
+      verificationStatus: "Pending"
     }
   ]);
 
@@ -169,7 +182,106 @@ export default function TDS() {
   // --- UI Filter States (For Records Tab) ---
   const [recordsSearchQuery, setRecordsSearchQuery] = useState("");
   const [viewingRecordDetails, setViewingRecordDetails] = useState<TDSRecord | null>(null);
+  const [statusUpdateRecord, setStatusUpdateRecord] = useState<TDSRecord | null>(null);
+  const [modalTab, setModalTab] = useState<"tax" | "docs">("tax");
   const [recordsRegimeFilter, setRecordsRegimeFilter] = useState<"New Regime" | "Old Regime">("New Regime");
+
+  // --- Bulk processing state ---
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState(0);
+
+  const runBulkCalculation = () => {
+    setBulkProcessing(true);
+    setBulkProgress(0);
+    
+    const interval = setInterval(() => {
+      setBulkProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          
+          // Complete the calculations
+          const updatedRecords = [...tdsRecords];
+          
+          availableEmployees.forEach(emp => {
+            const annualGross = emp.salary * 12;
+            const existingIndex = updatedRecords.findIndex(r => r.empId === emp.id);
+            
+            let selectedRegime: "New Regime" | "Old Regime";
+            let c80 = 0, c80d = 0, c24b = 0, c80ccd = 0, hra = 0;
+            
+            if (existingIndex >= 0) {
+              // Respect already selected regime and custom investment declarations
+              selectedRegime = updatedRecords[existingIndex].regime;
+              if (selectedRegime === "Old Regime") {
+                c80 = updatedRecords[existingIndex].deductions80C;
+                c80d = updatedRecords[existingIndex].deductions80D;
+                c24b = updatedRecords[existingIndex].deductions24b || 0;
+                c80ccd = updatedRecords[existingIndex].deductions80CCD || 0;
+                hra = updatedRecords[existingIndex].hraExemption;
+              }
+            } else {
+              // For new configurations, auto-select the cheaper regime
+              const calcNew = calculateTDS(annualGross, "New Regime", 0, 0, 0, 0, 0);
+              const default80C = 150000;
+              const default80D = 25000;
+              const defaultHRA = Math.round(annualGross * 0.1);
+              const calcOld = calculateTDS(annualGross, "Old Regime", default80C, default80D, 0, 0, defaultHRA);
+              
+              selectedRegime = calcNew.annualTax <= calcOld.annualTax ? "New Regime" : "Old Regime";
+              if (selectedRegime === "Old Regime") {
+                c80 = default80C;
+                c80d = default80D;
+                hra = defaultHRA;
+              }
+            }
+
+            const currentCalc = calculateTDS(annualGross, selectedRegime, c80, c80d, c24b, c80ccd, hra);
+            
+            const record: TDSRecord = {
+              id: existingIndex >= 0 ? updatedRecords[existingIndex].id : `DEC-00${updatedRecords.length + 1}`,
+              employeeName: emp.name,
+              empId: emp.id,
+              designation: emp.designation,
+              dept: emp.dept,
+              regime: selectedRegime,
+              grossAnnual: annualGross,
+              deductions80C: c80,
+              deductions80D: c80d,
+              deductions24b: c24b,
+              deductions80CCD: c80ccd,
+              hraExemption: hra,
+              standardDeduction: currentCalc.standardDeduction,
+              taxableIncome: currentCalc.taxableIncome,
+              annualTax: currentCalc.annualTax,
+              monthlyTDS: currentCalc.monthlyTDS,
+              verificationStatus: existingIndex >= 0 ? (updatedRecords[existingIndex].verificationStatus || "Pending") : "Pending",
+              documents: selectedRegime === "Old Regime" ? [
+                { name: "80C_Investment_Proof.pdf", category: "80C", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+                { name: "80D_Health_Insurance_Premium.pdf", category: "80D", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+                { name: "Sec_24b_Home_Loan_Interest_Cert.pdf", category: "24(b)", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+                { name: "HRA_Rent_Agreement.pdf", category: "HRA", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
+              ] : undefined
+            };
+            
+            if (existingIndex >= 0) {
+              updatedRecords[existingIndex] = record;
+            } else {
+              updatedRecords.push(record);
+            }
+          });
+          
+          setTdsRecords(updatedRecords);
+          setBulkProcessing(false);
+          setShowBulkModal(false);
+          toast.success(`Successfully processed optimized TDS for all ${availableEmployees.length} employees in bulk!`);
+          setActiveTab("records");
+          return 100;
+        }
+        return prev + 25;
+      });
+    }, 250);
+  };
 
   // Pagination State for Saved Records Log
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -398,7 +510,14 @@ export default function TDS() {
       standardDeduction: currentCalculation.standardDeduction,
       taxableIncome: currentCalculation.taxableIncome,
       annualTax: currentCalculation.annualTax,
-      monthlyTDS: currentCalculation.monthlyTDS
+      monthlyTDS: currentCalculation.monthlyTDS,
+      verificationStatus: existingIndex >= 0 ? (tdsRecords[existingIndex].verificationStatus || "Pending") : "Pending",
+      documents: selectedRegime === "Old Regime" ? [
+        { name: "80C_Investment_Proof.pdf", category: "80C", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+        { name: "80D_Health_Insurance_Premium.pdf", category: "80D", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+        { name: "Sec_24b_Home_Loan_Interest_Cert.pdf", category: "24(b)", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+        { name: "HRA_Rent_Agreement.pdf", category: "HRA", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
+      ] : undefined
     };
 
     if (existingIndex >= 0) {
@@ -457,6 +576,26 @@ export default function TDS() {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleUp {
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.25s ease-out forwards;
+        }
+        .animate-scale-up {
+          animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-spin-hover:hover {
+          transform: rotate(360deg);
+        }
+        .animate-spin-hover {
+          transition: transform 0.6s ease;
+        }
       `}</style>
 
       {/* Sticky Header Group: Top Dashboard Stats & Navigation Tabs */}
@@ -502,26 +641,36 @@ export default function TDS() {
         </div>
 
         {/* --- Switch Navigation Tabs --- */}
-        <div className="flex gap-2 pb-0.5">
+        <div className="flex justify-between items-center pb-0.5">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab("calculator")}
+              className={`pb-2 px-4 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer relative ${
+                activeTab === "calculator"
+                  ? "text-blue-600 border-b-2 border-blue-600 font-black"
+                  : "text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              1. TDS Calculator & Deductor (Easy Calculator)
+            </button>
+            <button
+              onClick={() => setActiveTab("records")}
+              className={`pb-2 px-4 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer relative ${
+                activeTab === "records"
+                  ? "text-blue-600 border-b-2 border-blue-600 font-black"
+                  : "text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              2. Saved Records Log ({tdsRecords.length})
+            </button>
+          </div>
+
           <button
-            onClick={() => setActiveTab("calculator")}
-            className={`pb-2 px-4 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer relative ${
-              activeTab === "calculator"
-                ? "text-blue-600 border-b-2 border-blue-600 font-black"
-                : "text-slate-400 hover:text-slate-600"
-            }`}
+            onClick={() => setShowBulkModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer transition-all hover:scale-102"
           >
-            1. TDS Calculator & Deductor (Easy Calculator)
-          </button>
-          <button
-            onClick={() => setActiveTab("records")}
-            className={`pb-2 px-4 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer relative ${
-              activeTab === "records"
-                ? "text-blue-600 border-b-2 border-blue-600 font-black"
-                : "text-slate-400 hover:text-slate-600"
-            }`}
-          >
-            2. Saved Records Log ({tdsRecords.length})
+            <RefreshCw className="w-3.5 h-3.5 animate-spin-hover" />
+            <span>Bulk Process TDS</span>
           </button>
         </div>
       </div>
@@ -1007,12 +1156,13 @@ export default function TDS() {
                       <th className="py-2.5 px-2 text-right whitespace-nowrap text-blue-600">Sec 80D</th>
                       <th className="py-2.5 px-2 text-right whitespace-nowrap text-blue-600">Sec 24(b)</th>
                       <th className="py-2.5 px-2 text-right whitespace-nowrap text-blue-600">Sec 80CCD</th>
-                      <th className="py-2.5 px-2 text-right whitespace-nowrap text-blue-600">HRA Exemp.</th>
+                      <th className="py-2.5 px-2 text-right text-blue-600">HRA Exemp.</th>
                       <th className="py-2.5 px-2 text-right whitespace-nowrap">Taxable Income</th>
                       <th className="py-2.5 px-2 text-right whitespace-nowrap">Tax (Pre-Rebate)</th>
                       <th className="py-2.5 px-2 text-right whitespace-nowrap">Cess (4%)</th>
                       <th className="py-2.5 px-2 text-right text-slate-800 whitespace-nowrap">Final Annual Tax</th>
-                      <th className="py-2.5 px-2 text-right text-emerald-600 whitespace-nowrap pr-4">Monthly TDS</th>
+                      <th className="py-2.5 px-2 text-right text-emerald-600 whitespace-nowrap">Monthly TDS</th>
+                      <th className="py-2.5 px-2 text-center whitespace-nowrap text-slate-500 font-bold">Doc. Verification</th>
                       <th className="py-2.5 px-2 text-right whitespace-nowrap pr-4">Actions</th>
                     </tr>
                   </thead>
@@ -1062,7 +1212,7 @@ export default function TDS() {
                         <td className="py-2 px-2 text-right whitespace-nowrap pr-4">
                           <div className="flex items-center justify-end gap-1">
                             <button
-                              onClick={() => setViewingRecordDetails(item)}
+                              onClick={() => { setViewingRecordDetails(item); setModalTab("tax"); }}
                               className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all cursor-pointer"
                               title="View Details"
                             >
@@ -1137,10 +1287,29 @@ export default function TDS() {
                         </td>
                         <td className="py-2 px-2 text-right font-black text-slate-800 whitespace-nowrap">{formatCurrency(calc.annualTax)}</td>
                         <td className="py-2 px-2 text-right font-black text-emerald-600 bg-emerald-50/20 whitespace-nowrap pr-4">{formatCurrency(calc.monthlyTDS)}</td>
+                        <td 
+                          onClick={() => setStatusUpdateRecord(item)}
+                          className="py-2 px-2 text-center whitespace-nowrap cursor-pointer hover:bg-slate-50/70 select-none"
+                          title="Click to update status"
+                        >
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[9px] font-bold transition-all border shadow-xs inline-block hover:scale-105 active:scale-95 ${
+                              item.verificationStatus === "Accept"
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100/50"
+                                : item.verificationStatus === "Reject"
+                                ? "bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100/50"
+                                : item.verificationStatus === "Reviewed"
+                                ? "bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100/50"
+                                : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100/50"
+                            }`}
+                          >
+                            {item.verificationStatus || "Pending"}
+                          </span>
+                        </td>
                         <td className="py-2 px-2 text-right whitespace-nowrap pr-4">
                           <div className="flex items-center justify-end gap-1">
                             <button
-                              onClick={() => setViewingRecordDetails(item)}
+                              onClick={() => { setViewingRecordDetails(item); setModalTab("tax"); }}
                               className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all cursor-pointer"
                               title="View Details"
                             >
@@ -1181,7 +1350,7 @@ export default function TDS() {
                   })}
                   {filteredRecords.length === 0 && (
                     <tr>
-                      <td colSpan={recordsRegimeFilter === "New Regime" ? 11 : 14} className="p-12 text-center text-slate-400 font-bold italic bg-white">
+                      <td colSpan={recordsRegimeFilter === "New Regime" ? 11 : 15} className="p-12 text-center text-slate-400 font-bold italic bg-white">
                         No active TDS records found for this regime.
                       </td>
                     </tr>
@@ -1243,7 +1412,7 @@ export default function TDS() {
       {/* --- Detail Computation View Modal --- */}
       {viewingRecordDetails && (
         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col">
             <div className="bg-slate-50 border-b border-slate-100 px-6 py-4 flex justify-between items-center">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
@@ -1275,67 +1444,135 @@ export default function TDS() {
 
               return (
                 <div className="p-6 space-y-4 text-xs font-semibold text-slate-600">
-                  <div className="border border-slate-100 rounded-xl p-3.5 bg-slate-50/50 space-y-2">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Salary Structure Summary</p>
-                    <div className="grid grid-cols-2 gap-2 text-slate-700">
-                      <p>Gross Annual CTC:</p>
-                      <p className="font-bold text-slate-850 text-right">{formatCurrency(viewingRecordDetails.grossAnnual)}</p>
-                      <p>Standard Deduction:</p>
-                      <p className="font-bold text-slate-850 text-right">-{formatCurrency(calc.standardDeduction)}</p>
-                      {viewingRecordDetails.regime === "Old Regime" && (
-                        <>
-                          <p>Section 80C (PF, LIC):</p>
-                          <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.deductions80C)}</p>
-                          <p>Section 80D (Health):</p>
-                          <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.deductions80D)}</p>
-                          <p>Section 24(b) (Home Loan):</p>
-                          <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.deductions24b)}</p>
-                          <p>Section 80CCD (NPS):</p>
-                          <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.deductions80CCD)}</p>
-                          <p>HRA Exemption:</p>
-                          <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.hraExemption)}</p>
-                        </>
-                      )}
-                      <div className="col-span-2 pt-2 border-t border-slate-100 flex justify-between font-bold text-slate-900">
-                        <span>Taxable Net Income:</span>
-                        <span>{formatCurrency(calc.taxableIncome)}</span>
+                  {/* Modal Tab Switcher */}
+                  <div className="flex border-b border-slate-100 pb-2 mb-2 gap-4">
+                    <button
+                      onClick={() => setModalTab("tax")}
+                      className={`pb-1 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                        modalTab === "tax"
+                          ? "text-blue-600 border-b-2 border-blue-600"
+                          : "text-slate-400 hover:text-slate-600"
+                      }`}
+                    >
+                      Tax Details
+                    </button>
+                    {viewingRecordDetails.regime === "Old Regime" && (
+                      <button
+                        onClick={() => setModalTab("docs")}
+                        className={`pb-1 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                          modalTab === "docs"
+                            ? "text-blue-600 border-b-2 border-blue-600"
+                            : "text-slate-400 hover:text-slate-600"
+                        }`}
+                      >
+                        Documents ({viewingRecordDetails.documents?.length || 0})
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Both Tab Contents wrapped inside a fixed height div of 300px for size consistency */}
+                  <div className="h-[300px] overflow-y-auto no-scrollbar pr-1">
+                    {modalTab === "tax" ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Left Side: Salary Structure */}
+                        <div className="border border-slate-100 rounded-xl p-3.5 bg-slate-50/50 space-y-2 h-fit">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Salary Structure Summary</p>
+                          <div className="grid grid-cols-2 gap-2 text-slate-700">
+                            <p>Gross Annual CTC:</p>
+                            <p className="font-bold text-slate-850 text-right">{formatCurrency(viewingRecordDetails.grossAnnual)}</p>
+                            <p>Standard Deduction:</p>
+                            <p className="font-bold text-slate-850 text-right">-{formatCurrency(calc.standardDeduction)}</p>
+                            {viewingRecordDetails.regime === "Old Regime" && (
+                              <>
+                                <p>Section 80C (PF, LIC):</p>
+                                <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.deductions80C)}</p>
+                                <p>Section 80D (Health):</p>
+                                <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.deductions80D)}</p>
+                                <p>Section 24(b) (Home Loan):</p>
+                                <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.deductions24b)}</p>
+                                <p>Section 80CCD (NPS):</p>
+                                <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.deductions80CCD)}</p>
+                                <p>HRA Exemption:</p>
+                                <p className="font-bold text-slate-850 text-right">-{formatCurrency(viewingRecordDetails.hraExemption)}</p>
+                              </>
+                            )}
+                            <div className="col-span-2 pt-2 border-t border-slate-100 flex justify-between font-bold text-slate-900">
+                              <span>Taxable Net Income:</span>
+                              <span>{formatCurrency(calc.taxableIncome)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right Side: Tax Calculation */}
+                        <div className="space-y-4 h-fit">
+                          <div className="border border-slate-100 rounded-xl p-3.5 bg-slate-50/50 space-y-2">
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tax Calculation Breakdown</p>
+                            <div className="grid grid-cols-2 gap-2 text-slate-700">
+                              <p>Base Slab Tax:</p>
+                              <p className="font-bold text-slate-850 text-right">{formatCurrency(calc.baseTax)}</p>
+                              {calc.rebate87A > 0 && (
+                                <>
+                                  <p className="text-emerald-700">(-) Sec 87A Rebate:</p>
+                                  <p className="font-bold text-emerald-700 text-right">-{formatCurrency(calc.rebate87A)}</p>
+                                </>
+                              )}
+                              {calc.marginalRelief > 0 && (
+                                <>
+                                  <p className="text-purple-700">(-) Marginal Relief:</p>
+                                  <p className="font-bold text-purple-700 text-right">-{formatCurrency(calc.marginalRelief)}</p>
+                                </>
+                              )}
+                              {calc.cess > 0 && (
+                                <>
+                                  <p>(+) Cess @ 4%:</p>
+                                  <p className="font-bold text-slate-850 text-right">+{formatCurrency(calc.cess)}</p>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="border border-emerald-100 rounded-xl p-3.5 bg-emerald-50/50 space-y-2">
+                            <div className="grid grid-cols-2 gap-2 text-emerald-800">
+                              <p className="font-bold">Total Annual Tax:</p>
+                              <p className="font-black text-right text-sm">{formatCurrency(calc.annualTax)}</p>
+                              <p className="font-bold">Monthly TDS Deduction:</p>
+                              <p className="font-black text-right text-sm text-emerald-600">{formatCurrency(calc.monthlyTDS)}</p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="border border-slate-100 rounded-xl p-3.5 bg-slate-50/50 space-y-2">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tax Calculation Breakdown</p>
-                    <div className="grid grid-cols-2 gap-2 text-slate-700">
-                      <p>Base Slab Tax:</p>
-                      <p className="font-bold text-slate-850 text-right">{formatCurrency(calc.baseTax)}</p>
-                      {calc.rebate87A > 0 && (
-                        <>
-                          <p className="text-emerald-700">(-) Sec 87A Rebate:</p>
-                          <p className="font-bold text-emerald-700 text-right">-{formatCurrency(calc.rebate87A)}</p>
-                        </>
-                      )}
-                      {calc.marginalRelief > 0 && (
-                        <>
-                          <p className="text-purple-700">(-) Marginal Relief:</p>
-                          <p className="font-bold text-purple-700 text-right">-{formatCurrency(calc.marginalRelief)}</p>
-                        </>
-                      )}
-                      {calc.cess > 0 && (
-                        <>
-                          <p>(+) Cess @ 4%:</p>
-                          <p className="font-bold text-slate-850 text-right">+{formatCurrency(calc.cess)}</p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="border border-emerald-100 rounded-xl p-3.5 bg-emerald-50/50 space-y-2">
-                    <div className="grid grid-cols-2 gap-2 text-emerald-800">
-                      <p className="font-bold">Total Annual Tax:</p>
-                      <p className="font-black text-right text-sm">{formatCurrency(calc.annualTax)}</p>
-                      <p className="font-bold">Monthly TDS Deduction:</p>
-                      <p className="font-black text-right text-sm text-emerald-600">{formatCurrency(calc.monthlyTDS)}</p>
-                    </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {viewingRecordDetails.documents && viewingRecordDetails.documents.length > 0 ? (
+                          viewingRecordDetails.documents.map((doc, idx) => (
+                            <div key={idx} className="flex justify-between items-center p-3 border border-slate-100 hover:border-slate-200 rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
+                              <div className="flex items-center gap-2.5 max-w-[70%]">
+                                <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                                <div className="overflow-hidden">
+                                  <p className="font-bold text-slate-800 text-[10px] truncate" title={doc.name}>
+                                    {doc.name}
+                                  </p>
+                                  <span className="text-[8px] bg-slate-100 text-slate-500 font-black px-1.5 py-0.5 rounded uppercase mt-0.5 inline-block">
+                                    {doc.category}
+                                  </span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => window.open(doc.url, "_blank")}
+                                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-[10px] cursor-pointer transition-all hover:scale-105 active:scale-95 flex items-center gap-1 shadow-xs"
+                              >
+                                <span>Open</span>
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400 italic">
+                            <FileText className="w-8 h-8 text-slate-350 mb-2" />
+                            <p className="text-[10px]">No verification documents attached.</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -1348,6 +1585,160 @@ export default function TDS() {
               >
                 Close View
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- Status Update Popup Modal with Smooth Animation --- */}
+      {statusUpdateRecord && (
+        <div className="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-sm overflow-hidden flex flex-col animate-scale-up">
+            <div className="bg-slate-50 border-b border-slate-100 px-5 py-4 flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-xs text-slate-400 uppercase tracking-wider">Update Document Status</h3>
+                <p className="font-bold text-slate-800 text-sm mt-0.5">{statusUpdateRecord.employeeName}</p>
+              </div>
+              <button
+                onClick={() => setStatusUpdateRecord(null)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                <span className="text-lg">&times;</span>
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3">
+              {(["Pending", "Reviewed", "Accept", "Reject"] as const).map((status) => {
+                const isSelected = statusUpdateRecord.verificationStatus === status;
+                const statusStyles = {
+                  Pending: "hover:bg-amber-50 hover:text-amber-800 border-amber-200 text-amber-700 bg-amber-50/20",
+                  Reviewed: "hover:bg-indigo-50 hover:text-indigo-800 border-indigo-200 text-indigo-700 bg-indigo-50/20",
+                  Accept: "hover:bg-emerald-50 hover:text-emerald-800 border-emerald-200 text-emerald-700 bg-emerald-50/20",
+                  Reject: "hover:bg-rose-50 hover:text-rose-800 border-rose-200 text-rose-700 bg-rose-50/20",
+                };
+
+                return (
+                  <button
+                    key={status}
+                    onClick={() => {
+                      setTdsRecords((prev) =>
+                        prev.map((rec) =>
+                          rec.id === statusUpdateRecord.id
+                            ? { ...rec, verificationStatus: status }
+                            : rec
+                        )
+                      );
+                      toast.success(`Verification status updated to ${status} for ${statusUpdateRecord.employeeName}`);
+                      setStatusUpdateRecord(null);
+                    }}
+                    className={`w-full p-3 rounded-xl border text-left text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
+                      isSelected
+                        ? "ring-2 ring-blue-600/30 border-blue-600 bg-blue-50/30 text-blue-700"
+                        : `border-slate-200 text-slate-600 bg-white ${statusStyles[status]}`
+                    }`}
+                  >
+                    <span>{status}</span>
+                    {isSelected && (
+                      <span className="w-2 h-2 rounded-full bg-blue-600" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="bg-slate-50 border-t border-slate-100 px-5 py-3 flex justify-end">
+              <button
+                onClick={() => setStatusUpdateRecord(null)}
+                className="px-3.5 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-550 cursor-pointer shadow-xs"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- Bulk Auto-TDS calculation processing modal --- */}
+      {showBulkModal && (
+        <div className="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-scale-up">
+            <div className="bg-slate-50 border-b border-slate-100 px-6 py-4 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Calculator className="w-5 h-5 text-blue-600" />
+                <h3 className="font-bold text-sm text-slate-800">Bulk TDS Calculation Engine</h3>
+              </div>
+              <button
+                disabled={bulkProcessing}
+                onClick={() => setShowBulkModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <span className="text-lg">&times;</span>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs font-semibold text-slate-600">
+              {!bulkProcessing ? (
+                <>
+                  <div className="bg-blue-50 border border-blue-100 text-blue-800 rounded-xl p-4 flex gap-3">
+                    <Info className="w-5 h-5 flex-shrink-0 text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-blue-900 text-xs">Bulk Processing Notice</p>
+                      <p className="text-[10px] text-blue-700 mt-1 leading-relaxed">
+                        This operation will automatically run calculation for all **{availableEmployees.length} employees** in the company directory. 
+                        It will evaluate both New & Old tax slabs and assign the cheaper regime choice automatically.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border border-slate-100 rounded-xl p-4 bg-slate-50/50 space-y-2">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Directory Summary</p>
+                    <div className="flex justify-between text-slate-700 text-[11px]">
+                      <span>Total Active Employees:</span>
+                      <span className="font-bold text-slate-850">{availableEmployees.length} profiles</span>
+                    </div>
+                    <div className="flex justify-between text-slate-700 text-[11px] pt-1">
+                      <span>Default Investments (Old Regime):</span>
+                      <span className="font-bold text-slate-850">Standard limits (1.5L 80C + 25k 80D)</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
+                  <RefreshCw className="w-10 h-10 text-blue-600 animate-spin" />
+                  <div className="w-full space-y-1.5">
+                    <div className="flex justify-between text-[10px] text-slate-400 uppercase font-black tracking-wider">
+                      <span>Running tax calculations...</span>
+                      <span>{bulkProgress}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-600 transition-all duration-200 ease-out rounded-full" 
+                        style={{ width: `${bulkProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 italic">Optimizing regimes and applying TDS deductions to profiles...</p>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-slate-50 border-t border-slate-100 px-6 py-4 flex justify-end gap-2">
+              <button
+                disabled={bulkProcessing}
+                onClick={() => setShowBulkModal(false)}
+                className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-550 cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Close
+              </button>
+              {!bulkProcessing && (
+                <button
+                  onClick={runBulkCalculation}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs cursor-pointer shadow-xs transition-all flex items-center gap-1.5"
+                >
+                  <Calculator className="w-3.5 h-3.5" />
+                  <span>Start Batch Job</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

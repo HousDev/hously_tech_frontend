@@ -45,8 +45,10 @@ export interface EmployeeRecord {
   passingYear?: string;
   percentage?: string;
   weekOffDays?: WeekOffDays[];
+  shift?: string;
+  weeklySchedule?: string;
   employeeType?: "Permanent" | "Contract" | "Intern" | "Probation";
-  workMode?: "Office" | "Remote" | "Hybrid";
+  workMode?: string;
   probationPeriod?: number;
   dateOfLeaving?: string;
   noticePeriod?: number;

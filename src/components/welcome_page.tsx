@@ -122,6 +122,7 @@ function WelcomePage({ onSectorClick, onLoginClick }: WelcomePageProps) {
   const [visibleCards, setVisibleCards] = useState<boolean[]>([]);
   const [walkInDrives, setWalkInDrives] = useState<any[]>([]);
   const [badgeText, setBadgeText] = useState<'hiring' | 'walkin'>('hiring');
+  const [activeJobCount, setActiveJobCount] = useState<number>(0);
   const statsRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const timelineRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -234,11 +235,25 @@ function WelcomePage({ onSectorClick, onLoginClick }: WelcomePageProps) {
 
   useEffect(() => {
     const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+
+    // Walk-in Drives fetch
     fetch(`${base}/api/career/walk-in-drives`)
       .then(res => res.json())
       .then(data => {
         if (data.success && Array.isArray(data.data)) {
           setWalkInDrives(data.data.filter((d: any) => d.status !== 'Completed'));
+        }
+      })
+      .catch(() => {});
+
+    // Active Jobs fetch — badge sirf tab dikhe jab job post ho
+    fetch(`${base}/api/career/jobs?active=true&limit=1`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          // API returns: { success: true, data: { jobs: [...], total: N, totalPages: N } }
+          const total = data.data.total ?? (Array.isArray(data.data.jobs) ? data.data.jobs.length : 0);
+          setActiveJobCount(total);
         }
       })
       .catch(() => {});
@@ -322,20 +337,22 @@ function WelcomePage({ onSectorClick, onLoginClick }: WelcomePageProps) {
         <div className="fixed top-4 right-4 sm:top-6 sm:right-6 md:top-8 md:right-8 z-40 flex items-center gap-2 sm:gap-4 animate-fade-in select-none">
           {/* Careers Button with Blinking Badge */}
           <div className="relative">
-            {/* Badge: Walk-in Drive when Active, Hiring otherwise */}
-            <Link
-              to="/career"
-              className="absolute -top-2.5 -right-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-[8px] sm:text-[9px] uppercase tracking-wider animate-pulse shadow-md shadow-emerald-500/30 border border-emerald-400 select-none cursor-pointer overflow-hidden"
-              style={{ minWidth: 52 }}
-            >
-              <span className="relative flex h-1 w-1 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1 w-1 bg-white"></span>
-              </span>
-              <span key={badgeText} className="whitespace-nowrap" style={{ animation: 'badgeSlide 0.4s ease' }}>
-                {badgeText === 'hiring' ? 'Hiring' : 'Walk-in Drive'}
-              </span>
-            </Link>
+            {/* Badge: sirf tab dikhe jab active job posts hon */}
+            {activeJobCount > 0 && (
+              <Link
+                to="/career"
+                className="absolute -top-2.5 -right-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-[8px] sm:text-[9px] uppercase tracking-wider animate-pulse shadow-md shadow-emerald-500/30 border border-emerald-400 select-none cursor-pointer overflow-hidden"
+                style={{ minWidth: 52 }}
+              >
+                <span className="relative flex h-1 w-1 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1 w-1 bg-white"></span>
+                </span>
+                <span key={badgeText} className="whitespace-nowrap" style={{ animation: 'badgeSlide 0.4s ease' }}>
+                  {badgeText === 'hiring' ? 'Hiring' : 'Walk-in Drive'}
+                </span>
+              </Link>
+            )}
 
             {/* Careers Button */}
             <Link

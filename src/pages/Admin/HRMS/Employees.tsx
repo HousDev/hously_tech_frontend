@@ -576,11 +576,10 @@ const InputField = ({
                         : [...current, opt];
                       onChange(updated);
                     }}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all duration-150 border cursor-pointer ${
-                      isChecked
-                        ? "bg-[#0D47A1] text-white border-[#0D47A1] shadow-sm"
-                        : "bg-slate-50 text-slate-500 border-slate-200 hover:border-[#0D47A1]/40 hover:text-[#0D47A1]"
-                    } ${!isEditing ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all duration-150 border cursor-pointer ${isChecked
+                      ? "bg-[#0D47A1] text-white border-[#0D47A1] shadow-sm"
+                      : "bg-slate-50 text-slate-500 border-slate-200 hover:border-[#0D47A1]/40 hover:text-[#0D47A1]"
+                      } ${!isEditing ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     {opt.charAt(0).toUpperCase() + opt.slice(1).replace(/_/g, " ")}
                   </button>
@@ -594,7 +593,7 @@ const InputField = ({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            className={`w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 ${error ? "border-red-300 focus:ring-red-200" : "border-slate-200"
+            className={`w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none transition-all font-medium text-slate-700 bg-white ${error ? "border-red-300 focus:ring-red-200" : "border-slate-200"
               } ${icon ? "pl-9" : ""}`}
             disabled={!isEditing}
           />
@@ -602,6 +601,885 @@ const InputField = ({
       </div>
       {error && <p className="text-[10px] text-red-500 font-semibold pl-1">{error}</p>}
     </div>
+  );
+};
+
+const getWeekOffText = (day: string, weeks: string[]) => {
+  if (!weeks || weeks.length === 0) return "No week offs configured";
+  if (weeks.includes("All Weeks") || weeks.length === 5) {
+    return `All ${day.toLowerCase()}s week off`;
+  }
+  // format as e.g., "1st, 3rd saturdays week off"
+  const sortedWeeks = [...weeks].sort();
+  return `${sortedWeeks.join(", ")} ${day.toLowerCase()}s week off`;
+};
+
+const WeekOffModal = ({
+  day,
+  weeks,
+  onClose,
+  onConfirm,
+}: {
+  day: string;
+  weeks: string[];
+  onClose: () => void;
+  onConfirm: (updatedWeeks: string[]) => void;
+}) => {
+  const [visible, setVisible] = useState(false);
+  const [selectedWeeks, setSelectedWeeks] = useState<string[]>(weeks);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+  }, []);
+
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(onClose, 250);
+  };
+
+  const handleToggle = (opt: string) => {
+    if (opt === "All Weeks") {
+      if (selectedWeeks.includes("All Weeks")) {
+        setSelectedWeeks([]);
+      } else {
+        setSelectedWeeks(["All Weeks", "1st Week", "2nd Week", "3rd Week", "4th Week", "5th Week"]);
+      }
+    } else {
+      let updated = selectedWeeks.includes(opt)
+        ? selectedWeeks.filter(w => w !== opt && w !== "All Weeks")
+        : [...selectedWeeks, opt];
+
+      const individualCount = updated.filter(w => w !== "All Weeks").length;
+      if (individualCount === 5) {
+        updated = ["All Weeks", "1st Week", "2nd Week", "3rd Week", "4th Week", "5th Week"];
+      }
+      setSelectedWeeks(updated);
+    }
+  };
+
+  const options = ["All Weeks", "1st Week", "2nd Week", "3rd Week", "4th Week", "5th Week"];
+
+  return (
+    <>
+      <div
+        onClick={handleClose}
+        className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm transition-opacity duration-300"
+        style={{ opacity: visible ? 1 : 0 }}
+      />
+      <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+        <div
+          className="w-full max-w-md bg-white rounded-2xl shadow-2xl pointer-events-auto transition-all duration-300 overflow-hidden"
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? "translateY(0) scale(1)" : "translateY(18px) scale(0.96)",
+          }}
+        >
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-slate-100">
+            <h3 className="text-base font-bold text-slate-850">
+              {day} - Week Offs
+            </h3>
+          </div>
+
+          {/* Options List */}
+          <div className="divide-y divide-slate-100 max-h-[350px] overflow-y-auto">
+            {options.map((opt) => {
+              const isChecked = selectedWeeks.includes(opt);
+              return (
+                <label
+                  key={opt}
+                  className="flex items-center justify-between px-6 py-3.5 hover:bg-slate-50 cursor-pointer transition-colors"
+                >
+                  <span className={`text-sm font-semibold ${isChecked ? "text-slate-900" : "text-slate-650"}`}>
+                    {opt}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => handleToggle(opt)}
+                    className="w-4 h-4 rounded border-slate-300 text-[#0D47A1] focus:ring-[#0D47A1]/20 cursor-pointer"
+                  />
+                </label>
+              );
+            })}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-5 py-2 text-sm font-bold border border-slate-200 text-slate-650 rounded-xl hover:bg-slate-50 transition cursor-pointer bg-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onConfirm(selectedWeeks);
+                handleClose();
+              }}
+              className="px-6 py-2 text-sm font-bold text-white rounded-xl bg-[#0D47A1] hover:opacity-90 transition cursor-pointer border-none"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+const MonthPickerModal = ({
+  initialYear,
+  initialMonth,
+  onClose,
+  onConfirm,
+}: {
+  initialYear: number;
+  initialMonth: number;
+  onClose: () => void;
+  onConfirm: (year: number, month: number) => void;
+}) => {
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const years = [currentYear - 1, currentYear, currentYear + 1];
+
+  const [pickerYear, setPickerYear] = useState(initialYear);
+  const [pickerMonth, setPickerMonth] = useState(initialMonth);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+  }, []);
+
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(onClose, 250);
+  };
+
+  return createPortal(
+    <>
+      <div
+        className="fixed inset-0 z-[150] bg-black/30 backdrop-blur-sm transition-opacity duration-300"
+        style={{ opacity: visible ? 1 : 0 }}
+        onClick={handleClose}
+      />
+      <div className="fixed inset-0 z-[151] flex items-center justify-center p-4 pointer-events-none">
+        <div
+          className="w-full max-w-sm bg-white rounded-2xl shadow-2xl pointer-events-auto overflow-hidden transition-all duration-300"
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? "translateY(0) scale(1)" : "translateY(18px) scale(0.96)",
+          }}
+        >
+          <div className="px-6 py-4 border-b border-slate-100">
+            <h3 className="text-sm font-bold text-slate-800">Select Month</h3>
+          </div>
+          <div className="px-6 py-5 space-y-4">
+            {/* Year Selector */}
+            <div>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Year</label>
+              <div className="flex gap-2">
+                {years.map(y => (
+                  <button
+                    key={y}
+                    type="button"
+                    onClick={() => setPickerYear(y)}
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl border transition cursor-pointer ${pickerYear === y
+                      ? "bg-[#0D47A1] text-white border-[#0D47A1]"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-[#0D47A1]/40"
+                      }`}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Month Grid */}
+            <div>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Month</label>
+              <div className="grid grid-cols-3 gap-2">
+                {MONTHS.map((m, idx) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setPickerMonth(idx)}
+                    className={`py-2 text-xs font-bold rounded-xl border transition cursor-pointer ${pickerMonth === idx
+                      ? "bg-[#0D47A1] text-white border-[#0D47A1]"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-[#0D47A1]/40"
+                      }`}
+                  >
+                    {m.substring(0, 3)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="px-6 pb-4 pt-3 flex justify-end gap-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-5 py-2 text-sm font-bold border border-slate-200 text-slate-650 rounded-xl hover:bg-slate-50 transition cursor-pointer bg-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => { onConfirm(pickerYear, pickerMonth); handleClose(); }}
+              className="px-6 py-2 text-sm font-bold text-white rounded-xl bg-[#0D47A1] hover:opacity-90 transition cursor-pointer border-none"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+};
+
+const AddNewShiftModal = ({
+  onClose,
+  onAdd,
+  initialShift,
+}: {
+  onClose: () => void;
+  onAdd: (shiftObj: {
+    name: string;
+    startTime: string;
+    endTime: string;
+    allowedLateDays: number;
+    lateThresholdMins: number;
+    lateDeductionAmount: number;
+    allowPunchInHours?: number;
+    allowPunchInMinutes?: number;
+    allowPunchOutHours?: number;
+    allowPunchOutMinutes?: number;
+  }) => void;
+  initialShift?: any;
+}) => {
+  const [visible, setVisible] = useState(false);
+  const [shiftName, setShiftName] = useState(() => {
+    if (initialShift) {
+      const match = initialShift.name.match(/^([^(]+)/);
+      return match ? match[1].trim() : initialShift.name;
+    }
+    return "";
+  });
+  const [startTime, setStartTime] = useState(() => {
+    if (initialShift && initialShift.startTime) {
+      return initialShift.startTime.substring(0, 5);
+    }
+    return "09:00";
+  });
+  const [endTime, setEndTime] = useState(() => {
+    if (initialShift && initialShift.endTime) {
+      return initialShift.endTime.substring(0, 5);
+    }
+    return "18:00";
+  });
+
+  const [canPunchInMode, setCanPunchInMode] = useState<"Anytime" | "Limit">(() => {
+    if (initialShift && (initialShift.allowPunchInHours !== undefined || initialShift.allowPunchInMinutes !== undefined)) {
+      return "Limit";
+    }
+    return "Anytime";
+  });
+  const [punchInHours, setPunchInHours] = useState(() => {
+    if (initialShift && initialShift.allowPunchInHours !== undefined) {
+      return String(initialShift.allowPunchInHours);
+    }
+    return "";
+  });
+  const [punchInMinutes, setPunchInMinutes] = useState(() => {
+    if (initialShift && initialShift.allowPunchInMinutes !== undefined) {
+      return String(initialShift.allowPunchInMinutes);
+    }
+    return "";
+  });
+
+  const [canPunchOutMode, setCanPunchOutMode] = useState<"Anytime" | "Limit">(() => {
+    if (initialShift && (initialShift.allowPunchOutHours !== undefined || initialShift.allowPunchOutMinutes !== undefined)) {
+      return "Limit";
+    }
+    return "Anytime";
+  });
+  const [punchOutHours, setPunchOutHours] = useState(() => {
+    if (initialShift && initialShift.allowPunchOutHours !== undefined) {
+      return String(initialShift.allowPunchOutHours);
+    }
+    return "";
+  });
+  const [punchOutMinutes, setPunchOutMinutes] = useState(() => {
+    if (initialShift && initialShift.allowPunchOutMinutes !== undefined) {
+      return String(initialShift.allowPunchOutMinutes);
+    }
+    return "";
+  });
+
+  const [allowedLateDays, setAllowedLateDays] = useState(() => {
+    if (initialShift && initialShift.allowedLateDays !== undefined) {
+      return String(initialShift.allowedLateDays);
+    }
+    return "5";
+  });
+  const [lateThresholdMins, setLateThresholdMins] = useState(() => {
+    if (initialShift && initialShift.lateThresholdMins !== undefined) {
+      return String(initialShift.lateThresholdMins);
+    }
+    return "60";
+  });
+  const [lateDeductionAmount, setLateDeductionAmount] = useState(() => {
+    if (initialShift && initialShift.lateDeductionAmount !== undefined) {
+      return String(initialShift.lateDeductionAmount);
+    }
+    return "";
+  });
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+  }, []);
+
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(onClose, 250);
+  };
+
+  const handleAddShift = () => {
+    if (!shiftName.trim()) {
+      toast.error("Shift Name is required");
+      return;
+    }
+    if (!startTime || !endTime) {
+      toast.error("Start and End Times are required");
+      return;
+    }
+
+    const formatTimeAMPM = (timeStr: string) => {
+      const [h, m] = timeStr.split(":");
+      const hours = parseInt(h);
+      const minutes = parseInt(m);
+      const ampm = hours >= 12 ? "PM" : "AM";
+      const displayHours = hours % 12 || 12;
+      const displayMinutes = minutes ? `:${minutes.toString().padStart(2, "0")}` : "";
+      return `${displayHours}${displayMinutes}${ampm}`;
+    };
+
+    const startFormatted = formatTimeAMPM(startTime);
+    const endFormatted = formatTimeAMPM(endTime);
+    const shiftStr = `${shiftName} (${startFormatted}–${endFormatted})`;
+
+    onAdd({
+      name: shiftStr,
+      startTime: startTime + ":00",
+      endTime: endTime + ":00",
+      allowedLateDays: Number(allowedLateDays) || 5,
+      lateThresholdMins: Number(lateThresholdMins) || 60,
+      lateDeductionAmount: Number(lateDeductionAmount) || 0,
+      allowPunchInHours: canPunchInMode === "Limit" ? Number(punchInHours) || 0 : undefined,
+      allowPunchInMinutes: canPunchInMode === "Limit" ? Number(punchInMinutes) || 0 : undefined,
+      allowPunchOutHours: canPunchOutMode === "Limit" ? Number(punchOutHours) || 0 : undefined,
+      allowPunchOutMinutes: canPunchOutMode === "Limit" ? Number(punchOutMinutes) || 0 : undefined,
+    });
+    handleClose();
+  };
+
+  return (
+    <>
+      <style>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-8px);
+            max-height: 0;
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+            max-height: 250px;
+          }
+        }
+        .animate-slideDown {
+          animation: slideDown 0.25s ease-out forwards;
+          overflow: hidden;
+        }
+      `}</style>
+      <div
+        onClick={handleClose}
+        className="fixed inset-0 z-[120] bg-black/40 backdrop-blur-sm transition-opacity duration-300"
+        style={{ opacity: visible ? 1 : 0 }}
+      />
+      <div className="fixed inset-0 z-[121] flex items-center justify-center p-4 pointer-events-none">
+        <div
+          className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl pointer-events-auto transition-all duration-300 overflow-hidden animate-fadeIn"
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? "translateY(0) scale(1)" : "translateY(18px) scale(0.96)",
+          }}
+        >
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-slate-100">
+            <h3 className="text-base font-bold text-slate-850">
+              {initialShift ? "Edit Shift" : "Add New Shift"}
+            </h3>
+          </div>
+
+          {/* Form Content */}
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 max-h-[520px] overflow-y-auto no-scrollbar">
+            {/* Left Column */}
+            <div className="space-y-4">
+              {/* Shift Name */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  Shift Name*
+                </label>
+                <input
+                  type="text"
+                  value={shiftName}
+                  onChange={(e) => setShiftName(e.target.value)}
+                  placeholder="e.g. Afternoon Shift"
+                  className="w-full px-3.5 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none bg-white font-semibold text-slate-700 transition"
+                />
+              </div>
+
+              {/* Shift Start Time */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  Shift Start Time*
+                </label>
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-full px-3.5 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none bg-white font-semibold text-slate-700 transition"
+                />
+              </div>
+
+              {/* Can Punch In Toggle */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Can Punch In*
+                </label>
+                <div className="flex gap-2 bg-slate-100 p-1 rounded-xl w-fit">
+                  <button
+                    type="button"
+                    onClick={() => setCanPunchInMode("Anytime")}
+                    className={`px-4 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${canPunchInMode === "Anytime"
+                      ? "bg-white text-[#0D47A1] shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                      }`}
+                  >
+                    Anytime
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCanPunchInMode("Limit")}
+                    className={`px-4 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${canPunchInMode === "Limit"
+                      ? "bg-white text-[#0D47A1] shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                      }`}
+                  >
+                    Add Limit
+                  </button>
+                </div>
+
+                {/* Punch In Limit Form (Smooth display) */}
+                {canPunchInMode === "Limit" && (
+                  <div className="space-y-2 pt-1 animate-slideDown">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Allow Punch In*
+                    </label>
+                    <div className="grid grid-cols-2 gap-3 max-w-[220px]">
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide block mb-0.5">Hours</span>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={punchInHours}
+                          onChange={(e) => setPunchInHours(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none bg-white font-semibold text-slate-700 text-center"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide block mb-0.5">Minutes</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="59"
+                          placeholder="0"
+                          value={punchInMinutes}
+                          onChange={(e) => setPunchInMinutes(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none bg-white font-semibold text-slate-700 text-center"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[10px] font-semibold text-slate-500 tracking-wider pt-0.5 lowercase">
+                      before shift start time
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-4">
+              {/* Spacer to align with Shift Name */}
+              <div className="h-[60px] hidden md:block"></div>
+
+              {/* Shift End Time */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  Shift End Time*
+                </label>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full px-3.5 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none bg-white font-semibold text-slate-700 transition"
+                />
+              </div>
+
+              {/* Can Punch Out Toggle */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Can Punch Out*
+                </label>
+                <div className="flex gap-2 bg-slate-100 p-1 rounded-xl w-fit">
+                  <button
+                    type="button"
+                    onClick={() => setCanPunchOutMode("Anytime")}
+                    className={`px-4 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${canPunchOutMode === "Anytime"
+                      ? "bg-white text-[#0D47A1] shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                      }`}
+                  >
+                    Anytime
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCanPunchOutMode("Limit")}
+                    className={`px-4 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${canPunchOutMode === "Limit"
+                      ? "bg-white text-[#0D47A1] shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                      }`}
+                  >
+                    Add Limit
+                  </button>
+                </div>
+
+                {/* Punch Out Limit Form (Smooth display) */}
+                {canPunchOutMode === "Limit" && (
+                  <div className="space-y-2 pt-1 animate-slideDown">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Allow Punch Out*
+                    </label>
+                    <div className="grid grid-cols-2 gap-3 max-w-[220px]">
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide block mb-0.5">Hours</span>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={punchOutHours}
+                          onChange={(e) => setPunchOutHours(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none bg-white font-semibold text-slate-700 text-center"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide block mb-0.5">Minutes</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="59"
+                          placeholder="0"
+                          value={punchOutMinutes}
+                          onChange={(e) => setPunchOutMinutes(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none bg-white font-semibold text-slate-700 text-center"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[10px] font-semibold text-slate-500 tracking-wider pt-0.5 lowercase">
+                      after shift end time
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Late Penalty Section — full width */}
+            <div className="md:col-span-2 pt-2 border-t border-slate-100">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-3">
+                Late Penalty Policy
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                {/* Allowed Late Days */}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                    Allowed Late Days*
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={allowedLateDays}
+                      onChange={(e) => setAllowedLateDays(e.target.value)}
+                      className="w-16 px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none bg-white font-bold text-slate-700 text-center"
+                    />
+                    <span className="text-xs font-semibold text-slate-400">days</span>
+                  </div>
+                </div>
+
+                {/* Late threshold */}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                    Only deduct if late by more than*
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={lateThresholdMins}
+                      onChange={(e) => setLateThresholdMins(e.target.value)}
+                      className="w-16 px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none bg-white font-bold text-slate-700 text-center"
+                    />
+                    <span className="text-xs font-semibold text-slate-400">mins</span>
+                  </div>
+                </div>
+
+                {/* Custom Multiplier Amount */}
+                <div className="md:col-span-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                    Custom Multiplier — Amount*
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-slate-500">₹</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 50"
+                      value={lateDeductionAmount}
+                      onChange={(e) => setLateDeductionAmount(e.target.value)}
+                      className="w-28 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none bg-white font-bold text-slate-700"
+                    />
+                    <span className="text-xs font-semibold text-slate-400">per late occurrence</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          {/* Action Footer */}
+          <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-5 py-2 text-sm font-bold border border-slate-200 text-slate-650 rounded-xl hover:bg-slate-50 transition cursor-pointer bg-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleAddShift}
+              className="px-6 py-2 text-sm font-bold text-white rounded-xl bg-[#0D47A1] hover:opacity-90 transition cursor-pointer border-none"
+            >
+              {initialShift ? "Save Changes" : "Add Shift"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+const ShiftSelectModal = ({
+  day,
+  selectedShift,
+  onClose,
+  onConfirm,
+  customShifts,
+  onAddCustomShift,
+  onDeleteCustomShift,
+  onEditCustomShift,
+}: {
+  day: string;
+  selectedShift: string;
+  onClose: () => void;
+  onConfirm: (shift: string, config?: any) => void;
+  customShifts: any[];
+  onAddCustomShift: (newShift: any) => void;
+  onDeleteCustomShift: (name: string) => void;
+  onEditCustomShift: (oldName: string, updatedShift: any) => void;
+}) => {
+  const [visible, setVisible] = useState(false);
+  const [activeShift, setActiveShift] = useState(selectedShift);
+  const [showAddShiftModal, setShowAddShiftModal] = useState(false);
+  const [editingShiftObj, setEditingShiftObj] = useState<any | null>(null);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+  }, []);
+
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(onClose, 250);
+  };
+
+  const defaultShifts: string[] = [];
+  const allShifts = [...defaultShifts, ...customShifts.map(s => typeof s === 'string' ? s : s.name)];
+
+  return (
+    <>
+      <div
+        onClick={handleClose}
+        className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm transition-opacity duration-300"
+        style={{ opacity: visible ? 1 : 0 }}
+      />
+      <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+        <div
+          className="w-full max-w-md bg-white rounded-2xl shadow-2xl pointer-events-auto transition-all duration-300 overflow-hidden"
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? "translateY(0) scale(1)" : "translateY(18px) scale(0.96)",
+          }}
+        >
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="text-base font-bold text-slate-850">
+              {day} - Shift
+            </h3>
+          </div>
+
+          {/* Options List */}
+          <div className="divide-y divide-slate-100 max-h-[250px] overflow-y-auto">
+            {allShifts.length === 0 ? (
+              <div className="px-6 py-8 text-center text-xs font-semibold text-slate-400">
+                No custom shifts created. Please add a shift.
+              </div>
+            ) : (
+              allShifts.map((shiftOpt) => {
+                const isChecked = activeShift === shiftOpt;
+                return (
+                  <label
+                    key={shiftOpt}
+                    className="flex items-center justify-between px-6 py-3 hover:bg-slate-50 cursor-pointer transition-colors"
+                  >
+                    <span className={`text-sm font-semibold ${isChecked ? "text-slate-900" : "text-slate-650"}`}>
+                      {shiftOpt}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const targetObj = customShifts.find(s => (typeof s === 'string' ? s : s.name) === shiftOpt);
+                          if (targetObj) {
+                            setEditingShiftObj(targetObj);
+                          }
+                        }}
+                        className="p-1 rounded-lg text-slate-400 hover:text-[#0D47A1] hover:bg-slate-100 transition cursor-pointer"
+                        title="Edit Shift"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onDeleteCustomShift(shiftOpt);
+                          if (activeShift === shiftOpt) {
+                            setActiveShift("");
+                          }
+                        }}
+                        className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-100 transition cursor-pointer"
+                        title="Delete Shift"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                      <input
+                        type="radio"
+                        name="shift-selection"
+                        checked={isChecked}
+                        onChange={() => setActiveShift(shiftOpt)}
+                        className="w-4 h-4 text-[#0D47A1] focus:ring-[#0D47A1]/20 cursor-pointer ml-1"
+                      />
+                    </div>
+                  </label>
+                );
+              })
+            )}
+
+            {/* Add Shift Button at the bottom of the list */}
+            <div className="px-6 py-3 flex justify-start border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowAddShiftModal(true)}
+                className="flex items-center gap-1 text-xs font-bold text-[#0D47A1] hover:text-[#0D47A1]/80 transition cursor-pointer bg-transparent border-none outline-none"
+              >
+                <Plus size={14} /> Add Shift
+              </button>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-5 py-2 text-sm font-bold border border-slate-200 text-slate-650 rounded-xl hover:bg-slate-50 transition cursor-pointer bg-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const customObj = customShifts.find(s => (typeof s === 'string' ? s : s.name) === activeShift);
+                if (customObj && typeof customObj === 'object') {
+                  const { name, ...config } = customObj;
+                  onConfirm(activeShift, config);
+                } else {
+                  onConfirm(activeShift);
+                }
+                handleClose();
+              }}
+              className="px-6 py-2 text-sm font-bold text-white rounded-xl bg-[#0D47A1] hover:opacity-90 transition cursor-pointer border-none"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showAddShiftModal && createPortal(
+        <AddNewShiftModal
+          onClose={() => setShowAddShiftModal(false)}
+          onAdd={(newShiftObj) => {
+            onAddCustomShift(newShiftObj);
+            setActiveShift(newShiftObj.name);
+          }}
+        />,
+        document.body
+      )}
+
+      {editingShiftObj && createPortal(
+        <AddNewShiftModal
+          initialShift={editingShiftObj}
+          onClose={() => setEditingShiftObj(null)}
+          onAdd={(updatedShiftObj) => {
+            onEditCustomShift(editingShiftObj.name, updatedShiftObj);
+            setActiveShift(updatedShiftObj.name);
+            setEditingShiftObj(null);
+          }}
+        />,
+        document.body
+      )}
+    </>
   );
 };
 
@@ -636,14 +1514,6 @@ const EmployeeProfile = ({
     casualLeave: 6,
   });
 
-  // Local state for Penalty & Overtime
-  const [penaltyPolicy, setPenaltyPolicy] = useState({
-    allowedLateDays: 3,
-    deductIfLateByMoreThan: 10,
-    deductBasedOnLateArrival: true,
-    deductionType: "Custom Multiplier",
-    deductionAmount: 50,
-  });
 
   // Local state for KYC Verification
   const [kycData, setKycData] = useState({
@@ -659,6 +1529,55 @@ const EmployeeProfile = ({
 
   // Local state for Documents tab
   const [documentsList, setDocumentsList] = useState<any[]>([]);
+
+  // Local state for Time & Shift subview
+  const [shiftTab, setShiftTab] = useState<"Fixed" | "Flexible">(() => {
+    return (employee.shift && employee.shift.toLowerCase() === "flexible") ? "Flexible" : "Fixed";
+  });
+
+  const [showScheduleTypeConfirm, setShowScheduleTypeConfirm] = useState(false);
+  const [pendingShiftTab, setPendingShiftTab] = useState<"Fixed" | "Flexible" | null>(null);
+  const [flexibleMonth, setFlexibleMonth] = useState<{ year: number; month: number } | null>(null);
+  const [showMonthPickerModal, setShowMonthPickerModal] = useState(false);
+
+  const handleShiftTabChange = (type: "Fixed" | "Flexible") => {
+    if (type === shiftTab) return;
+    // Show confirmation dialog before switching
+    setPendingShiftTab(type);
+    setShowScheduleTypeConfirm(true);
+  };
+
+  const applyShiftTabChange = (type: "Fixed" | "Flexible") => {
+    setShiftTab(type);
+    if (isEditing) {
+      if (type === "Flexible") {
+        setFormData(prev => ({
+          ...prev,
+          shift: "Flexible",
+          punchInTime: "",
+          punchOutTime: "",
+          weeklySchedule: ""
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          shift: employee.shift && employee.shift.toLowerCase() !== "flexible"
+            ? employee.shift
+            : "",
+          punchInTime: employee.punchInTime || "",
+          punchOutTime: employee.punchOutTime || "",
+          weeklySchedule: ""
+        }));
+        setFlexibleMonth(null);
+      }
+    }
+  };
+
+  const [activeWeekOffModalDay, setActiveWeekOffModalDay] = useState<string | null>(null);
+  const [tempWeekOffWeeks, setTempWeekOffWeeks] = useState<string[]>([]);
+  const [activeShiftModalDay, setActiveShiftModalDay] = useState<string | null>(null);
+  const [tempSelectedShift, setTempSelectedShift] = useState<string>("");
+  const [customShifts, setCustomShifts] = useState<any[]>([]);
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadDocName, setUploadDocName] = useState("");
@@ -748,8 +1667,9 @@ const EmployeeProfile = ({
     passingYear: employee.passingYear || "",
     percentage: employee.percentage || "",
     weekOffDays: employee.weekOffDays || [],
+    shift: employee.shift || "General (10AM–7PM)",
+    weeklySchedule: employee.weeklySchedule || "",
     employeeType: employee.employeeType || "Permanent",
-    workMode: employee.workMode || "Office",
     probationPeriod: employee.probationPeriod ?? 3,
     dateOfLeaving: employee.dateOfLeaving || "",
     noticePeriod: employee.noticePeriod ?? 30,
@@ -820,8 +1740,9 @@ const EmployeeProfile = ({
       passingYear: employee.passingYear || "",
       percentage: employee.percentage || "",
       weekOffDays: employee.weekOffDays || [],
+      shift: employee.shift || "General (10AM–7PM)",
+      weeklySchedule: employee.weeklySchedule || "",
       employeeType: employee.employeeType || "Permanent",
-      workMode: employee.workMode || "Office",
       probationPeriod: employee.probationPeriod ?? 3,
       dateOfLeaving: employee.dateOfLeaving || "",
       noticePeriod: employee.noticePeriod ?? 30,
@@ -856,20 +1777,14 @@ const EmployeeProfile = ({
       upiId: employee.upiId || "",
     });
     setAvatarPreview(employee.avatarUrl || null);
+    // NOTE: shiftTab is NOT reset here to avoid switching tabs after save.
+    // It is only reset when a different employee is opened (see useEffect below).
 
     // Leave Balances — load from DB, fallback to defaults
     setLeaveBalances({
       privilegedLeave: employee.privileged_leave_balance ?? 12,
       sickLeave: employee.sick_leave_balance ?? 8,
       casualLeave: employee.casual_leave_balance ?? 6,
-    });
-    // Penalty Policy — load from DB, fallback to defaults
-    setPenaltyPolicy({
-      allowedLateDays: employee.allowed_late_days ?? 3,
-      deductIfLateByMoreThan: employee.deduct_if_late_by_more_than ?? 10,
-      deductBasedOnLateArrival: employee.deduct_based_on_late_arrival ?? true,
-      deductionType: employee.deduction_type ?? "Custom Multiplier",
-      deductionAmount: employee.deduction_amount ?? 50,
     });
     setKycData({
       aadhaarNumber: employee.aadharNumber || "",
@@ -880,7 +1795,45 @@ const EmployeeProfile = ({
     setLeaveSubView("menu");
     setLeaveCycle(employee.leave_cycle ?? "Monthly");
     setDocumentsList(employee.documents || []);
+
+    // Extract custom shifts from weeklySchedule JSON
+    let extractedCustom: any[] = [];
+    if (employee.weeklySchedule) {
+      try {
+        const parsed = JSON.parse(employee.weeklySchedule);
+        const defaults: string[] = [];
+        Object.values(parsed).forEach((dayObj: any) => {
+          if (dayObj && dayObj.shift && !dayObj.isWeekOff) {
+            const shName = dayObj.shift;
+            if (!defaults.includes(shName)) {
+              const alreadyFound = extractedCustom.some(s => s.name === shName);
+              if (!alreadyFound && !shName.toLowerCase().includes("week off") && !shName.toLowerCase().includes("off")) {
+                // Reconstruct custom shift object parameters from saved weeklySchedule fields
+                extractedCustom.push({
+                  name: shName,
+                  startTime: dayObj.startTime || "09:00:00",
+                  endTime: dayObj.endTime || "18:00:00",
+                  allowedLateDays: dayObj.allowedLateDays ?? 5,
+                  lateThresholdMins: dayObj.lateThresholdMins ?? 60,
+                  lateDeductionAmount: dayObj.lateDeductionAmount ?? 0,
+                  allowPunchInHours: dayObj.allowPunchInHours,
+                  allowPunchInMinutes: dayObj.allowPunchInMinutes,
+                  allowPunchOutHours: dayObj.allowPunchOutHours,
+                  allowPunchOutMinutes: dayObj.allowPunchOutMinutes,
+                });
+              }
+            }
+          }
+        });
+      } catch (e) { }
+    }
+    setCustomShifts(extractedCustom);
   }, [employee]);
+
+  // Reset the shift tab ONLY when a different employee is opened, not on every save
+  useEffect(() => {
+    setShiftTab(employee.shift && employee.shift.toLowerCase() === "flexible" ? "Flexible" : "Fixed");
+  }, [employee.id]);
 
   useEffect(() => {
     setLeaveSubView("menu");
@@ -917,7 +1870,7 @@ const EmployeeProfile = ({
         company: formData.company || undefined,
         attendanceLocation: formData.attendanceLocation || undefined,
         status: (formData.dateOfLeaving
-          ? (new Date(formData.dateOfLeaving).getTime() <= new Date().setHours(0,0,0,0) ? "inactive" : "active")
+          ? (new Date(formData.dateOfLeaving).getTime() <= new Date().setHours(0, 0, 0, 0) ? "inactive" : "active")
           : formData.status) as EmployeeStatus,
         dateOfBirth: formData.dateOfBirth || undefined,
         emergencyContact: formData.emergencyContact || undefined,
@@ -937,10 +1890,11 @@ const EmployeeProfile = ({
         passingYear: formData.passingYear || undefined,
         percentage: formData.percentage || undefined,
         weekOffDays: formData.weekOffDays as WeekOffDays[] || undefined,
+        shift: shiftTab,  // Always use active shiftTab ("Fixed" | "Flexible") as the source of truth
+        weeklySchedule: formData.weeklySchedule || undefined,
         avatarUrl: avatarPreview || employee.avatarUrl || undefined,
         documents: documentsList,
         employeeType: formData.employeeType as any,
-        workMode: formData.workMode as any,
         probationPeriod: Number(formData.probationPeriod) ?? 3,
         dateOfLeaving: formData.dateOfLeaving || undefined,
         noticePeriod: Number(formData.noticePeriod) ?? 30,
@@ -978,12 +1932,6 @@ const EmployeeProfile = ({
         privileged_leave_balance: leaveBalances.privilegedLeave,
         sick_leave_balance: leaveBalances.sickLeave,
         casual_leave_balance: leaveBalances.casualLeave,
-        // Penalty & Overtime
-        allowed_late_days: penaltyPolicy.allowedLateDays,
-        deduct_if_late_by_more_than: penaltyPolicy.deductIfLateByMoreThan,
-        deduct_based_on_late_arrival: penaltyPolicy.deductBasedOnLateArrival,
-        deduction_type: penaltyPolicy.deductionType,
-        deduction_amount: penaltyPolicy.deductionAmount,
       };
       await employeeApi.update(employee.id, payload);
       toast.success("Employee updated successfully!");
@@ -1008,17 +1956,17 @@ const EmployeeProfile = ({
   };
 
   const tabs = [
-    { id: "basic", label: "Basic Information", icon: <UserIcon size={14} /> },
-    { id: "personal", label: "Personal Details", icon: <UserCog2 size={14} /> },
-    { id: "address", label: "Address Details", icon: <MapPinIcon size={14} /> },
-    { id: "education", label: "Educational Details", icon: <GraduationCap size={14} /> },
-    { id: "employment", label: "Employment Details", icon: <BriefcaseIcon size={14} /> },
-    { id: "system", label: "System Details", icon: <Laptop size={14} /> },
-    { id: "bank", label: "Bank Details", icon: <Banknote size={14} /> },
-    { id: "leaves", label: "Leave Balances & Policy", icon: <CalendarCheck size={14} /> },
-    { id: "kyc", label: "KYC Verification", icon: <ShieldCheck size={14} /> },
-    { id: "penalty", label: "Penalty & Overtime", icon: <ClockIcon size={14} /> },
-    { id: "documents", label: "Documents", icon: <FileText size={14} /> },
+    { id: "basic", label: "Basic Information", icon: <UserIcon size={14} className="text-blue-500" /> },
+    { id: "personal", label: "Personal Details", icon: <UserCog2 size={14} className="text-orange-500" /> },
+    { id: "address", label: "Address Details", icon: <MapPinIcon size={14} className="text-rose-500" /> },
+    { id: "education", label: "Educational Details", icon: <GraduationCap size={14} className="text-emerald-500" /> },
+    { id: "employment", label: "Employment Details", icon: <BriefcaseIcon size={14} className="text-indigo-500" /> },
+    { id: "time_shift", label: "Time & Shift", icon: <Clock size={14} className="text-violet-500" /> },
+    { id: "system", label: "System Details", icon: <Laptop size={14} className="text-teal-500" /> },
+    { id: "bank", label: "Bank Details", icon: <Banknote size={14} className="text-amber-500" /> },
+    { id: "leaves", label: "Leave Balances & Policy", icon: <CalendarCheck size={14} className="text-cyan-500" /> },
+    { id: "kyc", label: "KYC Verification", icon: <ShieldCheck size={14} className="text-pink-500" /> },
+    { id: "documents", label: "Documents", icon: <FileText size={14} className="text-fuchsia-500" /> },
   ];
 
   const statusCfg = STATUS_CONFIG[employee.status];
@@ -1322,8 +2270,8 @@ const EmployeeProfile = ({
       case "employment":
         return (
           <div className="space-y-4">
-            {/* Row 1: Date of Joining, Designation, Employee Type, Work Mode */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Row 1: Date of Joining, Designation, Employee Type */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <InputField
                 label="Date of Joining"
                 value={formData.joinDate}
@@ -1346,14 +2294,6 @@ const EmployeeProfile = ({
                 options={["Permanent", "Contract", "Intern", "Probation"]}
                 icon={<UserCheck size={14} />}
               />
-              <InputField
-                label="Work Mode"
-                value={formData.workMode}
-                onChange={(v: string) => setFormData({ ...formData, workMode: v as any })}
-                isSelect
-                options={["Office", "Remote", "Hybrid"]}
-                icon={<Laptop size={14} />}
-              />
             </div>
 
             {/* Row 2: Probation Period, Date of Leaving, Notice Period (days) */}
@@ -1372,9 +2312,9 @@ const EmployeeProfile = ({
                   const updated = { ...formData, dateOfLeaving: v };
                   if (v) {
                     const leaving = new Date(v);
-                    leaving.setHours(0,0,0,0);
+                    leaving.setHours(0, 0, 0, 0);
                     const today = new Date();
-                    today.setHours(0,0,0,0);
+                    today.setHours(0, 0, 0, 0);
                     if (leaving.getTime() <= today.getTime()) {
                       updated.status = "inactive" as any;
                     } else {
@@ -1461,14 +2401,12 @@ const EmployeeProfile = ({
                     type="button"
                     disabled={!isEditing}
                     onClick={() => setFormData({ ...formData, hikeActive: !formData.hikeActive })}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:ring-offset-2 ${
-                      formData.hikeActive ? 'bg-[#0D47A1]' : 'bg-slate-200'
-                    } ${!isEditing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:ring-offset-2 ${formData.hikeActive ? 'bg-[#0D47A1]' : 'bg-slate-200'
+                      } ${!isEditing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        formData.hikeActive ? 'translate-x-6' : 'translate-x-1'
-                      }`}
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.hikeActive ? 'translate-x-6' : 'translate-x-1'
+                        }`}
                     />
                   </button>
                   <span className="ml-3 text-sm font-medium text-slate-700">
@@ -1478,29 +2416,486 @@ const EmployeeProfile = ({
               </div>
             </div>
 
-            {/* Row 5: Punch In Time, Punch Out Time, Week Off Days */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <InputField
-                label="Punch In Time"
-                value={formData.punchInTime}
-                onChange={(v: string) => setFormData({ ...formData, punchInTime: v })}
-                type="time"
-              />
-              <InputField
-                label="Punch Out Time"
-                value={formData.punchOutTime}
-                onChange={(v: string) => setFormData({ ...formData, punchOutTime: v })}
-                type="time"
-              />
-              <MultiSelectDropdown
-                label="Week Off Days"
-                value={formData.weekOffDays}
-                onChange={(v: string[]) => setFormData({ ...formData, weekOffDays: v as WeekOffDays[] })}
-                options={WEEK_OFF_DAYS}
-                icon={<CalendarDays size={14} />}
-                disabled={!isEditing}
-              />
+          </div>
+        );
+
+      case "time_shift":
+        return (
+          <div className="space-y-4">
+            <div className="flex justify-start mb-3 pb-3">
+              <div className="relative flex bg-blue-50/80 p-1 rounded-xl w-64 border border-[#0D47A1]/20">
+                {/* Active background pill */}
+                <div
+                  className="absolute top-1 bottom-1 rounded-lg bg-[#0D47A1] shadow-md transition-all duration-300 ease-out"
+                  style={{
+                    width: 'calc(50% - 4px)',
+                    left: shiftTab === "Fixed" ? '4px' : 'calc(50%)',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleShiftTabChange("Fixed")}
+                  className={`relative z-10 w-1/2 py-2 text-xs font-bold text-center transition-colors duration-250 cursor-pointer ${shiftTab === "Fixed" ? "text-white" : "text-slate-500 hover:text-[#0D47A1]"
+                    }`}
+                >
+                  Fixed Shift
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleShiftTabChange("Flexible")}
+                  className={`relative z-10 w-1/2 py-2 text-xs font-bold text-center transition-colors duration-250 cursor-pointer ${shiftTab === "Flexible" ? "text-white" : "text-slate-500 hover:text-[#0D47A1]"
+                    }`}
+                >
+                  Flexible Shift
+                </button>
+              </div>
             </div>
+
+            {/* Sub-tab content */}
+            {shiftTab === "Fixed" ? (
+              <div className="bg-white border border-slate-200 rounded-2xl pt-3 px-6 pb-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] animate-fadeIn">
+                {/* Grid Header */}
+                <div className="grid grid-cols-[120px_100px_1fr] gap-4 items-center border-b border-slate-200 pb-2 mb-2 text-xs font-extrabold text-slate-500 uppercase tracking-widest py-1">
+                  <div>Day</div>
+                  <div className="text-center">Weekoff</div>
+                  <div>Shifts</div>
+                </div>
+
+                {/* Grid Rows */}
+                <div className="divide-y divide-slate-100 md:max-h-[245px] md:overflow-y-auto no-scrollbar pr-0">
+                  {(() => {
+                    const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+                    let schedule: Record<string, { shift?: string; isWeekOff?: boolean; weeks?: string[] }> = {};
+                    try {
+                      const raw = formData.weeklySchedule ? JSON.parse(formData.weeklySchedule) : {};
+                      DAYS.forEach(d => {
+                        if (raw[d] && typeof raw[d] === 'object') {
+                          schedule[d] = raw[d];
+                        } else {
+                          const isOff = formData.weekOffDays?.includes(d as any);
+                          schedule[d] = {
+                            shift: isOff ? `All ${d.toLowerCase()}s week off` : "",
+                            isWeekOff: isOff,
+                            weeks: ["All Weeks"]
+                          };
+                        }
+                      });
+                    } catch (e) {
+                      DAYS.forEach(d => {
+                        const isOff = formData.weekOffDays?.includes(d as any);
+                        schedule[d] = {
+                          shift: isOff ? `All ${d.toLowerCase()}s week off` : "",
+                          isWeekOff: isOff,
+                          weeks: ["All Weeks"]
+                        };
+                      });
+                    }
+
+                    return DAYS.map(day => {
+                      const isOff = schedule[day]?.isWeekOff || false;
+                      const activeShift = schedule[day]?.shift || "";
+                      const weeks = schedule[day]?.weeks || ["All Weeks"];
+
+                      return (
+                        <div key={day} className="grid grid-cols-[120px_100px_1fr] gap-4 items-center py-2.5 hover:bg-slate-50/50 px-2 transition duration-150">
+                          {/* Day Column */}
+                          <div className="flex items-center gap-1 text-sm font-semibold text-slate-700">
+                            {!isOff && <span className="text-red-500 font-bold">*</span>}
+                            <span>{day.substring(0, 3)}</span>
+                          </div>
+
+                          {/* Weekoff Checkbox Column */}
+                          <div className="flex justify-center">
+                            <input
+                              type="checkbox"
+                              checked={isOff}
+                              disabled={!isEditing}
+                              onChange={(e) => {
+                                if (!isEditing) return;
+                                const updated = {
+                                  ...schedule,
+                                  [day]: {
+                                    ...schedule[day],
+                                    isWeekOff: e.target.checked,
+                                    shift: e.target.checked ? `All ${day.toLowerCase()}s week off` : "General (10AM–7PM)",
+                                    weeks: e.target.checked ? ["All Weeks"] : []
+                                  }
+                                };
+                                const newScheduleStr = JSON.stringify(updated);
+                                const newWeekOffs = DAYS.filter(d => updated[d]?.isWeekOff);
+
+                                setFormData({
+                                  ...formData,
+                                  weeklySchedule: newScheduleStr,
+                                  weekOffDays: newWeekOffs as WeekOffDays[],
+                                  shift: updated[DAYS.find(d => !updated[d]?.isWeekOff) || "Monday"]?.shift || "General (10AM–7PM)"
+                                });
+                              }}
+                              className="w-4 h-4 rounded border-slate-300 text-[#0D47A1] focus:ring-[#0D47A1]/20 cursor-pointer"
+                            />
+                          </div>
+
+                          {/* Shifts Column */}
+                          <div className="max-w-[280px] w-full">
+                            {isOff ? (
+                              <button
+                                type="button"
+                                disabled={!isEditing}
+                                onClick={() => {
+                                  setActiveWeekOffModalDay(day);
+                                  setTempWeekOffWeeks(weeks);
+                                }}
+                                className={`w-full flex items-center justify-between px-3.5 py-1.5 text-sm border rounded-xl bg-white text-left font-semibold transition-all border-slate-200 text-slate-700 hover:border-[#0D47A1]/40 ${!isEditing ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+                                  }`}
+                              >
+                                <span className="truncate">{getWeekOffText(day, weeks)}</span>
+                                <svg className="shrink-0 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={!isEditing}
+                                onClick={() => {
+                                  setActiveShiftModalDay(day);
+                                  setTempSelectedShift(activeShift);
+                                }}
+                                className={`w-full flex items-center justify-between px-3.5 py-1.5 text-sm border rounded-xl bg-white text-left font-semibold transition-all border-slate-200 text-slate-700 hover:border-[#0D47A1]/40 ${!isEditing ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+                                  }`}
+                              >
+                                <span className="truncate">{activeShift || "Select Shift"}</span>
+                                <svg className="shrink-0 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+            ) : (
+              // Flexible: date-by-date table for selected month
+              flexibleMonth ? (() => {
+                const { year, month } = flexibleMonth;
+                const monthName = new Date(year, month, 1).toLocaleString("default", { month: "long" });
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const DATE_KEYS = Array.from({ length: daysInMonth }, (_, i) => `${year}-${String(month + 1).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`);
+
+                let flexSchedule: Record<string, { shift?: string; isWeekOff?: boolean; weeks?: string[] }> = {};
+                try {
+                  const raw = formData.weeklySchedule ? JSON.parse(formData.weeklySchedule) : {};
+                  DATE_KEYS.forEach(dk => {
+                    if (raw[dk] && typeof raw[dk] === "object") {
+                      flexSchedule[dk] = raw[dk];
+                    } else {
+                      flexSchedule[dk] = { shift: "", isWeekOff: false, weeks: [] };
+                    }
+                  });
+                } catch (e) {
+                  DATE_KEYS.forEach(dk => {
+                    flexSchedule[dk] = { shift: "", isWeekOff: false, weeks: [] };
+                  });
+                }
+
+                return (
+                  <div className="bg-white border border-slate-200 rounded-2xl pt-3 px-6 pb-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] animate-fadeIn">
+                    {/* Month header with change button */}
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+                        {monthName} {year}
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setShowMonthPickerModal(true)}
+                        className="text-[10px] font-bold text-[#0D47A1] hover:underline cursor-pointer bg-transparent border-none outline-none"
+                      >
+                        Change Month
+                      </button>
+                    </div>
+
+                    {/* Grid Header */}
+                    <div className="grid grid-cols-[100px_100px_1fr] gap-4 items-center border-b border-slate-200 pb-2 mb-2 text-xs font-extrabold text-slate-500 uppercase tracking-widest py-1">
+                      <div>Date</div>
+                      <div className="text-center">Weekoff</div>
+                      <div>Shifts</div>
+                    </div>
+
+                    {/* Grid Rows */}
+                    <div className="divide-y divide-slate-100 md:max-h-[245px] md:overflow-y-auto no-scrollbar">
+                      {DATE_KEYS.map(dk => {
+                        const dayNum = parseInt(dk.split("-")[2]);
+                        const dateObj = new Date(year, month, dayNum);
+                        const dayLabel = dateObj.toLocaleString("default", { weekday: "short" });
+                        const isOff = flexSchedule[dk]?.isWeekOff || false;
+                        const activeShiftFlex = flexSchedule[dk]?.shift || "";
+                        const weeks = flexSchedule[dk]?.weeks || [];
+
+                        return (
+                          <div key={dk} className="grid grid-cols-[100px_100px_1fr] gap-4 items-center py-2.5 hover:bg-slate-50/50 px-2 transition duration-150">
+                            {/* Date Column */}
+                            <div className="flex items-center gap-1 text-sm font-semibold text-slate-700">
+                              {!isOff && <span className="text-red-500 font-bold">*</span>}
+                              <span>{monthName.substring(0, 3)} {dayNum}</span>
+                              <span className="text-[10px] text-slate-400 font-medium">({dayLabel})</span>
+                            </div>
+
+                            {/* Weekoff Checkbox */}
+                            <div className="flex justify-center">
+                              <input
+                                type="checkbox"
+                                checked={isOff}
+                                disabled={!isEditing}
+                                onChange={(e) => {
+                                  if (!isEditing) return;
+                                  const updatedFlex = {
+                                    ...flexSchedule,
+                                    [dk]: {
+                                      ...flexSchedule[dk],
+                                      isWeekOff: e.target.checked,
+                                      shift: e.target.checked ? `${monthName} ${dayNum} off` : "General (10AM–7PM)",
+                                      weeks: []
+                                    }
+                                  };
+                                  setFormData(prev => ({ ...prev, weeklySchedule: JSON.stringify(updatedFlex) }));
+                                }}
+                                className="w-4 h-4 rounded border-slate-300 text-[#0D47A1] focus:ring-[#0D47A1]/20 cursor-pointer"
+                              />
+                            </div>
+
+                            {/* Shifts Column */}
+                            <div className="max-w-[280px] w-full">
+                              <button
+                                type="button"
+                                disabled={!isEditing || isOff}
+                                onClick={() => {
+                                  setActiveShiftModalDay(dk);
+                                  setTempSelectedShift(activeShiftFlex);
+                                }}
+                                className={`w-full flex items-center justify-between px-3.5 py-1.5 text-sm border rounded-xl bg-white text-left font-semibold transition-all border-slate-200 text-slate-700 hover:border-[#0D47A1]/40 ${(!isEditing || isOff) ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+                                  }`}
+                              >
+                                <span className="truncate">{isOff ? `${monthName} ${dayNum} off` : (activeShiftFlex || "Select Shift")}</span>
+                                {!isOff && (
+                                  <svg className="shrink-0 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()
+                : (
+                  <div className="flex flex-col gap-1.5 p-5 bg-blue-50/50 border border-blue-100/50 rounded-2xl animate-fadeIn max-w-xl">
+                    <h4 className="text-xs font-extrabold text-[#0D47A1] uppercase tracking-wider flex items-center gap-1.5">
+                      <Clock size={14} /> Flexible Shift
+                    </h4>
+                    <p className="text-xs text-slate-500 leading-relaxed mt-1">
+                      Select a month to configure date-wise shifts.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowMonthPickerModal(true)}
+                      className="mt-2 w-fit px-4 py-2 text-xs font-bold text-white bg-[#0D47A1] rounded-xl hover:opacity-90 transition cursor-pointer border-none"
+                    >
+                      Select Month
+                    </button>
+                  </div>
+                )
+            )}
+
+            {/* Week Off Details Modal */}
+            {activeWeekOffModalDay && createPortal(
+              <WeekOffModal
+                day={activeWeekOffModalDay}
+                weeks={tempWeekOffWeeks}
+                onClose={() => setActiveWeekOffModalDay(null)}
+                onConfirm={(updatedWeeks) => {
+                  let schedule: Record<string, { shift?: string; isWeekOff?: boolean; weeks?: string[] }> = {};
+                  try {
+                    schedule = formData.weeklySchedule ? JSON.parse(formData.weeklySchedule) : {};
+                  } catch (e) { }
+
+                  const updated = {
+                    ...schedule,
+                    [activeWeekOffModalDay]: {
+                      ...schedule[activeWeekOffModalDay],
+                      weeks: updatedWeeks,
+                      shift: getWeekOffText(activeWeekOffModalDay, updatedWeeks)
+                    }
+                  };
+
+                  setFormData({
+                    ...formData,
+                    weeklySchedule: JSON.stringify(updated)
+                  });
+                  setActiveWeekOffModalDay(null);
+                }}
+              />,
+              document.body
+            )}
+
+            {/* Shift Selection Modal */}
+            {activeShiftModalDay && createPortal(
+              <ShiftSelectModal
+                day={activeShiftModalDay}
+                selectedShift={tempSelectedShift}
+                customShifts={customShifts}
+                onAddCustomShift={(newShift) => setCustomShifts(prev => [...prev, newShift])}
+                onDeleteCustomShift={(name) => {
+                  setCustomShifts(prev => prev.filter(s => (typeof s === 'string' ? s : s.name) !== name));
+                  let schedule: Record<string, any> = {};
+                  try {
+                    schedule = formData.weeklySchedule ? JSON.parse(formData.weeklySchedule) : {};
+                  } catch (e) { }
+                  let updated = { ...schedule };
+                  let changed = false;
+                  Object.keys(updated).forEach(dayKey => {
+                    if (updated[dayKey] && updated[dayKey].shift === name) {
+                      updated[dayKey] = {
+                        ...updated[dayKey],
+                        shift: "",
+                        isWeekOff: false,
+                        startTime: null,
+                        endTime: null,
+                        allowPunchInHours: null,
+                        allowPunchInMinutes: null,
+                        allowPunchOutHours: null,
+                        allowPunchOutMinutes: null,
+                        allowedLateDays: null,
+                        lateThresholdMins: null,
+                        lateDeductionAmount: null
+                      };
+                      changed = true;
+                    }
+                  });
+                  if (changed) {
+                    setFormData(prev => ({
+                      ...prev,
+                      weeklySchedule: JSON.stringify(updated)
+                    }));
+                  }
+                }}
+                onEditCustomShift={(oldName, updatedShift) => {
+                  setCustomShifts(prev => prev.map(s => (typeof s === 'string' ? s : s.name) === oldName ? updatedShift : s));
+                  let schedule: Record<string, any> = {};
+                  try {
+                    schedule = formData.weeklySchedule ? JSON.parse(formData.weeklySchedule) : {};
+                  } catch (e) { }
+                  let updated = { ...schedule };
+                  let changed = false;
+                  Object.keys(updated).forEach(dayKey => {
+                    if (updated[dayKey] && updated[dayKey].shift === oldName) {
+                      const { name, ...config } = updatedShift;
+                      updated[dayKey] = {
+                        ...updated[dayKey],
+                        shift: name,
+                        ...(config || {})
+                      };
+                      changed = true;
+                    }
+                  });
+                  if (changed) {
+                    setFormData(prev => ({
+                      ...prev,
+                      weeklySchedule: JSON.stringify(updated)
+                    }));
+                  }
+                }}
+                onClose={() => setActiveShiftModalDay(null)}
+                onConfirm={(selectedVal, shiftConfig) => {
+                  let schedule: Record<string, any> = {};
+                  try {
+                    schedule = formData.weeklySchedule ? JSON.parse(formData.weeklySchedule) : {};
+                  } catch (e) { }
+
+                  const forcedWorkMode = shiftTab === "Flexible" ? "WFH" : "Office";
+
+                  // Only update the specific day that was clicked — do NOT touch other days
+                  const updated = {
+                    ...schedule,
+                    [activeShiftModalDay]: {
+                      ...schedule[activeShiftModalDay],
+                      shift: selectedVal,
+                      isWeekOff: false,
+                      ...(shiftConfig || {}),
+                      workMode: forcedWorkMode
+                    }
+                  };
+
+                  setFormData(prev => ({
+                    ...prev,
+                    weeklySchedule: JSON.stringify(updated)
+                  }));
+                  setActiveShiftModalDay(null);
+                }}
+              />,
+              document.body
+            )}
+
+            {/* Change Schedule Type Confirmation Modal */}
+            {showScheduleTypeConfirm && createPortal(
+              <>
+                <div
+                  className="fixed inset-0 z-[150] bg-black/30 backdrop-blur-sm"
+                  onClick={() => { setShowScheduleTypeConfirm(false); setPendingShiftTab(null); }}
+                />
+                <div className="fixed inset-0 z-[151] flex items-center justify-center p-4 pointer-events-none">
+                  <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl pointer-events-auto overflow-hidden animate-fadeIn">
+                    <div className="px-6 py-4 border-b border-slate-100">
+                      <h3 className="text-sm font-bold text-slate-800">Change Schedule Type?</h3>
+                    </div>
+                    <div className="px-6 py-5">
+                      <p className="text-sm text-slate-500 leading-relaxed">
+                        Changing schedule type would reset data.<br />Are you sure?
+                      </p>
+                    </div>
+                    <div className="px-6 pb-4 flex justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => { setShowScheduleTypeConfirm(false); setPendingShiftTab(null); }}
+                        className="px-5 py-2 text-sm font-bold border border-slate-200 text-slate-650 rounded-xl hover:bg-slate-50 transition cursor-pointer bg-white"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowScheduleTypeConfirm(false);
+                          if (pendingShiftTab) applyShiftTabChange(pendingShiftTab);
+                          setPendingShiftTab(null);
+                        }}
+                        className="px-6 py-2 text-sm font-bold text-white rounded-xl bg-[#0D47A1] hover:opacity-90 transition cursor-pointer border-none"
+                      >
+                        Confirm
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </>,
+              document.body
+            )}
+
+            {/* Month Picker Modal */}
+            {showMonthPickerModal && (
+              <MonthPickerModal
+                initialYear={flexibleMonth?.year ?? new Date().getFullYear()}
+                initialMonth={flexibleMonth?.month ?? new Date().getMonth()}
+                onClose={() => setShowMonthPickerModal(false)}
+                onConfirm={(year, month) => {
+                  setFlexibleMonth({ year, month });
+                  setShowMonthPickerModal(false);
+                }}
+              />
+            )}
           </div>
         );
 
@@ -1746,16 +3141,15 @@ const EmployeeProfile = ({
                   <div className="flex gap-4">
                     <label
                       onClick={() => setLeaveCycle("Monthly")}
-                      className={`flex-1 flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
-                        leaveCycle === "Monthly"
-                          ? "border-sky-300 bg-sky-50/30 text-sky-900"
-                          : "border-slate-200 hover:border-slate-300 bg-white text-slate-700"
-                      }`}
+                      className={`flex-1 flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${leaveCycle === "Monthly"
+                        ? "border-sky-300 bg-sky-50/30 text-sky-900"
+                        : "border-slate-200 hover:border-slate-300 bg-white text-slate-700"
+                        }`}
                     >
                       <input
                         type="radio"
                         checked={leaveCycle === "Monthly"}
-                        onChange={() => {}}
+                        onChange={() => { }}
                         className="w-4 h-4 text-[#0D47A1] border-slate-300 focus:ring-[#0D47A1]/20 cursor-pointer"
                       />
                       <span className="text-sm font-semibold">Monthly</span>
@@ -1763,16 +3157,15 @@ const EmployeeProfile = ({
 
                     <label
                       onClick={() => setLeaveCycle("Yearly")}
-                      className={`flex-1 flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
-                        leaveCycle === "Yearly"
-                          ? "border-sky-300 bg-sky-50/30 text-sky-900"
-                          : "border-slate-200 hover:border-slate-300 bg-white text-slate-700"
-                      }`}
+                      className={`flex-1 flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${leaveCycle === "Yearly"
+                        ? "border-sky-300 bg-sky-50/30 text-sky-900"
+                        : "border-slate-200 hover:border-slate-300 bg-white text-slate-700"
+                        }`}
                     >
                       <input
                         type="radio"
                         checked={leaveCycle === "Yearly"}
-                        onChange={() => {}}
+                        onChange={() => { }}
                         className="w-4 h-4 text-[#0D47A1] border-slate-300 focus:ring-[#0D47A1]/20 cursor-pointer"
                       />
                       <span className="text-sm font-semibold">Yearly</span>
@@ -1882,11 +3275,10 @@ const EmployeeProfile = ({
                 <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-400 font-bold uppercase tracking-wider">Verification Status:</span>
-                    <span className={`font-extrabold capitalize ${
-                      kycData.status === "verified" ? "text-emerald-600" :
+                    <span className={`font-extrabold capitalize ${kycData.status === "verified" ? "text-emerald-600" :
                       kycData.status === "failed" ? "text-red-600" :
-                      kycData.status === "verifying" ? "text-blue-600" : "text-amber-600"
-                    }`}>
+                        kycData.status === "verifying" ? "text-blue-600" : "text-amber-600"
+                      }`}>
                       {kycData.status}
                     </span>
                   </div>
@@ -2004,145 +3396,6 @@ const EmployeeProfile = ({
                       }}
                     />
                   </label>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case "penalty":
-        return (
-          <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-[#0D47A1]">
-                <span>Penalty & Overtime Details</span>
-                <span className="text-slate-400 font-normal">»</span>
-                <span className="text-slate-600 font-medium">Late Coming Policy</span>
-              </div>
-            </div>
-
-            {/* Content Form - 2 Columns grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column */}
-              <div className="space-y-4">
-                {/* Allowed Late Days */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                    Allowed Late Days <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative rounded-xl border border-slate-200 flex items-center bg-white focus-within:ring-2 focus-within:ring-[#0D47A1]/20 focus-within:border-[#0D47A1] overflow-hidden transition-all">
-                    <input
-                      type="number"
-                      value={penaltyPolicy.allowedLateDays}
-                      onChange={(e) => setPenaltyPolicy(prev => ({ ...prev, allowedLateDays: parseInt(e.target.value) || 0 }))}
-                      className="w-full px-3 py-2 text-sm outline-none bg-transparent text-slate-700 font-bold"
-                    />
-                    <span className="pr-3 text-sm text-slate-400 font-medium whitespace-nowrap bg-slate-50/50 py-2 border-l border-slate-100 pl-3">days</span>
-                  </div>
-                </div>
-
-                {/* Only deduct if late by more than */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                    Only deduct if late by more than <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative rounded-xl border border-slate-200 flex items-center bg-white focus-within:ring-2 focus-within:ring-[#0D47A1]/20 focus-within:border-[#0D47A1] overflow-hidden transition-all">
-                    <input
-                      type="number"
-                      value={penaltyPolicy.deductIfLateByMoreThan}
-                      onChange={(e) => setPenaltyPolicy(prev => ({ ...prev, deductIfLateByMoreThan: parseInt(e.target.value) || 0 }))}
-                      className="w-full px-3 py-2 text-sm outline-none bg-transparent text-slate-700 font-bold"
-                    />
-                    <span className="pr-3 text-sm text-slate-400 font-medium whitespace-nowrap bg-slate-50/50 py-2 border-l border-slate-100 pl-3">mins</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div className="space-y-4">
-                {/* Change deduction based on how late they arrive? */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                    Change deduction based on how late they arrive? <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex flex-col gap-2">
-                    {/* Option 1: Fixed */}
-                    <label
-                      onClick={() => setPenaltyPolicy(prev => ({ ...prev, deductBasedOnLateArrival: false }))}
-                      className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                        !penaltyPolicy.deductBasedOnLateArrival
-                          ? "border-sky-300 bg-sky-50/30 text-sky-900"
-                          : "border-slate-200 hover:border-slate-300 bg-white text-slate-700"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        checked={!penaltyPolicy.deductBasedOnLateArrival}
-                        onChange={() => {}}
-                        className="w-4 h-4 text-[#0D47A1] border-slate-300 focus:ring-[#0D47A1]/20 cursor-pointer"
-                      />
-                      <span className="text-xs font-semibold">
-                        No, use a fixed deduction for late arrival
-                      </span>
-                    </label>
-
-                    {/* Option 2: Variable */}
-                    <label
-                      onClick={() => setPenaltyPolicy(prev => ({ ...prev, deductBasedOnLateArrival: true }))}
-                      className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                        penaltyPolicy.deductBasedOnLateArrival
-                          ? "border-sky-300 bg-sky-50/30 text-sky-900"
-                          : "border-slate-200 hover:border-slate-300 bg-white text-slate-700"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        checked={penaltyPolicy.deductBasedOnLateArrival}
-                        onChange={() => {}}
-                        className="w-4 h-4 text-[#0D47A1] border-slate-300 focus:ring-[#0D47A1]/20 cursor-pointer"
-                      />
-                      <span className="text-xs font-semibold">
-                        Yes, deduct based on how late they arrived
-                      </span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Deduction details */}
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  {/* Deduction Dropdown */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                      Deduction <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={penaltyPolicy.deductionType}
-                      onChange={(e) => setPenaltyPolicy(prev => ({ ...prev, deductionType: e.target.value }))}
-                      className="w-full px-2 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none font-semibold text-slate-700 bg-white transition-all"
-                    >
-                      <option value="Custom Multiplier">Custom Multiplier</option>
-                      <option value="Fixed Amount">Fixed Amount</option>
-                    </select>
-                  </div>
-
-                  {/* Amount input */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                      Amount <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative rounded-xl border border-slate-200 flex items-center bg-white focus-within:ring-2 focus-within:ring-[#0D47A1]/20 focus-within:border-[#0D47A1] overflow-hidden transition-all">
-                      <input
-                        type="number"
-                        value={penaltyPolicy.deductionAmount}
-                        onChange={(e) => setPenaltyPolicy(prev => ({ ...prev, deductionAmount: parseInt(e.target.value) || 0 }))}
-                        className="w-full px-2 py-2 text-xs outline-none bg-transparent text-slate-700 font-bold"
-                      />
-                      <span className="pr-2 text-[10px] text-slate-400 font-medium whitespace-nowrap bg-slate-50/50 py-2 border-l border-slate-100 pl-2">
-                        {penaltyPolicy.deductionType === "Custom Multiplier" ? "x Hourly Salary" : "Rs."}
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -2312,11 +3565,10 @@ startxref
                       </div>
 
                       {/* Status Badge */}
-                      <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider shrink-0 ${
-                        doc.status === "Verified" ? "bg-emerald-100/60 text-emerald-700 border border-emerald-200/30" :
+                      <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider shrink-0 ${doc.status === "Verified" ? "bg-emerald-100/60 text-emerald-700 border border-emerald-200/30" :
                         doc.status === "Uploaded" ? "bg-sky-100/60 text-sky-700 border border-sky-200/30" :
-                        "bg-amber-100/60 text-amber-700 border border-amber-200/30"
-                      }`}>
+                          "bg-amber-100/60 text-amber-700 border border-amber-200/30"
+                        }`}>
                         {doc.status}
                       </span>
                     </div>
@@ -2388,7 +3640,7 @@ startxref
             {/* Custom Upload Modal using React Portal for true full-page overlay and blur */}
             {showUploadModal && createPortal(
               <>
-                <div 
+                <div
                   className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto"
                   onClick={() => setShowUploadModal(false)}
                 />
@@ -2399,8 +3651,8 @@ startxref
                         <FileText className="text-[#0D47A1] w-4 h-4" />
                         Upload Document
                       </h3>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => setShowUploadModal(false)}
                         className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-650 transition cursor-pointer"
                       >
@@ -2478,7 +3730,7 @@ startxref
                             ? `${(uploadDocFile.size / (1024 * 1024)).toFixed(1)} MB`
                             : `${(uploadDocFile.size / 1024).toFixed(0)} KB`;
                           const dateStr = new Date().toLocaleDateString('en-CA');
-                          
+
                           const reader = new FileReader();
                           reader.onloadend = async () => {
                             const fileBase64 = reader.result as string;
@@ -2545,10 +3797,10 @@ startxref
       {/* Top Header Section (Static, scrolls away on mobile) */}
       <div className="flex-none space-y-2">
         {/* Buttons Header */}
-        <div className="py-1 flex items-center justify-between flex-wrap gap-2 border-b border-slate-100 bg-white">
+        <div className="py-1 flex items-center justify-between flex-wrap gap-2 border-b border-slate-100 ">
           <button
             onClick={handleBack}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer hover:text-[#0D47A1]"
           >
             <ArrowLeft size={18} /> Back to Employees
           </button>
@@ -2605,7 +3857,7 @@ startxref
       </div>
 
       {/* Tabs Headers - Sticky on mobile at the top, static on desktop */}
-      <div className="sticky top-0 z-30 border-b border-slate-200 bg-white flex-none mt-4">
+      <div className="sticky top-0 z-30 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/60 flex-none mt-4">
         <style>{`
           .no-scrollbar::-webkit-scrollbar {
             display: none;
@@ -2616,9 +3868,9 @@ startxref
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition whitespace-nowrap ${activeTab === tab.id
-                ? "text-[#0D47A1] border-b-2 border-[#0D47A1] bg-[#0D47A1]/5"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all duration-200 whitespace-nowrap cursor-pointer ${activeTab === tab.id
+                ? "bg-white text-[#0D47A1] shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
                 }`}
             >
               {tab.icon} {tab.label}
@@ -2627,9 +3879,8 @@ startxref
         </div>
       </div>
 
-      {/* Form Content — only this scrolls on desktop, header stays sticky */}
       <div className="flex-1 mt-2 pb-4 md:overflow-y-auto no-scrollbar">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-6">
+        <div className="p-6">
           <EditingContext.Provider value={isEditing}>
             {renderTabContent()}
           </EditingContext.Provider>
