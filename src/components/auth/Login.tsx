@@ -58,17 +58,15 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
         const isUserAdmin = userRole === 'admin' || userRole === 'super admin' || userRole === 'supper admin';
         
         if (isUserAdmin) {
-          toast.success('Admin login successful!');
           onSuccess();
           setTimeout(() => {
             navigate('/dashboard');
-          }, 1000);
+          }, 500);
         } else {
-          toast.success('Login successful!');
           onSuccess();
           setTimeout(() => {
             navigate('/employee');
-          }, 1000);
+          }, 500);
         }
       } else {
         setError(result.message || 'Login failed');
