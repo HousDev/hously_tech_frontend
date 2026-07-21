@@ -41,12 +41,12 @@ interface Tab {
 
 const tabs: Tab[] = [
   { id: "common", title: "Common Master" },
-  { id: "enquiry", title: "Enquiry Master" },
-  { id: "meeting", title: "Meeting Master" },
-  { id: "career", title: "Career Master" },
+  { id: "documents", title: "Documents Master" },
+
+
 ];
 
-type TabId = "common" | "enquiry" | "meeting" | "career";
+type TabId = "common" | "documents";
 
 export default function MasterDataPage() {
   const { setHeaderTitle, setHeaderSubtitle } = useOutletContext<{
@@ -92,6 +92,7 @@ export default function MasterDataPage() {
   const [valueInput, setValueInput] = useState("");
   const [valueStatus, setValueStatus] = useState("Active");
   const [editingValue, setEditingValue] = useState<Value | null>(null);
+  const [schemaColumns, setSchemaColumns] = useState<{ tableName: string; columnName: string }[]>([]);
 
   const [selectedValueIds, setSelectedValueIds] = useState<string[]>([]);
   const isAllSelected = (selectedMaster?.values?.length ?? 0) > 0 && selectedValueIds.length === (selectedMaster?.values?.length ?? 0);
@@ -133,6 +134,20 @@ export default function MasterDataPage() {
 
   useEffect(() => {
     loadMasterTypes();
+  }, [activeId]);
+
+  useEffect(() => {
+    if (activeId === "documents") {
+      masterDataAPI.getSchemaColumns()
+        .then(res => {
+          if (res && res.success && Array.isArray(res.data)) {
+            setSchemaColumns(res.data);
+          }
+        })
+        .catch(err => {
+          console.error("Error loading schema columns:", err);
+        });
+    }
   }, [activeId]);
 
   const loadMasterValues = async (masterTypeId: string) => {
@@ -271,6 +286,16 @@ export default function MasterDataPage() {
     setSelectedValueIds([]);
   };
 
+  const handleValueInputChange = (val: string) => {
+    if (activeId === "documents") {
+      let clean = val.replace(/[{}]/g, "");
+      clean = clean.replace(/\s+/g, "_");
+      setValueInput(clean);
+    } else {
+      setValueInput(val);
+    }
+  };
+
   const handleValueSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -279,16 +304,22 @@ export default function MasterDataPage() {
       return;
     }
 
+    let finalValue = valueInput.trim();
+    if (activeId === "documents") {
+      let clean = finalValue.replace(/[{}]/g, "").replace(/\s+/g, "_");
+      finalValue = `{${clean}}`;
+    }
+
     try {
       if (editingValue) {
         await masterDataAPI.updateMasterValue(editingValue.id, {
-          value: valueInput,
+          value: finalValue,
           status: valueStatus,
         });
         toast.success("Value updated successfully ✅");
       } else {
         await masterDataAPI.createMasterValue(selectedMaster.id, {
-          value: valueInput,
+          value: finalValue,
           status: valueStatus,
         });
         toast.success("Value created successfully ✅");
@@ -302,7 +333,11 @@ export default function MasterDataPage() {
   };
 
   const handleEditValue = (value: Value) => {
-    setValueInput(value.value);
+    let val = value.value;
+    if (activeId === "documents") {
+      val = val.replace(/[{}]/g, "");
+    }
+    setValueInput(val);
     setValueStatus(value.status);
     setEditingValue(value);
     setIsValueModalOpen(true);
@@ -422,6 +457,17 @@ export default function MasterDataPage() {
   const filteredMasterItems = items.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
+
+  const typedText = valueInput.toLowerCase();
+  const suggestions = (activeId === "documents" && typedText)
+    ? schemaColumns.filter(col => col.columnName.toLowerCase().includes(typedText))
+    : [];
+
+  const groupedSuggestions = suggestions.reduce((acc, curr) => {
+    if (!acc[curr.tableName]) acc[curr.tableName] = [];
+    acc[curr.tableName].push(curr.columnName);
+    return acc;
+  }, {} as Record<string, string[]>);
 
   return (
     <div className="p-6 pt-0 w-full space-y-6 flex flex-col">
@@ -828,15 +874,61 @@ export default function MasterDataPage() {
         <form onSubmit={handleValueSubmit} className="space-y-4 pt-1">
           <div>
             <label className="block mb-1 text-xs font-semibold text-gray-700">Value</label>
-            <input
-              type="text"
-              value={valueInput}
-              onChange={e => setValueInput(e.target.value)}
-              required
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition-all placeholder:text-gray-300"
-              placeholder="e.g. Warm, Hot, Cold, Ready to Move"
-              autoFocus
-            />
+            <div className="relative">
+              {activeId === "documents" ? (
+                <div className="flex items-center gap-1 border border-gray-200 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all bg-white w-64">
+                  <span className="text-blue-500 font-mono text-sm font-semibold select-none">{'{'}</span>
+                  <input
+                    type="text"
+                    value={valueInput}
+                    onChange={e => handleValueInputChange(e.target.value)}
+                    required
+                    className="flex-1 bg-transparent text-xs focus:outline-none placeholder:text-gray-300 font-medium"
+                    placeholder="e.g. first_name, salary"
+                    autoFocus
+                  />
+                  <span className="text-blue-500 font-mono text-sm font-semibold select-none">{'}'}</span>
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={valueInput}
+                  onChange={e => setValueInput(e.target.value)}
+                  required
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition-all placeholder:text-gray-300"
+                  placeholder="e.g. Warm, Hot, Cold, Ready to Move"
+                  autoFocus
+                />
+              )}
+
+              {/* Suggestions Dropdown */}
+              {activeId === "documents" && suggestions.length > 0 && (
+                <div className="absolute left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto z-[9999] divide-y divide-gray-100 w-64">
+                  {Object.entries(groupedSuggestions).map(([table, cols]) => (
+                    <div key={table} className="p-1.5">
+                      <div className="text-[10px] uppercase font-bold text-gray-400 px-2 py-0.5 tracking-wider bg-gray-50 rounded">
+                        {table.replace(/_/g, ' ')}
+                      </div>
+                      <div className="mt-1 space-y-0.5">
+                        {cols.map(col => (
+                          <button
+                            key={col}
+                            type="button"
+                            onClick={() => {
+                              setValueInput(col);
+                            }}
+                            className="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded transition-colors flex justify-between items-center cursor-pointer"
+                          >
+                            <span>{col}</span>
+                            <span className="text-[10px] text-gray-400 font-mono">{`{${col}}`}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div>
             <label className="block mb-1 text-xs font-semibold text-gray-700">Status</label>

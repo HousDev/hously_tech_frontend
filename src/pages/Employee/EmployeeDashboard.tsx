@@ -601,7 +601,7 @@ const EmployeeDashboard = () => {
                   )}
                 </button>
                 {showNotifications && (
-                  <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+                  <div className="absolute right-[-48px] sm:right-0 top-full mt-2 w-80 max-w-[calc(100vw-24px)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
                     <div className="p-3 border-b border-gray-200 flex items-center justify-between bg-slate-50/50">
                       <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Notifications</h3>
                       {unreadCount > 0 && (

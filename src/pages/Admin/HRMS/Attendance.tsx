@@ -1401,7 +1401,7 @@ const EmployeeAttendanceView = ({
         <div className="lg:col-span-5 flex flex-col gap-2 flex-none lg:flex-1 order-2 lg:order-1">
 
           {/* Card 1: This Month Donut */}
-          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 flex flex-col items-center justify-center flex-1">
+          <div className="bg-white border border-slate-100 rounded-2xl  p-4 flex flex-col items-center justify-center flex-1">
             <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2 w-full text-left flex items-center gap-1.5 pb-2 border-b border-slate-100">
               <span className="w-2 h-2 rounded-full bg-emerald-500" /> This Month Attendance
             </h4>
@@ -1411,7 +1411,7 @@ const EmployeeAttendanceView = ({
           </div>
 
           {/* Card 2: Overall Donut */}
-          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 flex flex-col items-center justify-center flex-1">
+          <div className="bg-white border border-slate-100 rounded-2xl  p-4 flex flex-col items-center justify-center flex-1">
             <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2 w-full text-left flex items-center gap-1.5 pb-2 border-b border-slate-100">
               <span className="w-2 h-2 rounded-full bg-[#0D47A1]" /> Overall Attendance
             </h4>
@@ -1460,7 +1460,22 @@ const EmployeeAttendanceView = ({
                   } else if (rec.status === "absent" || (rec as any).leaveType === "unpaid_leave" || (rec as any).leaveType === "half_day_leave") {
                     statusColor = "bg-red-500 border-red-600 text-white cursor-pointer hover:scale-105 hover:shadow-sm font-semibold shadow-xs";
                   } else if (rec.status === "late") {
-                    statusColor = "bg-emerald-500 border-emerald-600 text-white cursor-pointer hover:scale-105 hover:shadow-sm font-semibold shadow-xs";
+                    const currentMonthLogs = monthlyLogs.filter(l => {
+                      if (!l.date) return false;
+                      const lDate = new Date(l.date);
+                      const thisDate = new Date(cell.dateStr);
+                      return lDate.getFullYear() === thisDate.getFullYear() &&
+                             lDate.getMonth() === thisDate.getMonth() &&
+                             lDate.getDate() <= thisDate.getDate() &&
+                             l.status === 'late';
+                    });
+                    const allowedDays = (rec as any).allowedLateDays !== undefined ? (rec as any).allowedLateDays : 5;
+                    const isPenalized = currentMonthLogs.length > allowedDays;
+                    if (isPenalized) {
+                      statusColor = "bg-yellow-400 border-yellow-500 text-slate-800 cursor-pointer hover:scale-105 hover:shadow-sm font-semibold shadow-xs";
+                    } else {
+                      statusColor = "bg-emerald-500 border-emerald-600 text-white cursor-pointer hover:scale-105 hover:shadow-sm font-semibold shadow-xs";
+                    }
                   } else if (rec.status === "half_day") {
                     statusColor = "bg-orange-500 border-orange-600 text-white cursor-pointer hover:scale-105 hover:shadow-sm font-semibold shadow-xs";
                   } else if (rec.status === "on_leave" || (rec as any).leaveType === "paid_leave") {
@@ -1485,9 +1500,22 @@ const EmployeeAttendanceView = ({
                       }`}
                   >
                     <span>{cell.dayNum}</span>
-                    {rec && rec.status === "late" && (
-                      <span className="text-[7px] font-black tracking-wider mt-0.5 text-yellow-300 uppercase">LATE</span>
-                    )}
+                    {rec && rec.status === "late" && (() => {
+                      const currentMonthLogs = monthlyLogs.filter(l => {
+                        if (!l.date) return false;
+                        const lDate = new Date(l.date);
+                        const thisDate = new Date(cell.dateStr);
+                        return lDate.getFullYear() === thisDate.getFullYear() &&
+                               lDate.getMonth() === thisDate.getMonth() &&
+                               lDate.getDate() <= thisDate.getDate() &&
+                               l.status === 'late';
+                      });
+                      const allowedDays = (rec as any).allowedLateDays !== undefined ? (rec as any).allowedLateDays : 5;
+                      const isPenalized = currentMonthLogs.length > allowedDays;
+                      return (
+                        <span className={`text-[7px] font-black tracking-wider mt-0.5 uppercase text-white`}>Late</span>
+                      );
+                    })()}
                     {rec && rec.status === "half_day" && (
                       <span className="text-[6.5px] font-black tracking-wider mt-0.5 text-white/90 uppercase">HALF DAY</span>
                     )}

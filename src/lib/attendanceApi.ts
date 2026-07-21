@@ -14,6 +14,10 @@ export interface AttendanceStatusResponse {
   isCheckedIn: boolean;
   checkInTime: string | null;
   checkOutTime: string | null;
+  shiftType?: 'fixed' | 'flexible';
+  shiftAssigned?: boolean;
+  allowedLateDays?: number;
+  monthlyLateCount?: number;
   assignedBranch: {
     name: string;
     address: string;

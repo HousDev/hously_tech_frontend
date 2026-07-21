@@ -120,6 +120,12 @@ export const masterDataAPI = {
             : `/masters/cities`;
         const response = await api.get(url);
         return response.data.success ? response.data.data : [];
+    },
+
+    // Get database schema columns for document template suggestions
+    getSchemaColumns: async () => {
+        const response = await api.get('/document-templates/schema-columns');
+        return response.data;
     }
 };
 

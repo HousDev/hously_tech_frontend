@@ -570,11 +570,11 @@ import NotificationsPage from "./pages/Admin/NotificationsPage";
 
 
 import VisitorTracker from "./components/VisitorTracker";
-import AuthModal from "./components/auth/AuthModal";
 import { useAuth } from "./context/AuthContext";
 import { toast } from "react-toastify";
 import WhatsAppFAB from "./components/WhatsAppFAB";
 import HouslyChatBoot from "./components/HouslyChatbotWidget";
+import LoginPage from "./pages/Public/LoginPage";
 
 const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAdmin, logout } = useAuth();
@@ -623,7 +623,6 @@ const ProtectedEmployeeRoute = ({ children }: { children: React.ReactNode }) => 
 };
 
 function AppContent() {
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
   const { user, isAuthenticated, isAdmin, loading } = useAuth();
@@ -702,14 +701,9 @@ function AppContent() {
     return (
       <>
         <VisitorTracker />
-        <WelcomePage onSectorClick={handleSectorClick} onLoginClick={() => setShowAuthModal(true)} />
+        <WelcomePage onSectorClick={handleSectorClick} onLoginClick={() => navigate('/login')} />
         <WhatsAppFAB />
         <HouslyChatBoot />
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={handleAuthSuccess}
-        />
       </>
     );
   }
@@ -720,6 +714,7 @@ function AppContent() {
     "/cookie-policy",
     "/dashboard",
     "/employee",
+    "/login",
   ];
 
   const hideLayout = hideLayoutRoutes.some(route =>
@@ -742,14 +737,17 @@ function AppContent() {
               }
               : null
           }
-          onLoginClick={() => setShowAuthModal(true)}
+          onLoginClick={() => navigate('/login')}
         />
       )}
 
       <main className="flex-grow">
         <Routes>
           {/* ✅ Root "/" — Welcome page fallback */}
-          <Route path="/" element={<WelcomePage onSectorClick={handleSectorClick} onLoginClick={() => setShowAuthModal(true)} />} />
+          <Route path="/" element={<WelcomePage onSectorClick={handleSectorClick} onLoginClick={() => navigate('/login')} />} />
+
+          {/* ✅ Standalone Login Page */}
+          <Route path="/login" element={<LoginPage />} />
 
 
           {/* ✅ Main IT Tech website under /homes */}
@@ -842,12 +840,6 @@ function AppContent() {
       {!hideLayout && !isAdminRoute && <BackToTop />}
       {!hideLayout && !isAdminRoute && <WhatsAppFAB />}
       {!hideLayout && !isAdminRoute && <HouslyChatBoot />}
-
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onSuccess={handleAuthSuccess}
-      />
     </div>
   );
 }

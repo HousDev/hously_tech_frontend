@@ -675,10 +675,13 @@ const AdminDashboard = () => {
     socket.on('new_notification', (notification) => {
       console.log('[AdminDashboard Socket] Received new_notification:', notification);
       playNotificationSound();
-      if (notification.type === 'new_meeting') {
-        toast.success(` ${notification.title}`, { duration: 6000 });
-      } else {
-        toast.success(notification.title);
+      // Skip application_status_change — JobApplicants already shows its own toast
+      if (notification.type !== 'application_status_change') {
+        if (notification.type === 'new_meeting') {
+          toast.success(` ${notification.title}`, { duration: 6000 });
+        } else {
+          toast.success(notification.title);
+        }
       }
       // Refresh lists
       fetchEnquiryNotifications();
