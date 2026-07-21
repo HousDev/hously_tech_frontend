@@ -7,12 +7,13 @@ import {
   Banknote, CalendarCheck, Clock as ClockIcon, ShieldCheck,
   Edit, Save, Phone, Mail as MailIcon, Hash, MapPin,
   CalendarDays, Home, IndianRupee, Award, Calendar as CalendarIcon, Percent,
-  UserCircle, Lock, IdCard, Smartphone
+  UserCircle, Lock, IdCard, Smartphone, ChevronDown, Trash2
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 import { apiClient } from "../../lib/api";
 import { employeeApi, type EmployeeRecord, type EmployeeStatus, type EmployeeGender, type BloodGroup, type MaritalStatus, type Nationality, type WeekOffDays } from "../../lib/employeeApi";
+import { masterDataAPI } from "../../lib/masterApi";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const WEEK_OFF_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -383,6 +384,9 @@ export default function Profile() {
 
   // Local state for Documents tab
   const [documentsList, setDocumentsList] = useState<any[]>([]);
+  const [masterDocuments, setMasterDocuments] = useState<string[]>([]);
+  const [docDropdownOpen, setDocDropdownOpen] = useState(false);
+  const [deleteConfirmDoc, setDeleteConfirmDoc] = useState<any | null>(null);
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadDocName, setUploadDocName] = useState("");
@@ -392,6 +396,28 @@ export default function Profile() {
   // Determine if active tab is editable
   const EDITABLE_TABS = ["personal", "address", "education", "bank", "documents"];
   const isTabEditable = EDITABLE_TABS.includes(activeTab);
+
+  // Fetch master documents list
+  useEffect(() => {
+    const fetchMasterDocs = async () => {
+      try {
+        const types = await masterDataAPI.getAllMasterTypes("common");
+        const docType = types.find((t: any) => t.name?.toLowerCase().includes("documents"));
+        if (docType) {
+          const docValues = await masterDataAPI.getMasterValues(docType.id);
+          setMasterDocuments(
+            docValues
+              .filter((v: any) => v.status === "Active")
+              .map((v: any) => v.value)
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load master documents:", err);
+        setMasterDocuments(["Document 1", "Document 2", "Document 3"]);
+      }
+    };
+    fetchMasterDocs();
+  }, []);
 
   // Load employee details on mount
   useEffect(() => {
@@ -484,6 +510,24 @@ export default function Profile() {
     };
     loadProfileData();
   }, [user]);
+
+  // Refetch employee details when switching to documents tab
+  useEffect(() => {
+    if (activeTab === "documents" && user?.id) {
+      const refetchProfile = async () => {
+        try {
+          const data = await employeeApi.getById(String(user.id));
+          if (data) {
+            setEmployee(data);
+            setDocumentsList(data.documents || []);
+          }
+        } catch (err) {
+          console.error("Failed to refetch profile on tab switch:", err);
+        }
+      };
+      refetchProfile();
+    }
+  }, [activeTab, user]);
 
   // Handle Save (only saves editable tab fields to backend)
   const handleSave = async () => {
@@ -840,6 +884,7 @@ export default function Profile() {
                   setUploadDocName("");
                   setUploadDocFile(null);
                   setUploadModalError("");
+                  setDocDropdownOpen(false);
                   setShowUploadModal(true);
                 }}
                 className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold bg-[#0D47A1] text-white rounded-lg hover:opacity-90 transition cursor-pointer shadow-sm border-none"
@@ -849,7 +894,7 @@ export default function Profile() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {documentsList.map((doc) => {
+              {documentsList.filter(d => !d.employeeDeleted).map((doc) => {
                 const hasFile = !!doc.fileName;
                 const isOffer = doc.id === "offer";
 
@@ -960,21 +1005,7 @@ export default function Profile() {
                           {!isOffer && (
                             <button
                               type="button"
-                              onClick={async () => {
-                                const updatedList = documentsList.map(d => d.id === doc.id ? { ...d, fileName: "", fileContent: undefined, size: "", uploadDate: "", status: "Pending" } : d);
-                                setDocumentsList(updatedList);
-                                if (employee?.id) {
-                                  try {
-                                    const updated = await employeeApi.update(String(employee.id), { ...employee, documents: updatedList });
-                                    if (updated) {
-                                      setEmployee(updated);
-                                    }
-                                    toast.success(`Removed ${doc.name}`);
-                                  } catch (err) {
-                                    toast.error("Failed to save changes");
-                                  }
-                                }
-                              }}
+                              onClick={() => setDeleteConfirmDoc(doc)}
                               className="px-1.5 py-1 text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer"
                             >
                               Remove
@@ -989,6 +1020,7 @@ export default function Profile() {
                               setUploadDocName(doc.name);
                               setUploadDocFile(null);
                               setUploadModalError("");
+                              setDocDropdownOpen(false);
                               setShowUploadModal(true);
                             }}
                             className="px-2.5 py-1 text-[10px] font-bold bg-[#0D47A1] text-white rounded-lg hover:opacity-90 transition cursor-pointer inline-flex items-center gap-1 border-none"
@@ -1006,7 +1038,7 @@ export default function Profile() {
             {/* Custom Upload Modal */}
             {showUploadModal && createPortal(
               <>
-                <div className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm pointer-events-auto" onClick={() => setShowUploadModal(false)} />
+                <div className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm pointer-events-auto" onClick={() => { setShowUploadModal(false); setDocDropdownOpen(false); }} />
                 <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 pointer-events-none">
                   <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl pointer-events-auto p-5 text-left border border-slate-100 flex flex-col space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-2">
@@ -1021,16 +1053,53 @@ export default function Profile() {
                     {uploadModalError && <p className="text-[10px] text-red-500 font-bold bg-red-50 p-2 rounded-lg">{uploadModalError}</p>}
 
                     <div className="space-y-3">
-                      <div className="space-y-1">
+                      {/* Doc Name Custom Dropdown */}
+                      <div className="space-y-1 relative">
                         <label className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">Document Name</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Experience Certificate"
-                          value={uploadDocName}
-                          onChange={(e) => setUploadDocName(e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none"
-                        />
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setDocDropdownOpen(!docDropdownOpen)}
+                            className="w-full px-3 py-2 pr-8 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none font-medium text-slate-700 bg-white text-left flex items-center justify-between cursor-pointer h-9"
+                          >
+                            <span>{uploadDocName || "Select Document Type"}</span>
+                            <ChevronDown
+                              size={12}
+                              className={`text-slate-400 transition-transform duration-200 ${docDropdownOpen ? "rotate-180" : ""}`}
+                            />
+                          </button>
+
+                          {docDropdownOpen && (
+                            <div className="absolute z-[1010] left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-28 overflow-y-auto">
+                              <div
+                                onClick={() => {
+                                  setUploadDocName("");
+                                  setDocDropdownOpen(false);
+                                }}
+                                className="px-3 py-1.5 hover:bg-slate-50 text-[11px] font-semibold text-slate-400 cursor-pointer transition-colors"
+                              >
+                                Select Document Type
+                              </div>
+                              {masterDocuments && masterDocuments.map((docVal) => (
+                                <div
+                                  key={docVal}
+                                  onClick={() => {
+                                    setUploadDocName(docVal);
+                                    setDocDropdownOpen(false);
+                                  }}
+                                  className={`px-3 py-1.5 hover:bg-slate-50 text-[11px] font-semibold text-slate-700 cursor-pointer transition-colors ${
+                                    uploadDocName === docVal ? "bg-slate-50 text-[#0D47A1]" : ""
+                                  }`}
+                                >
+                                  {docVal}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Browse File input */}
                       <div className="space-y-1">
                         <label className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">Select File</label>
                         <div className="flex items-center gap-2">
@@ -1045,7 +1114,12 @@ export default function Profile() {
                                   setUploadDocFile(file);
                                   if (!uploadDocName) {
                                     const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                                    setUploadDocName(nameWithoutExt.split('_').join(' ').split('-').join(' '));
+                                    const formattedName = nameWithoutExt.split('_').join(' ').split('-').join(' ');
+                                    const capitalizedName = formattedName.charAt(0).toUpperCase() + formattedName.slice(1);
+                                    const matchedDoc = masterDocuments?.find(d => d.toLowerCase() === capitalizedName.toLowerCase());
+                                    if (matchedDoc) {
+                                      setUploadDocName(matchedDoc);
+                                    }
                                   }
                                 }
                               }}
@@ -1057,12 +1131,20 @@ export default function Profile() {
                     </div>
 
                     <div className="flex items-center gap-2 border-t border-slate-100 pt-3 justify-end">
-                      <button type="button" onClick={() => setShowUploadModal(false)} className="px-3.5 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-xl">Cancel</button>
+                      <button type="button" onClick={() => { setShowUploadModal(false); setDocDropdownOpen(false); }} className="px-3.5 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-xl">Cancel</button>
                       <button
                         type="button"
                         onClick={() => {
                           if (!uploadDocName.trim()) { setUploadModalError("Please enter a name"); return; }
                           if (!uploadDocFile) { setUploadModalError("Please select a file"); return; }
+                          const alreadyUploaded = documentsList.some(d => 
+                            d.name.toLowerCase() === uploadDocName.toLowerCase() && 
+                            !d.employeeDeleted
+                          );
+                          if (alreadyUploaded) {
+                            setUploadModalError("This document type is already uploaded.");
+                            return;
+                          }
                           const sizeStr = uploadDocFile.size > 1024 * 1024 ? `${(uploadDocFile.size / (1024 * 1024)).toFixed(1)} MB` : `${(uploadDocFile.size / 1024).toFixed(0)} KB`;
                           
                           const reader = new FileReader();
@@ -1071,9 +1153,29 @@ export default function Profile() {
                             const exists = documentsList.some(d => d.name.toLowerCase() === uploadDocName.toLowerCase());
                             let updatedList = [];
                             if (exists) {
-                              updatedList = documentsList.map(d => d.name.toLowerCase() === uploadDocName.toLowerCase() ? { ...d, fileName: uploadDocFile.name, fileContent: fileBase64, size: sizeStr, uploadDate: new Date().toLocaleDateString('en-CA'), status: "Uploaded" } : d);
+                              updatedList = documentsList.map(d => d.name.toLowerCase() === uploadDocName.toLowerCase() ? { 
+                                ...d, 
+                                fileName: uploadDocFile.name, 
+                                fileContent: fileBase64, 
+                                size: sizeStr, 
+                                uploadDate: new Date().toLocaleDateString('en-CA'), 
+                                status: "Uploaded",
+                                employeeDeleted: false,
+                                adminDeleted: false
+                              } : d);
                             } else {
-                              updatedList = [...documentsList, { id: `custom_${Date.now()}`, name: uploadDocName, fileName: uploadDocFile.name, fileContent: fileBase64, status: "Uploaded", size: sizeStr, uploadDate: new Date().toLocaleDateString('en-CA'), icon: "file" }];
+                              updatedList = [...documentsList, { 
+                                id: `custom_${Date.now()}`, 
+                                name: uploadDocName, 
+                                fileName: uploadDocFile.name, 
+                                fileContent: fileBase64, 
+                                status: "Uploaded", 
+                                size: sizeStr, 
+                                uploadDate: new Date().toLocaleDateString('en-CA'), 
+                                icon: "file",
+                                employeeDeleted: false,
+                                adminDeleted: false
+                              }];
                             }
                             setDocumentsList(updatedList);
                             if (employee?.id) {
@@ -1082,18 +1184,89 @@ export default function Profile() {
                                 if (updated) {
                                   setEmployee(updated);
                                 }
-                                toast.success(`Uploaded and saved: ${uploadDocFile.name}`);
+                                toast.success("Document uploaded successfully");
                               } catch (err) {
                                 toast.error("Failed to save document to database");
                               }
                             }
                             setShowUploadModal(false);
+                            setDocDropdownOpen(false);
                           };
                           reader.readAsDataURL(uploadDocFile);
                         }}
                         className="px-3.5 py-1.5 text-xs font-bold bg-[#0D47A1] text-white rounded-xl"
                       >
                         Upload
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </>,
+              document.body
+            )}
+
+            {/* Delete Confirmation Modal using React Portal */}
+            {deleteConfirmDoc && createPortal(
+              <>
+                <div
+                  className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto"
+                  onClick={() => setDeleteConfirmDoc(null)}
+                />
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 pointer-events-none">
+                  <div 
+                    className="w-full max-w-sm bg-white rounded-2xl shadow-2xl pointer-events-auto p-5 text-left border border-slate-100 flex flex-col space-y-4"
+                    style={{
+                      animation: 'modalConfirmOpen 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+                    }}
+                  >
+                    <style>{`
+                      @keyframes modalConfirmOpen {
+                        from { opacity: 0; transform: scale(0.9) translateY(10px); }
+                        to { opacity: 1; transform: scale(1) translateY(0); }
+                      }
+                    `}</style>
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                        <Trash2 className="text-red-500 w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-extrabold text-slate-800">Remove Document</h3>
+                        <p className="text-xs text-slate-500 font-semibold mt-1 leading-relaxed">
+                          Are you sure you want to remove the document <span className="text-slate-800 font-extrabold">"{deleteConfirmDoc.name}"</span>?
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 justify-end border-t border-slate-50">
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirmDoc(null)}
+                        className="px-3.5 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const docToRemove = deleteConfirmDoc;
+                          setDeleteConfirmDoc(null);
+                          const updatedList = documentsList.map(d => d.id === docToRemove.id ? { ...d, employeeDeleted: true } : d);
+                          setDocumentsList(updatedList);
+                          if (employee?.id) {
+                            try {
+                              const updated = await employeeApi.update(String(employee.id), { ...employee, documents: updatedList });
+                              if (updated) {
+                                setEmployee(updated);
+                              }
+                              toast.success("Document removed successfully");
+                            } catch (err) {
+                              toast.error("Failed to save changes");
+                            }
+                          }
+                        }}
+                        className="px-3.5 py-1.5 text-xs font-bold bg-red-500 text-white rounded-xl hover:bg-red-655 transition cursor-pointer border-none shadow-sm"
+                      >
+                        Remove
                       </button>
                     </div>
                   </div>

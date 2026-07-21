@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
 import {
+  IndianRupee,
   Clock,
   CheckCircle2,
   DollarSign,
@@ -66,6 +67,8 @@ import {
   ExternalLink as ExternalLinkIcon,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
+import { apiClient } from "../../../../lib/api";
+import { useExpenseSocket } from "../../../../hooks/useExpenseSocket";
 
 // --- Custom Components ---
 
@@ -80,13 +83,13 @@ const StatCard = ({ icon: Icon, label, value, color, subtitle }: any) => {
   const [bgClass, textClass, borderClass] = theme.split(" ");
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4 flex items-center gap-3.5 transition-all duration-300 hover:shadow-md hover:border-blue-500/20 group flex-1">
-      <div className={`p-2.5 rounded-lg border ${bgClass} ${borderClass} group-hover:scale-105 transition-transform duration-300`}>
-        <Icon className={`w-4.5 h-4.5 ${textClass}`} />
+    <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-3 flex items-center gap-3 transition-all duration-300 hover:shadow-md hover:border-blue-500/20 group flex-1">
+      <div className={`p-2 rounded-lg border ${bgClass} ${borderClass} group-hover:scale-105 transition-transform duration-300`}>
+        <Icon className={`w-4 h-4 ${textClass}`} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[10px] font-semibold text-gray-405 uppercase tracking-wider">{label}</p>
-        <h3 className="text-base font-bold text-gray-800 mt-0.5">{value}</h3>
+        <h3 className="text-sm font-bold text-gray-800 mt-0.5">{value}</h3>
         {subtitle && <p className="text-[9px] text-gray-400 font-semibold mt-0.5">{subtitle}</p>}
       </div>
     </div>
@@ -106,6 +109,117 @@ const StatusBadge = ({ status }: { status: string }) => {
       <Icon className="w-3 h-3" />
       {status}
     </span>
+  );
+};
+
+const StatusDropdownCell = ({ item, onUpdateStatus }: { item: any; onUpdateStatus: (item: any, status: string, payoutMode: string) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const getStatusBadge = () => {
+    if (item.status === 'Paid Direct' || item.payoutMode === 'direct') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-pointer hover:bg-emerald-100 transition-all shadow-xs group">
+          <Zap className="w-3 h-3 text-emerald-600 group-hover:scale-110 transition-transform" />
+          <span>Paid Direct</span>
+          <ChevronDown className="w-3 h-3 text-emerald-500 ml-0.5" />
+        </span>
+      );
+    }
+    if (item.status === 'In Salary Payrun' || item.payoutMode === 'salary') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 cursor-pointer hover:bg-blue-100 transition-all shadow-xs group">
+          <Briefcase className="w-3 h-3 text-blue-600 group-hover:scale-110 transition-transform" />
+          <span>In Salary Payrun</span>
+          <ChevronDown className="w-3 h-3 text-blue-500 ml-0.5" />
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 cursor-pointer hover:bg-purple-100 transition-all shadow-xs group">
+        <CheckCircle2 className="w-3 h-3 text-purple-600 group-hover:scale-110 transition-transform" />
+        <span>Approved</span>
+        <ChevronDown className="w-3 h-3 text-purple-500 ml-0.5" />
+      </span>
+    );
+  };
+
+  return (
+    <div className="relative inline-block text-left" ref={dropdownRef}>
+      <div onClick={() => setIsOpen(!isOpen)}>
+        {getStatusBadge()}
+      </div>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-1 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="px-3 py-1 border-b border-gray-100 text-[9px] font-bold uppercase text-gray-400 tracking-wider">
+            Select Payout Option
+          </div>
+
+          <button
+            onClick={() => {
+              onUpdateStatus(item, 'Paid Direct', 'direct');
+              setIsOpen(false);
+            }}
+            className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-emerald-50 text-emerald-900 font-semibold transition-colors cursor-pointer"
+          >
+            <Zap className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+            <span>Paid Direct</span>
+          </button>
+
+          <button
+            onClick={() => {
+              onUpdateStatus(item, 'In Salary Payrun', 'salary');
+              setIsOpen(false);
+            }}
+            className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-blue-50 text-blue-900 font-semibold transition-colors cursor-pointer border-t border-gray-50"
+          >
+            <Briefcase className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+            <span>In Salary Payrun</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const getInitials = (name: string) => {
+  if (!name) return "SK";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return parts[0].substring(0, 2).toUpperCase();
+};
+
+const UserAvatar = ({ avatarUrl, name }: { avatarUrl?: string | null; name: string }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (avatarUrl && !hasError) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name}
+        className="w-8 h-8 rounded-full object-cover border border-blue-100 shadow-xs flex-shrink-0"
+        onError={() => setHasError(true)}
+      />
+    );
+  }
+
+  return (
+    <div className="w-8 h-8 rounded-full bg-[#155dfc] flex items-center justify-center text-white text-[10px] font-bold border border-blue-100 shadow-xs flex-shrink-0 uppercase">
+      {getInitials(name)}
+    </div>
   );
 };
 
@@ -131,7 +245,6 @@ export default function Reimbursements() {
   const [globalSearch, setGlobalSearch] = useState("");
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const [showAddReimbursement, setShowAddReimbursement] = useState(false);
-  const [showEditReimbursement, setShowEditReimbursement] = useState<any | null>(null);
   const [showViewDetails, setShowViewDetails] = useState<any | null>(null);
 
   // Delete Confirmation State
@@ -179,19 +292,6 @@ export default function Reimbursements() {
     requestDate: "",
   });
 
-  // Edit Form states
-  const [editFormData, setEditFormData] = useState({
-    id: "",
-    employee: "",
-    employeeId: "",
-    employeeDesignation: "",
-    category: "",
-    amount: "",
-    description: "",
-    requestDate: "",
-    status: "",
-  });
-
   // Sample employees database
   const availableEmployees = [
     { name: "Suraj Kumar", id: "EMP0019", designation: "MTS-2", department: "Engineering", email: "suraj@hously.co" },
@@ -202,92 +302,165 @@ export default function Reimbursements() {
     { name: "Rahul Verma", id: "EMP0024", designation: "Staff Engineer", department: "Engineering", email: "rahul@hously.co" },
   ];
 
-  // Sample reimbursement data
-  const [reimbursementsData, setReimbursementsData] = useState([
-    {
-      id: "REIM-001",
-      employee: "Suraj Kumar",
-      empId: "EMP0019",
-      category: "Travel",
-      amount: "4500",
-      description: "Client meeting travel expenses - Mumbai to Pune",
-      requestDate: "2026-07-10",
-      status: "Pending",
-      department: "Engineering"
-    },
-    {
-      id: "REIM-002",
-      employee: "Anjali Sharma",
-      empId: "EMP0020",
-      category: "Office Supplies",
-      amount: "2800",
-      description: "Stationery and printer cartridges for design team",
-      requestDate: "2026-07-08",
-      status: "Approved",
-      department: "Marketing"
-    },
-    {
-      id: "REIM-003",
-      employee: "Vikram Patel",
-      empId: "EMP0021",
-      category: "Meals",
-      amount: "1200",
-      description: "Team lunch during client presentation",
-      requestDate: "2026-07-05",
-      status: "Paid",
-      department: "Sales"
-    },
-    {
-      id: "REIM-004",
-      employee: "Kunal Sen",
-      empId: "EMP0022",
-      category: "Travel",
-      amount: "3500",
-      description: "Cab expenses for interview candidates",
-      requestDate: "2026-07-03",
-      status: "Pending",
-      department: "HR"
-    },
-    {
-      id: "REIM-005",
-      employee: "Priya Mehta",
-      empId: "EMP0023",
-      category: "Software",
-      amount: "999",
-      description: "Figma design software monthly subscription",
-      requestDate: "2026-07-01",
-      status: "Approved",
-      department: "Design"
-    },
-    {
-      id: "REIM-006",
-      employee: "Rahul Verma",
-      empId: "EMP0024",
-      category: "Equipment",
-      amount: "15000",
-      description: "New monitor and keyboard for workstation",
-      requestDate: "2026-06-28",
-      status: "Paid",
-      department: "Engineering"
-    },
-    {
-      id: "REIM-007",
-      employee: "Suraj Kumar",
-      empId: "EMP0019",
-      category: "Meals",
-      amount: "850",
-      description: "Client dinner meeting",
-      requestDate: "2026-06-25",
-      status: "Rejected",
-      department: "Engineering"
-    },
-  ]);
+  // Live approved reimbursement data from /api/expenses
+  const [reimbursementsData, setReimbursementsData] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchApprovedReimbursements = async () => {
+      try {
+        let data = await apiClient.get<any[]>("/payroll/reimbursements");
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          const rawExpenses = await apiClient.get<any[]>("/expenses");
+          if (rawExpenses && Array.isArray(rawExpenses)) {
+            data = rawExpenses.filter((x: any) => {
+              const st = String(x.status || '').trim().toLowerCase();
+              return st === 'approved' || st === 'paid';
+            });
+          }
+        }
+        if (data && Array.isArray(data)) {
+          const mapped = data.map((item: any) => {
+            let img = item.avatar_url || item.avatarUrl || item.avatar;
+            if (img && !img.startsWith('http') && !img.startsWith('data:')) {
+              const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+              const serverHost = baseUrl.replace(/\/api\/?$/, '');
+              img = `${serverHost}${img.startsWith('/') ? '' : '/'}${img}`;
+            }
+
+            const pStatus = item.payroll_status;
+
+            let initialStatus = 'Approved';
+            let initialMode = 'approved';
+
+            if (pStatus === 'reimbursed' || String(item.status || '').trim().toLowerCase() === 'paid direct') {
+              initialStatus = 'Paid Direct';
+              initialMode = 'direct';
+            } else if (pStatus === 'in_salary_payrun' || String(item.status || '').trim().toLowerCase() === 'in salary payrun') {
+              initialStatus = 'In Salary Payrun';
+              initialMode = 'salary';
+            } else {
+              initialStatus = 'Approved';
+              initialMode = 'approved';
+            }
+
+            return {
+              id: item.claim_no || `REIM-${String(item.id).padStart(3, '0')}`,
+              dbId: item.id,
+              employee: item.employee_name || `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'Staff',
+              empId: item.employee_id || item.emp_id || `EMP${String(item.user_id || 1).padStart(4, '0')}`,
+              avatarUrl: img || null,
+              category: item.category || item.expense_name || 'Other',
+              amount: String(item.amount || 0),
+              description: item.description || item.title || item.notes || 'Expense Claim',
+              requestDate: item.date ? String(item.date).split('T')[0] : (item.created_at ? String(item.created_at).split('T')[0] : '2026-07-20'),
+              status: initialStatus,
+              payoutMode: initialMode,
+              department: item.department || 'General'
+            };
+          });
+          setReimbursementsData(mapped);
+        }
+      } catch (err) {
+        console.error("Error fetching approved expenses for reimbursements:", err);
+      }
+    };
+    fetchApprovedReimbursements();
+  }, []);
+
+  // Real-time socket listener to remove claims if their status in Expenses is updated to Pending/Rejected
+  useExpenseSocket((event, data) => {
+    if (event === 'expense_status_changed') {
+      const st = String(data.status || '').trim().toLowerCase();
+      if (st === 'pending' || st === 'rejected') {
+        setReimbursementsData(prev => prev.filter(item => item.dbId !== data.id && item.id !== data.claim_no));
+      } else {
+        const fetchApprovedReimbursements = async () => {
+          try {
+            let dataArr = await apiClient.get<any[]>("/payroll/reimbursements");
+            if (dataArr && Array.isArray(dataArr)) {
+              const mapped = dataArr.map((item: any) => {
+                let img = item.avatar_url || item.avatarUrl || item.avatar;
+                if (img && !img.startsWith('http') && !img.startsWith('data:')) {
+                  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                  const serverHost = baseUrl.replace(/\/api\/?$/, '');
+                  img = `${serverHost}${img.startsWith('/') ? '' : '/'}${img}`;
+                }
+                const pStatus = item.payroll_status;
+                let initialStatus = 'Approved';
+                let initialMode = 'approved';
+                if (pStatus === 'reimbursed' || String(item.status || '').trim().toLowerCase() === 'paid direct') {
+                  initialStatus = 'Paid Direct';
+                  initialMode = 'direct';
+                } else if (pStatus === 'in_salary_payrun' || String(item.status || '').trim().toLowerCase() === 'in salary payrun') {
+                  initialStatus = 'In Salary Payrun';
+                  initialMode = 'salary';
+                }
+                return {
+                  id: item.claim_no || `REIM-${String(item.id).padStart(3, '0')}`,
+                  dbId: item.id,
+                  employee: item.employee_name || `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'Staff',
+                  empId: item.employee_id || item.emp_id || `EMP${String(item.user_id || 1).padStart(4, '0')}`,
+                  avatarUrl: img || null,
+                  category: item.category || item.expense_name || 'Other',
+                  amount: String(item.amount || 0),
+                  description: item.description || item.title || item.notes || 'Expense Claim',
+                  requestDate: item.date ? String(item.date).split('T')[0] : (item.created_at ? String(item.created_at).split('T')[0] : '2026-07-20'),
+                  status: initialStatus,
+                  payoutMode: initialMode,
+                  department: item.department || 'General'
+                };
+              });
+              setReimbursementsData(mapped);
+            }
+          } catch (err) {
+            console.error("Error reloading approved reimbursements:", err);
+          }
+        };
+        fetchApprovedReimbursements();
+      }
+    } else if (event === 'expense_deleted') {
+      setReimbursementsData(prev => prev.filter(item => item.dbId !== data.id));
+    }
+  });
+
+  const handleUpdateStatusAndPayout = async (item: any, newStatus: string, payoutMode: string) => {
+    try {
+      const targetId = item.dbId || item.id;
+      await apiClient.patch(`/payroll/reimbursements/${targetId}/status`, {
+        status: newStatus,
+        payoutMode: payoutMode
+      });
+
+      setReimbursementsData(prev => prev.map(row => {
+        if (row.id === item.id || (row.dbId && row.dbId === item.dbId)) {
+          return {
+            ...row,
+            status: newStatus,
+            payoutMode: payoutMode
+          };
+        }
+        return row;
+      }));
+
+      if (newStatus === 'Paid Direct') {
+        toast.success(`Claim ${item.id} status updated to Paid Direct! (Excluded from monthly salary)`);
+      } else if (newStatus === 'In Salary Payrun') {
+        toast.success(`Claim ${item.id} status updated to In Salary Payrun! (Added to monthly salary)`);
+      } else {
+        toast.success(`Claim ${item.id} status set to Approved.`);
+      }
+    } catch (err: any) {
+      console.error("Error updating reimbursement status:", err);
+      toast.error(err?.message || "Failed to update reimbursement status");
+    }
+  };
 
   // Stats calculations
   const stats = {
     totalReimbursements: reimbursementsData.length,
-    pending: reimbursementsData.filter(item => item.status === "Pending").length,
+    inSalaryPayrun: reimbursementsData.filter(item => item.status === "In Salary Payrun").length,
     approved: reimbursementsData.filter(item => item.status === "Approved").length,
+    paidDirect: reimbursementsData.filter(item => item.status === "Paid Direct").length,
     totalAmount: reimbursementsData.reduce((sum, item) => sum + parseInt(item.amount || "0"), 0),
   };
 
@@ -324,7 +497,7 @@ export default function Reimbursements() {
     if (columnFilters.requestDate && item.requestDate !== columnFilters.requestDate) {
       return false;
     }
-    if (columnFilters.status !== "all" && item.status !== columnFilters.status) {
+    if (columnFilters.status !== "all" && item.status.trim().toLowerCase() !== columnFilters.status.trim().toLowerCase()) {
       return false;
     }
 
@@ -332,7 +505,7 @@ export default function Reimbursements() {
     if (filters.category !== "all" && item.category !== filters.category) {
       return false;
     }
-    if (filters.status !== "all" && item.status !== filters.status) {
+    if (filters.status !== "all" && item.status.trim().toLowerCase() !== filters.status.trim().toLowerCase()) {
       return false;
     }
     if (filters.amountMin && parseInt(item.amount) < parseInt(filters.amountMin)) {
@@ -443,49 +616,7 @@ export default function Reimbursements() {
     toast.success("Reimbursement claim recorded!");
   };
 
-  const handleEditReimbursement = (item: any) => {
-    setEditFormData({
-      id: item.id,
-      employee: item.employee,
-      employeeId: item.empId,
-      employeeDesignation: item.department,
-      category: item.category,
-      amount: item.amount,
-      description: item.description,
-      requestDate: item.requestDate,
-      status: item.status,
-    });
-    setShowEditReimbursement(item);
-  };
 
-  const handleUpdateReimbursement = () => {
-    if (!editFormData.category) {
-      toast.error("Please select a category");
-      return;
-    }
-    const amt = parseInt(editFormData.amount);
-    if (isNaN(amt) || amt <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
-    }
-    if (!editFormData.description.trim()) {
-      toast.error("Please enter a description");
-      return;
-    }
-
-    setReimbursementsData(prev => prev.map(item =>
-      item.id === editFormData.id ? {
-        ...item,
-        category: editFormData.category,
-        amount: editFormData.amount,
-        description: editFormData.description,
-        requestDate: editFormData.requestDate,
-      } : item
-    ));
-
-    setShowEditReimbursement(null);
-    toast.success("Reimbursement details updated successfully!");
-  };
 
   const handleStatusUpdate = (id: string, newStatus: string) => {
     setReimbursementsData(prev => prev.map(item =>
@@ -523,7 +654,7 @@ export default function Reimbursements() {
   };
 
   return (
-    <div className="p-6 w-full space-y-6 bg-gray-50/50 lg:h-[calc(100vh-40px)] lg:overflow-hidden flex flex-col min-h-screen lg:min-h-0 text-gray-655 font-medium">
+    <div className="p-4 md:p-5 lg:p-6 w-full space-y-4 bg-gray-50/50 flex flex-col flex-1 h-[calc(100vh-80px)] min-h-0 text-gray-655 font-medium">
       <Toaster position="top-right" />
 
       {/* Animation keyframes */}
@@ -542,16 +673,23 @@ export default function Reimbursements() {
         .fade-in-backdrop {
           animation: fadeIn 0.18s ease-out forwards;
         }
+        .scrollbar-none::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-none {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
       `}</style>
 
       {/* Status Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
         <StatCard
-          icon={Receipt}
-          label="Pending Claims"
-          value={stats.pending}
-          color="bg-amber-500"
-          subtitle="Awaiting review"
+          icon={IndianRupee}
+          label="In Salary Payrun"
+          value={stats.inSalaryPayrun}
+          color="bg-purple-500"
+          subtitle="Processed in salary"
         />
         <StatCard
           icon={CheckCircle2}
@@ -561,25 +699,25 @@ export default function Reimbursements() {
           subtitle="Ready for payment"
         />
         <StatCard
-          icon={DollarSign}
-          label="Paid"
-          value={stats.totalReimbursements - stats.pending - stats.approved}
+          icon={IndianRupee}
+          label="Paid Direct"
+          value={stats.paidDirect}
           color="bg-emerald-500"
-          subtitle="Successfully processed"
+          subtitle="Directly paid to employee"
         />
         <StatCard
           icon={TrendingUp}
           label="Total Amount"
           value={formatCurrency(stats.totalAmount)}
-          color="bg-purple-500"
+          color="bg-indigo-500"
           subtitle="Total claims value"
         />
       </div>
 
       {/* Main Content */}
-      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm flex flex-col flex-1 h-full min-h-0 overflow-hidden">
         {/* Table Action Header */}
-        <div className="p-4 border-b border-gray-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0">
+        <div className="py-2.5 px-4 border-b border-gray-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0">
           <div className="flex items-center gap-2">
             <h3 className="font-bold text-xs text-gray-700 uppercase tracking-wider">Reimbursement Claims</h3>
             <span className="bg-blue-50 text-blue-600 font-bold border border-blue-100 px-2 py-0.5 rounded text-[10px]">
@@ -588,17 +726,6 @@ export default function Reimbursements() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Clear Filters Button */}
-            {(globalSearch || Object.values(columnFilters).some(v => v !== "" && v !== "all") ||
-              Object.values(filters).some(v => v !== "" && v !== "all")) && (
-                <button
-                  onClick={handleClearFilters}
-                  className="px-3 py-1.5 border border-gray-200 bg-white text-gray-500 hover:bg-slate-50 text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  <span>Reset All</span>
-                </button>
-              )}
 
             {/* Side Filter Button */}
             <button
@@ -624,8 +751,8 @@ export default function Reimbursements() {
         </div>
 
         {/* Scrollable Table Area */}
-        <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
-          <table className="w-full border-collapse text-left text-xs">
+        <div className="overflow-y-auto overflow-x-auto md:overflow-x-hidden scrollbar-thin md:scrollbar-none flex-1 min-h-0">
+          <table className="w-full border-collapse text-left text-xs min-w-[850px] md:min-w-0 table-auto md:table-fixed">
             <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm border-b border-gray-200">
               <tr className="bg-slate-50 text-gray-500 font-semibold select-none">
                 <th className="p-3 pl-6 w-10">
@@ -637,7 +764,7 @@ export default function Reimbursements() {
                     )}
                   </button>
                 </th>
-                <th className="p-3 min-w-[170px]">
+                <th className="p-3 min-w-[140px]">
                   <div className="space-y-1">
                     <span>Employee</span>
                     <input
@@ -649,7 +776,7 @@ export default function Reimbursements() {
                     />
                   </div>
                 </th>
-                <th className="p-3 min-w-[140px]">
+                <th className="p-3 min-w-[110px]">
                   <div className="space-y-1">
                     <span>Category</span>
                     <select
@@ -666,7 +793,7 @@ export default function Reimbursements() {
                     </select>
                   </div>
                 </th>
-                <th className="p-3 min-w-[110px]">
+                <th className="p-3 min-w-[90px]">
                   <div className="space-y-1">
                     <span>Amount</span>
                     <input
@@ -678,7 +805,7 @@ export default function Reimbursements() {
                     />
                   </div>
                 </th>
-                <th className="p-3 min-w-[180px]">
+                <th className="p-3 min-w-[140px]">
                   <div className="space-y-1">
                     <span>Description</span>
                     <input
@@ -690,7 +817,7 @@ export default function Reimbursements() {
                     />
                   </div>
                 </th>
-                <th className="p-3 min-w-[120px]">
+                <th className="p-3 min-w-[100px]">
                   <div className="space-y-1">
                     <span>Request Date</span>
                     <input
@@ -701,7 +828,7 @@ export default function Reimbursements() {
                     />
                   </div>
                 </th>
-                <th className="p-3 min-w-[125px]">
+                <th className="p-3 min-w-[110px]">
                   <div className="space-y-1">
                     <span>Status</span>
                     <select
@@ -710,20 +837,19 @@ export default function Reimbursements() {
                       className="w-full font-semibold bg-white border border-gray-200 rounded-lg px-2 py-0.5 text-[10px] focus:outline-none focus:border-blue-500 cursor-pointer shadow-xs"
                     >
                       <option value="all">All</option>
-                      <option value="Pending">Pending</option>
                       <option value="Approved">Approved</option>
-                      <option value="Paid">Paid</option>
-                      <option value="Rejected">Rejected</option>
+                      <option value="Paid Direct">Paid Direct</option>
+                      <option value="In Salary Payrun">In Salary Payrun</option>
                     </select>
                   </div>
                 </th>
-                <th className="p-3 pr-6 text-right w-[150px]">Actions</th>
+                <th className="p-3 pr-6 text-right w-[110px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-gray-500 font-medium">
               {paginatedData.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-3 pl-6">
+                  <td className="py-2 px-3 pl-6">
                     <button onClick={() => toggleRow(item.id)} className="hover:text-gray-700 cursor-pointer transition-colors">
                       {selectedRows.includes(item.id) ? (
                         <CheckSquare className="w-4 h-4 text-blue-600" />
@@ -732,31 +858,29 @@ export default function Reimbursements() {
                       )}
                     </button>
                   </td>
-                  <td className="p-3">
+                  <td className="py-2 px-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#155dfc] flex items-center justify-center text-white text-[10px] font-bold border border-blue-100 shadow-xs flex-shrink-0">
-                        {item.employee.split(' ').map(n => n[0]).join('')}
-                      </div>
+                      <UserAvatar avatarUrl={item.avatarUrl} name={item.employee} />
                       <div>
                         <p className="font-bold text-gray-800 text-xs">{item.employee}</p>
                         <p className="text-[9px] text-gray-400 font-semibold">{item.empId} • {item.department}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="p-3">
+                  <td className="py-2 px-3">
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-blue-600 text-[9px] font-bold border border-blue-100">
                       {item.category}
                     </span>
                   </td>
-                  <td className="p-3 font-bold text-gray-800">{formatCurrency(parseInt(item.amount))}</td>
-                  <td className="p-3 text-gray-400 text-[10px] max-w-[180px] truncate" title={item.description}>
+                  <td className="py-2 px-3 font-bold text-gray-800">{formatCurrency(parseInt(item.amount))}</td>
+                  <td className="py-2 px-3 text-gray-400 text-[10px] max-w-[180px] truncate" title={item.description}>
                     {item.description}
                   </td>
-                  <td className="p-3 text-gray-600 text-[10px]">{item.requestDate}</td>
-                  <td className="p-3">
-                    <StatusBadge status={item.status} />
+                  <td className="py-2 px-3 text-gray-600 text-[10px]">{item.requestDate}</td>
+                  <td className="py-2 px-3">
+                    <StatusDropdownCell item={item} onUpdateStatus={handleUpdateStatusAndPayout} />
                   </td>
-                  <td className="p-3 pr-6 text-right">
+                  <td className="py-2 px-3 pr-6 text-right">
                     <div className="flex items-center justify-end gap-1.5 text-gray-405">
                       <button
                         onClick={() => setShowViewDetails(item)}
@@ -764,13 +888,6 @@ export default function Reimbursements() {
                         title="View Details"
                       >
                         <Eye className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleEditReimbursement(item)}
-                        className="p-1.5 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all shadow-xs cursor-pointer"
-                        title="Edit"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDeleteReimbursement(item.id)}
@@ -795,7 +912,7 @@ export default function Reimbursements() {
         </div>
 
         {/* Table Pagination Footer */}
-        <div className="border-t border-gray-200 px-5 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50/50 flex-shrink-0">
+        <div className="border-t border-gray-200 px-4 py-3 md:px-5 md:py-4 flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50/50 flex-shrink-0 mt-auto">
           <div className="flex items-center gap-3 text-gray-400">
             <span className="text-xs font-semibold">Rows per page:</span>
             <select
@@ -898,10 +1015,9 @@ export default function Reimbursements() {
                 className="w-full border border-gray-200 rounded-lg p-2 bg-slate-50 focus:outline-none font-semibold text-gray-750 cursor-pointer"
               >
                 <option value="all">All Status</option>
-                <option value="Pending">Pending</option>
                 <option value="Approved">Approved</option>
-                <option value="Paid">Paid</option>
-                <option value="Rejected">Rejected</option>
+                <option value="Paid Direct">Paid Direct</option>
+                <option value="In Salary Payrun">In Salary Payrun</option>
               </select>
             </div>
 
@@ -1000,104 +1116,7 @@ export default function Reimbursements() {
 
 
 
-      {/* --- MODAL 2: Edit Reimbursement --- */}
-      <div className={`fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 ${showEditReimbursement ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
-        <div className={`bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-md overflow-hidden flex flex-col transition-all duration-300 transform ${showEditReimbursement ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
-          {showEditReimbursement && (
-            <>
-              <div className="bg-slate-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center">
-                <div className="flex items-center gap-2.5">
-                  <div className="bg-green-500/10 p-2 rounded-lg text-green-600">
-                    <Pencil className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm text-gray-800">Edit Reimbursement</h3>
-                    <p className="text-[10px] text-gray-400 font-semibold">Modify claim {editFormData.id}</p>
-                  </div>
-                </div>
-                <button onClick={() => setShowEditReimbursement(null)} className="text-gray-450 hover:text-gray-700 p-1.5 rounded-lg transition-colors cursor-pointer">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
 
-              <div className="p-6 space-y-4 text-xs">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block">Employee</label>
-                  <input
-                    type="text"
-                    disabled
-                    value={`${editFormData.employee} (${editFormData.employeeId})`}
-                    className="w-full bg-slate-100 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold text-gray-400 cursor-not-allowed"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block">Category <span className="text-red-500">*</span></label>
-                  <select
-                    value={editFormData.category}
-                    onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
-                    className="w-full text-xs border border-gray-200 rounded-xl p-2.5 bg-slate-50 focus:outline-none font-semibold text-gray-750 cursor-pointer"
-                  >
-                    <option value="Travel">Travel</option>
-                    <option value="Meals">Meals</option>
-                    <option value="Office Supplies">Office Supplies</option>
-                    <option value="Software">Software</option>
-                    <option value="Equipment">Equipment</option>
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase block">Amount (₹) <span className="text-red-500">*</span></label>
-                    <input
-                      type="number"
-                      value={editFormData.amount}
-                      onChange={(e) => setEditFormData({ ...editFormData, amount: e.target.value })}
-                      className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase block">Request Date</label>
-                    <input
-                      type="date"
-                      value={editFormData.requestDate}
-                      onChange={(e) => setEditFormData({ ...editFormData, requestDate: e.target.value })}
-                      className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block">Description <span className="text-red-500">*</span></label>
-                  <textarea
-                    value={editFormData.description}
-                    onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                    rows={2}
-                    className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-slate-50 border-t border-gray-100 px-6 py-4 flex justify-between items-center">
-                <button
-                  onClick={() => setShowEditReimbursement(null)}
-                  className="px-4 py-2 border border-gray-200 bg-white hover:bg-slate-55 rounded-xl text-xs font-semibold text-gray-500 shadow-sm cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdateReimbursement}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm px-5 py-2 inline-flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <CheckCircle2 size={14} />
-                  <span>Update Claim</span>
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
 
       {/* --- MODAL 3: View Details --- */}
       <div className={`fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 ${showViewDetails ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>

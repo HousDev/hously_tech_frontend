@@ -17,7 +17,7 @@ import {
   Clock as ClockIcon, Building, Layers, UserCog, MapPinned,
   BriefcaseBusiness, School, Landmark, ShieldCheck, UserCog2,
   FileText, Globe2, Cake, HeartHandshake, PhoneCall, Flag,
-  IdCard, CreditCard as CreditCardIcon, IndianRupee, Percent
+  IdCard, CreditCard as CreditCardIcon, IndianRupee, Percent, Zap
 } from "lucide-react";
 import { masterDataAPI } from "../../../lib/masterApi";
 import {
@@ -1033,7 +1033,7 @@ const AddNewShiftModal = ({
               {/* Shift Name */}
               <div>
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                  Shift Name*
+                  Shift Name<span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1047,7 +1047,7 @@ const AddNewShiftModal = ({
               {/* Shift Start Time */}
               <div>
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                  Shift Start Time*
+                  Shift Start Time<span className="text-red-500">*</span>
                 </label>
                 <input
                   type="time"
@@ -1060,7 +1060,7 @@ const AddNewShiftModal = ({
               {/* Can Punch In Toggle */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Can Punch In*
+                  Can Punch In<span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2 bg-slate-100 p-1 rounded-xl w-fit">
                   <button
@@ -1089,7 +1089,7 @@ const AddNewShiftModal = ({
                 {canPunchInMode === "Limit" && (
                   <div className="space-y-2 pt-1 animate-slideDown">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                      Allow Punch In*
+                      Allow Punch In<span className="text-red-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 gap-3 max-w-[220px]">
                       <div>
@@ -1132,7 +1132,7 @@ const AddNewShiftModal = ({
               {/* Shift End Time */}
               <div>
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                  Shift End Time*
+                  Shift End Time<span className="text-red-500">*</span>
                 </label>
                 <input
                   type="time"
@@ -1145,7 +1145,7 @@ const AddNewShiftModal = ({
               {/* Can Punch Out Toggle */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Can Punch Out*
+                  Can Punch Out<span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2 bg-slate-100 p-1 rounded-xl w-fit">
                   <button
@@ -1174,7 +1174,7 @@ const AddNewShiftModal = ({
                 {canPunchOutMode === "Limit" && (
                   <div className="space-y-2 pt-1 animate-slideDown">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                      Allow Punch Out*
+                      Allow Punch Out<span className="text-red-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 gap-3 max-w-[220px]">
                       <div>
@@ -1209,68 +1209,7 @@ const AddNewShiftModal = ({
               </div>
             </div>
 
-            {/* Late Penalty Section — full width */}
-            <div className="md:col-span-2 pt-2 border-t border-slate-100">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-3">
-                Late Penalty Policy
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                {/* Allowed Late Days */}
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                    Allowed Late Days*
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      value={allowedLateDays}
-                      onChange={(e) => setAllowedLateDays(e.target.value)}
-                      className="w-16 px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none bg-white font-bold text-slate-700 text-center"
-                    />
-                    <span className="text-xs font-semibold text-slate-400">days</span>
-                  </div>
-                </div>
-
-                {/* Late threshold */}
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                    Only deduct if late by more than*
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      value={lateThresholdMins}
-                      onChange={(e) => setLateThresholdMins(e.target.value)}
-                      className="w-16 px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none bg-white font-bold text-slate-700 text-center"
-                    />
-                    <span className="text-xs font-semibold text-slate-400">mins</span>
-                  </div>
-                </div>
-
-                {/* Custom Multiplier Amount */}
-                <div className="md:col-span-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                    Custom Multiplier — Amount*
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-500">₹</span>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="e.g. 50"
-                      value={lateDeductionAmount}
-                      onChange={(e) => setLateDeductionAmount(e.target.value)}
-                      className="w-28 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none bg-white font-bold text-slate-700"
-                    />
-                    <span className="text-xs font-semibold text-slate-400">per late occurrence</span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
           </div>
 
           {/* Action Footer */}
@@ -1403,11 +1342,16 @@ const ShiftSelectModal = ({
                         <Trash2 size={13} />
                       </button>
                       <input
-                        type="radio"
-                        name="shift-selection"
+                        type="checkbox"
                         checked={isChecked}
-                        onChange={() => setActiveShift(shiftOpt)}
-                        className="w-4 h-4 text-[#0D47A1] focus:ring-[#0D47A1]/20 cursor-pointer ml-1"
+                        onChange={() => {
+                          if (isChecked) {
+                            setActiveShift("");
+                          } else {
+                            setActiveShift(shiftOpt);
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-slate-300 text-[#0D47A1] focus:ring-[#0D47A1]/20 cursor-pointer ml-1"
                       />
                     </div>
                   </label>
@@ -1492,6 +1436,7 @@ const EmployeeProfile = ({
   isEdit = false,
   departments = [],
   roles = [],
+  documents = [],
 }: {
   employee: EmployeeRecord;
   onBack: () => void;
@@ -1499,6 +1444,7 @@ const EmployeeProfile = ({
   isEdit?: boolean;
   departments?: string[];
   roles?: string[];
+  documents?: string[];
 }) => {
   const [visible, setVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
@@ -1506,6 +1452,102 @@ const EmployeeProfile = ({
   const [saving, setSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(employee.avatarUrl || null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [showBankVerifyModal, setShowBankVerifyModal] = useState(false);
+  const [verifyStep, setVerifyStep] = useState<'idle' | 'loading' | 'success' | 'failed'>('idle');
+  const [verifyProgressMessage, setVerifyProgressMessage] = useState('');
+  const [verifiedBeneficiaryName, setVerifiedBeneficiaryName] = useState('');
+  const [formNameMatch, setFormNameMatch] = useState(true);
+  const [verifyError, setVerifyError] = useState('');
+
+  const handleStartBankVerification = () => {
+    setVerifyStep('loading');
+    setVerifyError('');
+
+    const steps = [
+      "Connecting to RazorpayX bank servers...",
+      "Initiating Penny Drop validation...",
+      "Depositing ₹1.00 test amount...",
+      "Querying beneficiary registry for account...",
+      "Confirming bank verification..."
+    ];
+
+    let current = 0;
+    setVerifyProgressMessage(steps[0]);
+
+    const interval = setInterval(async () => {
+      current++;
+      if (current < steps.length - 1) {
+        setVerifyProgressMessage(steps[current]);
+      } else if (current === steps.length - 1) {
+        setVerifyProgressMessage(steps[current]);
+        clearInterval(interval);
+
+        try {
+          const res = await employeeApi.verifyBank(employee.id, {
+            accountNumber: formData.accountNumber,
+            ifscCode: formData.ifscCode,
+            accountHolderName: formData.accountHolderName
+          });
+
+          if (res.success) {
+            setVerifiedBeneficiaryName(res.verifiedName);
+            setFormNameMatch(
+              res.verifiedName.toLowerCase().trim() ===
+              (formData.accountHolderName || "").toLowerCase().trim()
+            );
+            setVerifyStep('success');
+          } else {
+            setFormData(prev => ({
+              ...prev,
+              bankVerificationStatus: "Failed",
+              bankVerifiedName: ""
+            }));
+            setVerifyStep('failed');
+            setVerifyError("Verification failed: invalid bank account details.");
+          }
+        } catch (err: any) {
+          setFormData(prev => ({
+            ...prev,
+            bankVerificationStatus: "Failed",
+            bankVerifiedName: ""
+          }));
+          setVerifyStep('failed');
+          setVerifyError(err.response?.data?.message || err.message || "Failed to validate with RazorpayX server.");
+        }
+      }
+    }, 600);
+  };
+
+  const handleApplyVerificationResult = async () => {
+    const updatedForm = {
+      ...formData,
+      bankVerificationStatus: "Verified",
+      bankVerifiedName: verifiedBeneficiaryName
+    };
+    setFormData(updatedForm);
+    setShowBankVerifyModal(false);
+    setVerifyStep('idle');
+
+    try {
+      toast.loading("Saving verification status...", { id: "bank-verify" });
+      const payload: any = {
+        ...employee,
+        ...updatedForm,
+        leave_cycle: leaveCycle,
+        privileged_leave_balance: leaveBalances.privilegedLeave,
+        sick_leave_balance: leaveBalances.sickLeave,
+        casual_leave_balance: leaveBalances.casualLeave,
+      };
+
+      const updated = await employeeApi.update(employee.id, payload);
+      if (updated) {
+        toast.success("Bank details verified & saved successfully!", { id: "bank-verify" });
+        if (onSaveSuccess) onSaveSuccess();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save verification status to database", { id: "bank-verify" });
+    }
+  };
 
   // Local state for Leave Balances & Policy
   const [leaveBalances, setLeaveBalances] = useState({
@@ -1583,6 +1625,9 @@ const EmployeeProfile = ({
   const [uploadDocName, setUploadDocName] = useState("");
   const [uploadDocFile, setUploadDocFile] = useState<File | null>(null);
   const [uploadModalError, setUploadModalError] = useState("");
+  const [docDropdownOpen, setDocDropdownOpen] = useState(false);
+  const [deleteConfirmDoc, setDeleteConfirmDoc] = useState<any | null>(null);
+  const [systemSubTab, setSystemSubTab] = useState<"Laptop" | "Mobile">("Laptop");
 
   const calculateSalary = (ctcVal: number, type: string): number => {
     if (!ctcVal) return 0;
@@ -1702,6 +1747,13 @@ const EmployeeProfile = ({
     accountNumber: employee.accountNumber || "",
     ifscCode: employee.ifscCode || "",
     upiId: employee.upiId || "",
+    bankVerificationStatus: employee.bankVerificationStatus || "Not Verified",
+    bankVerifiedName: employee.bankVerifiedName || "",
+    allowedLateDays: employee.allowed_late_days ?? 5,
+    deductIfLateByMoreThan: employee.deduct_if_late_by_more_than ?? 60,
+    deductBasedOnLateArrival: employee.deduct_based_on_late_arrival ?? true,
+    deductionType: employee.deduction_type || 'multiplier',
+    deductionAmount: employee.deduction_amount ?? 0,
   });
 
   // Sync formData whenever the parent updates the employee prop
@@ -1775,6 +1827,13 @@ const EmployeeProfile = ({
       accountNumber: employee.accountNumber || "",
       ifscCode: employee.ifscCode || "",
       upiId: employee.upiId || "",
+      bankVerificationStatus: employee.bankVerificationStatus || "Not Verified",
+      bankVerifiedName: employee.bankVerifiedName || "",
+      allowedLateDays: employee.allowed_late_days ?? 5,
+      deductIfLateByMoreThan: employee.deduct_if_late_by_more_than ?? 60,
+      deductBasedOnLateArrival: employee.deduct_based_on_late_arrival ?? true,
+      deductionType: employee.deduction_type || 'multiplier',
+      deductionAmount: employee.deduction_amount ?? 0,
     });
     setAvatarPreview(employee.avatarUrl || null);
     // NOTE: shiftTab is NOT reset here to avoid switching tabs after save.
@@ -1835,6 +1894,23 @@ const EmployeeProfile = ({
     setShiftTab(employee.shift && employee.shift.toLowerCase() === "flexible" ? "Flexible" : "Fixed");
   }, [employee.id]);
 
+  // Refetch employee details when switching to documents tab
+  useEffect(() => {
+    if (activeTab === "documents" && employee?.id) {
+      const refetchProfile = async () => {
+        try {
+          const data = await employeeApi.getById(String(employee.id));
+          if (data) {
+            setDocumentsList(data.documents || []);
+          }
+        } catch (err) {
+          console.error("Failed to refetch profile on tab switch:", err);
+        }
+      };
+      refetchProfile();
+    }
+  }, [activeTab, employee.id]);
+
   useEffect(() => {
     setLeaveSubView("menu");
   }, [activeTab]);
@@ -1890,7 +1966,8 @@ const EmployeeProfile = ({
         passingYear: formData.passingYear || undefined,
         percentage: formData.percentage || undefined,
         weekOffDays: formData.weekOffDays as WeekOffDays[] || undefined,
-        shift: shiftTab,  // Always use active shiftTab ("Fixed" | "Flexible") as the source of truth
+        shift: shiftTab === 'Flexible' ? 'Flexible' : (formData.shift || 'General (10AM–7PM)'),
+        shiftType: shiftTab === 'Flexible' ? 'flexible' : 'fixed',
         weeklySchedule: formData.weeklySchedule || undefined,
         avatarUrl: avatarPreview || employee.avatarUrl || undefined,
         documents: documentsList,
@@ -1927,11 +2004,19 @@ const EmployeeProfile = ({
         accountNumber: formData.accountNumber || undefined,
         ifscCode: formData.ifscCode || undefined,
         upiId: formData.upiId || undefined,
+        bankVerificationStatus: formData.bankVerificationStatus || "Not Verified",
+        bankVerifiedName: formData.bankVerifiedName || undefined,
         // Leave Policy & Balance
         leave_cycle: leaveCycle,
         privileged_leave_balance: leaveBalances.privilegedLeave,
         sick_leave_balance: leaveBalances.sickLeave,
         casual_leave_balance: leaveBalances.casualLeave,
+        // Late Penalty Settings
+        allowed_late_days: formData.allowedLateDays !== undefined ? Number(formData.allowedLateDays) : 5,
+        deduct_if_late_by_more_than: formData.deductIfLateByMoreThan !== undefined ? Number(formData.deductIfLateByMoreThan) : 60,
+        deduct_based_on_late_arrival: !!formData.deductBasedOnLateArrival,
+        deduction_type: formData.deductionType || 'multiplier',
+        deduction_amount: formData.deductionAmount !== undefined ? Number(formData.deductionAmount) : 0,
       };
       await employeeApi.update(employee.id, payload);
       toast.success("Employee updated successfully!");
@@ -2187,7 +2272,7 @@ const EmployeeProfile = ({
                 placeholder="Full permanent address"
                 icon={<MapPinIcon size={14} />}
               />
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <InputField
                   label="City"
                   value={formData.city}
@@ -2347,7 +2432,7 @@ const EmployeeProfile = ({
                 label="Salary Type"
                 value={formData.salaryType}
                 onChange={(v: string) => {
-                  const calculatedSal = calculateSalary(formData.ctc, v);
+                  const calculatedSal = formData.ctc ? calculateSalary(formData.ctc, v) : formData.salary;
                   setFormData({ ...formData, salaryType: v as any, salary: calculatedSal });
                 }}
                 isSelect
@@ -2358,7 +2443,7 @@ const EmployeeProfile = ({
                 value={formData.ctc}
                 onChange={(v: string) => {
                   const ctcVal = Number(v) || 0;
-                  const calculatedSal = calculateSalary(ctcVal, formData.salaryType);
+                  const calculatedSal = ctcVal ? calculateSalary(ctcVal, formData.salaryType) : formData.salary;
                   setFormData({ ...formData, ctc: ctcVal, salary: calculatedSal });
                 }}
                 type="number"
@@ -2451,266 +2536,316 @@ const EmployeeProfile = ({
               </div>
             </div>
 
-            {/* Sub-tab content */}
-            {shiftTab === "Fixed" ? (
-              <div className="bg-white border border-slate-200 rounded-2xl pt-3 px-6 pb-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] animate-fadeIn">
-                {/* Grid Header */}
-                <div className="grid grid-cols-[120px_100px_1fr] gap-4 items-center border-b border-slate-200 pb-2 mb-2 text-xs font-extrabold text-slate-500 uppercase tracking-widest py-1">
-                  <div>Day</div>
-                  <div className="text-center">Weekoff</div>
-                  <div>Shifts</div>
-                </div>
-
-                {/* Grid Rows */}
-                <div className="divide-y divide-slate-100 md:max-h-[245px] md:overflow-y-auto no-scrollbar pr-0">
-                  {(() => {
-                    const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-                    let schedule: Record<string, { shift?: string; isWeekOff?: boolean; weeks?: string[] }> = {};
-                    try {
-                      const raw = formData.weeklySchedule ? JSON.parse(formData.weeklySchedule) : {};
-                      DAYS.forEach(d => {
-                        if (raw[d] && typeof raw[d] === 'object') {
-                          schedule[d] = raw[d];
-                        } else {
-                          const isOff = formData.weekOffDays?.includes(d as any);
-                          schedule[d] = {
-                            shift: isOff ? `All ${d.toLowerCase()}s week off` : "",
-                            isWeekOff: isOff,
-                            weeks: ["All Weeks"]
-                          };
-                        }
-                      });
-                    } catch (e) {
-                      DAYS.forEach(d => {
-                        const isOff = formData.weekOffDays?.includes(d as any);
-                        schedule[d] = {
-                          shift: isOff ? `All ${d.toLowerCase()}s week off` : "",
-                          isWeekOff: isOff,
-                          weeks: ["All Weeks"]
-                        };
-                      });
-                    }
-
-                    return DAYS.map(day => {
-                      const isOff = schedule[day]?.isWeekOff || false;
-                      const activeShift = schedule[day]?.shift || "";
-                      const weeks = schedule[day]?.weeks || ["All Weeks"];
-
-                      return (
-                        <div key={day} className="grid grid-cols-[120px_100px_1fr] gap-4 items-center py-2.5 hover:bg-slate-50/50 px-2 transition duration-150">
-                          {/* Day Column */}
-                          <div className="flex items-center gap-1 text-sm font-semibold text-slate-700">
-                            {!isOff && <span className="text-red-500 font-bold">*</span>}
-                            <span>{day.substring(0, 3)}</span>
-                          </div>
-
-                          {/* Weekoff Checkbox Column */}
-                          <div className="flex justify-center">
-                            <input
-                              type="checkbox"
-                              checked={isOff}
-                              disabled={!isEditing}
-                              onChange={(e) => {
-                                if (!isEditing) return;
-                                const updated = {
-                                  ...schedule,
-                                  [day]: {
-                                    ...schedule[day],
-                                    isWeekOff: e.target.checked,
-                                    shift: e.target.checked ? `All ${day.toLowerCase()}s week off` : "General (10AM–7PM)",
-                                    weeks: e.target.checked ? ["All Weeks"] : []
-                                  }
-                                };
-                                const newScheduleStr = JSON.stringify(updated);
-                                const newWeekOffs = DAYS.filter(d => updated[d]?.isWeekOff);
-
-                                setFormData({
-                                  ...formData,
-                                  weeklySchedule: newScheduleStr,
-                                  weekOffDays: newWeekOffs as WeekOffDays[],
-                                  shift: updated[DAYS.find(d => !updated[d]?.isWeekOff) || "Monday"]?.shift || "General (10AM–7PM)"
-                                });
-                              }}
-                              className="w-4 h-4 rounded border-slate-300 text-[#0D47A1] focus:ring-[#0D47A1]/20 cursor-pointer"
-                            />
-                          </div>
-
-                          {/* Shifts Column */}
-                          <div className="max-w-[280px] w-full">
-                            {isOff ? (
-                              <button
-                                type="button"
-                                disabled={!isEditing}
-                                onClick={() => {
-                                  setActiveWeekOffModalDay(day);
-                                  setTempWeekOffWeeks(weeks);
-                                }}
-                                className={`w-full flex items-center justify-between px-3.5 py-1.5 text-sm border rounded-xl bg-white text-left font-semibold transition-all border-slate-200 text-slate-700 hover:border-[#0D47A1]/40 ${!isEditing ? "cursor-not-allowed opacity-75" : "cursor-pointer"
-                                  }`}
-                              >
-                                <span className="truncate">{getWeekOffText(day, weeks)}</span>
-                                <svg className="shrink-0 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                disabled={!isEditing}
-                                onClick={() => {
-                                  setActiveShiftModalDay(day);
-                                  setTempSelectedShift(activeShift);
-                                }}
-                                className={`w-full flex items-center justify-between px-3.5 py-1.5 text-sm border rounded-xl bg-white text-left font-semibold transition-all border-slate-200 text-slate-700 hover:border-[#0D47A1]/40 ${!isEditing ? "cursor-not-allowed opacity-75" : "cursor-pointer"
-                                  }`}
-                              >
-                                <span className="truncate">{activeShift || "Select Shift"}</span>
-                                <svg className="shrink-0 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-              </div>
-            ) : (
-              // Flexible: date-by-date table for selected month
-              flexibleMonth ? (() => {
-                const { year, month } = flexibleMonth;
-                const monthName = new Date(year, month, 1).toLocaleString("default", { month: "long" });
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const DATE_KEYS = Array.from({ length: daysInMonth }, (_, i) => `${year}-${String(month + 1).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`);
-
-                let flexSchedule: Record<string, { shift?: string; isWeekOff?: boolean; weeks?: string[] }> = {};
-                try {
-                  const raw = formData.weeklySchedule ? JSON.parse(formData.weeklySchedule) : {};
-                  DATE_KEYS.forEach(dk => {
-                    if (raw[dk] && typeof raw[dk] === "object") {
-                      flexSchedule[dk] = raw[dk];
-                    } else {
-                      flexSchedule[dk] = { shift: "", isWeekOff: false, weeks: [] };
-                    }
-                  });
-                } catch (e) {
-                  DATE_KEYS.forEach(dk => {
-                    flexSchedule[dk] = { shift: "", isWeekOff: false, weeks: [] };
-                  });
-                }
-
-                return (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              {/* Left Column: Shift Table */}
+              <div className="lg:col-span-2 space-y-4">
+                {shiftTab === "Fixed" ? (
                   <div className="bg-white border border-slate-200 rounded-2xl pt-3 px-6 pb-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] animate-fadeIn">
-                    {/* Month header with change button */}
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">
-                        {monthName} {year}
-                      </h4>
-                      <button
-                        type="button"
-                        onClick={() => setShowMonthPickerModal(true)}
-                        className="text-[10px] font-bold text-[#0D47A1] hover:underline cursor-pointer bg-transparent border-none outline-none"
-                      >
-                        Change Month
-                      </button>
-                    </div>
-
                     {/* Grid Header */}
-                    <div className="grid grid-cols-[100px_100px_1fr] gap-4 items-center border-b border-slate-200 pb-2 mb-2 text-xs font-extrabold text-slate-500 uppercase tracking-widest py-1">
-                      <div>Date</div>
+                    <div className="hidden sm:grid sm:grid-cols-[120px_100px_1fr] gap-4 items-center border-b border-slate-200 pb-2 mb-2 text-xs font-extrabold text-slate-500 uppercase tracking-widest py-1">
+                      <div>Day</div>
                       <div className="text-center">Weekoff</div>
                       <div>Shifts</div>
                     </div>
 
                     {/* Grid Rows */}
-                    <div className="divide-y divide-slate-100 md:max-h-[245px] md:overflow-y-auto no-scrollbar">
-                      {DATE_KEYS.map(dk => {
-                        const dayNum = parseInt(dk.split("-")[2]);
-                        const dateObj = new Date(year, month, dayNum);
-                        const dayLabel = dateObj.toLocaleString("default", { weekday: "short" });
-                        const isOff = flexSchedule[dk]?.isWeekOff || false;
-                        const activeShiftFlex = flexSchedule[dk]?.shift || "";
-                        const weeks = flexSchedule[dk]?.weeks || [];
+                    <div className="divide-y divide-slate-100 md:max-h-[245px] md:overflow-y-auto no-scrollbar pr-0">
+                      {(() => {
+                        const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+                        let schedule: Record<string, { shift?: string; isWeekOff?: boolean; weeks?: string[] }> = {};
+                        try {
+                          const raw = formData.weeklySchedule ? JSON.parse(formData.weeklySchedule) : {};
+                          DAYS.forEach(d => {
+                            if (raw[d] && typeof raw[d] === 'object') {
+                              schedule[d] = raw[d];
+                            } else {
+                              const isOff = formData.weekOffDays?.includes(d as any);
+                              schedule[d] = {
+                                shift: isOff ? `All ${d.toLowerCase()}s week off` : "",
+                                isWeekOff: isOff,
+                                weeks: ["All Weeks"]
+                              };
+                            }
+                          });
+                        } catch (e) {
+                          DAYS.forEach(d => {
+                            const isOff = formData.weekOffDays?.includes(d as any);
+                            schedule[d] = {
+                              shift: isOff ? `All ${d.toLowerCase()}s week off` : "",
+                              isWeekOff: isOff,
+                              weeks: ["All Weeks"]
+                            };
+                          });
+                        }
 
-                        return (
-                          <div key={dk} className="grid grid-cols-[100px_100px_1fr] gap-4 items-center py-2.5 hover:bg-slate-50/50 px-2 transition duration-150">
-                            {/* Date Column */}
-                            <div className="flex items-center gap-1 text-sm font-semibold text-slate-700">
-                              {!isOff && <span className="text-red-500 font-bold">*</span>}
-                              <span>{monthName.substring(0, 3)} {dayNum}</span>
-                              <span className="text-[10px] text-slate-400 font-medium">({dayLabel})</span>
-                            </div>
+                        return DAYS.map(day => {
+                          const isOff = schedule[day]?.isWeekOff || false;
+                          const activeShift = schedule[day]?.shift || "";
+                          const weeks = schedule[day]?.weeks || ["All Weeks"];
 
-                            {/* Weekoff Checkbox */}
-                            <div className="flex justify-center">
-                              <input
-                                type="checkbox"
-                                checked={isOff}
-                                disabled={!isEditing}
-                                onChange={(e) => {
-                                  if (!isEditing) return;
-                                  const updatedFlex = {
-                                    ...flexSchedule,
-                                    [dk]: {
-                                      ...flexSchedule[dk],
-                                      isWeekOff: e.target.checked,
-                                      shift: e.target.checked ? `${monthName} ${dayNum} off` : "General (10AM–7PM)",
-                                      weeks: []
-                                    }
-                                  };
-                                  setFormData(prev => ({ ...prev, weeklySchedule: JSON.stringify(updatedFlex) }));
-                                }}
-                                className="w-4 h-4 rounded border-slate-300 text-[#0D47A1] focus:ring-[#0D47A1]/20 cursor-pointer"
-                              />
-                            </div>
+                          return (
+                            <div key={day} className="flex flex-col sm:grid sm:grid-cols-[120px_100px_1fr] gap-3 sm:gap-4 items-start sm:items-center py-3.5 sm:py-2.5 hover:bg-slate-50/50 px-2 transition duration-150 border-b border-slate-100 sm:border-b-0 last:border-none">
+                              {/* Day Column */}
+                              <div className="flex items-center gap-1 text-sm font-semibold text-slate-700">
+                                {!isOff && <span className="text-red-500 font-bold">*</span>}
+                                <span className="sm:hidden">{day}</span>
+                                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                              </div>
 
-                            {/* Shifts Column */}
-                            <div className="max-w-[280px] w-full">
-                              <button
-                                type="button"
-                                disabled={!isEditing || isOff}
-                                onClick={() => {
-                                  setActiveShiftModalDay(dk);
-                                  setTempSelectedShift(activeShiftFlex);
-                                }}
-                                className={`w-full flex items-center justify-between px-3.5 py-1.5 text-sm border rounded-xl bg-white text-left font-semibold transition-all border-slate-200 text-slate-700 hover:border-[#0D47A1]/40 ${(!isEditing || isOff) ? "cursor-not-allowed opacity-75" : "cursor-pointer"
-                                  }`}
-                              >
-                                <span className="truncate">{isOff ? `${monthName} ${dayNum} off` : (activeShiftFlex || "Select Shift")}</span>
-                                {!isOff && (
-                                  <svg className="shrink-0 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                )}
-                              </button>
+                              <div className="flex items-center justify-between w-full sm:contents gap-2">
+                                {/* Weekoff Checkbox Column */}
+                                <div className="flex items-center gap-2 sm:justify-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={isOff}
+                                    disabled={!isEditing}
+                                    onChange={(e) => {
+                                      if (!isEditing) return;
+                                      const updated = {
+                                        ...schedule,
+                                        [day]: {
+                                          ...schedule[day],
+                                          isWeekOff: e.target.checked,
+                                          shift: e.target.checked ? `All ${day.toLowerCase()}s week off` : "General (10AM–7PM)",
+                                          weeks: e.target.checked ? ["All Weeks"] : []
+                                        }
+                                      };
+                                      const newScheduleStr = JSON.stringify(updated);
+                                      const newWeekOffs = DAYS.filter(d => updated[d]?.isWeekOff);
+
+                                      setFormData({
+                                        ...formData,
+                                        weeklySchedule: newScheduleStr,
+                                        weekOffDays: newWeekOffs as WeekOffDays[],
+                                        shift: updated[DAYS.find(d => !updated[d]?.isWeekOff) || "Monday"]?.shift || "General (10AM–7PM)"
+                                      });
+                                    }}
+                                    className="w-4 h-4 rounded border-slate-300 text-[#0D47A1] focus:ring-[#0D47A1]/20 cursor-pointer"
+                                  />
+                                  <span className="text-xs font-bold text-slate-500 sm:hidden">Weekoff</span>
+                                </div>
+
+                                {/* Shifts Column */}
+                                <div className="w-full sm:max-w-[280px]">
+                                  {isOff ? (
+                                    <button
+                                      type="button"
+                                      disabled={!isEditing}
+                                      onClick={() => {
+                                        setActiveWeekOffModalDay(day);
+                                        setTempWeekOffWeeks(weeks);
+                                      }}
+                                      className={`w-full flex items-center justify-between px-3.5 py-1.5 text-sm border rounded-xl bg-white text-left font-semibold transition-all border-slate-200 text-slate-700 hover:border-[#0D47A1]/40 ${!isEditing ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+                                        }`}
+                                    >
+                                      <span className="truncate">{getWeekOffText(day, weeks)}</span>
+                                      <svg className="shrink-0 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                      </svg>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      disabled={!isEditing}
+                                      onClick={() => {
+                                        setActiveShiftModalDay(day);
+                                        setTempSelectedShift(activeShift);
+                                      }}
+                                      className={`w-full flex items-center justify-between px-3.5 py-1.5 text-sm border rounded-xl bg-white text-left font-semibold transition-all border-slate-200 text-slate-700 hover:border-[#0D47A1]/40 ${!isEditing ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+                                        }`}
+                                    >
+                                      <span className="truncate">{activeShift || "Select Shift"}</span>
+                                      <svg className="shrink-0 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
-                );
-              })()
-                : (
-                  <div className="flex flex-col gap-1.5 p-5 bg-blue-50/50 border border-blue-100/50 rounded-2xl animate-fadeIn max-w-xl">
-                    <h4 className="text-xs font-extrabold text-[#0D47A1] uppercase tracking-wider flex items-center gap-1.5">
-                      <Clock size={14} /> Flexible Shift
+                ) : (
+                  // Flexible: date-by-date table for selected month
+                  flexibleMonth ? (() => {
+                    const { year, month } = flexibleMonth;
+                    const monthName = new Date(year, month, 1).toLocaleString("default", { month: "long" });
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    const DATE_KEYS = Array.from({ length: daysInMonth }, (_, i) => `${year}-${String(month + 1).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`);
+
+                    let flexSchedule: Record<string, { shift?: string; isWeekOff?: boolean; weeks?: string[] }> = {};
+                    try {
+                      const raw = formData.weeklySchedule ? JSON.parse(formData.weeklySchedule) : {};
+                      DATE_KEYS.forEach(dk => {
+                        if (raw[dk] && typeof raw[dk] === "object") {
+                          flexSchedule[dk] = raw[dk];
+                        } else {
+                          flexSchedule[dk] = { shift: "", isWeekOff: false, weeks: [] };
+                        }
+                      });
+                    } catch (e) {
+                      DATE_KEYS.forEach(dk => {
+                        flexSchedule[dk] = { shift: "", isWeekOff: false, weeks: [] };
+                      });
+                    }
+
+                    return (
+                      <div className="bg-white border border-slate-200 rounded-2xl pt-3 px-6 pb-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] animate-fadeIn">
+                        {/* Month header with change button */}
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+                            {monthName} {year}
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={() => setShowMonthPickerModal(true)}
+                            className="text-[10px] font-bold text-[#0D47A1] hover:underline cursor-pointer bg-transparent border-none outline-none"
+                          >
+                            Change Month
+                          </button>
+                        </div>
+
+                        {/* Grid Header */}
+                        <div className="hidden sm:grid sm:grid-cols-[100px_100px_1fr] gap-4 items-center border-b border-slate-200 pb-2 mb-2 text-xs font-extrabold text-slate-500 uppercase tracking-widest py-1">
+                          <div>Date</div>
+                          <div className="text-center">Weekoff</div>
+                          <div>Shifts</div>
+                        </div>
+
+                        {/* Grid Rows */}
+                        <div className="divide-y divide-slate-100 md:max-h-[245px] md:overflow-y-auto no-scrollbar">
+                          {DATE_KEYS.map(dk => {
+                            const dayNum = parseInt(dk.split("-")[2]);
+                            const dateObj = new Date(year, month, dayNum);
+                            const dayLabel = dateObj.toLocaleString("default", { weekday: "short" });
+                            const isOff = flexSchedule[dk]?.isWeekOff || false;
+                            const activeShiftFlex = flexSchedule[dk]?.shift || "";
+                            const weeks = flexSchedule[dk]?.weeks || [];
+
+                            return (
+                              <div key={dk} className="flex flex-col sm:grid sm:grid-cols-[100px_100px_1fr] gap-3 sm:gap-4 items-start sm:items-center py-3.5 sm:py-2.5 hover:bg-slate-50/50 px-2 transition duration-150 border-b border-slate-100 sm:border-b-0 last:border-none">
+                                {/* Date Column */}
+                                <div className="flex items-center gap-1 text-sm font-semibold text-slate-700">
+                                  {!isOff && <span className="text-red-500 font-bold">*</span>}
+                                  <span>{monthName.substring(0, 3)} {dayNum}</span>
+                                  <span className="text-[10px] text-slate-400 font-medium">({dayLabel})</span>
+                                </div>
+
+                                <div className="flex items-center justify-between w-full sm:contents gap-2">
+                                  {/* Weekoff Checkbox */}
+                                  <div className="flex items-center gap-2 sm:justify-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={isOff}
+                                      disabled={!isEditing}
+                                      onChange={(e) => {
+                                        if (!isEditing) return;
+                                        const updatedFlex = {
+                                          ...flexSchedule,
+                                          [dk]: {
+                                            ...flexSchedule[dk],
+                                            isWeekOff: e.target.checked,
+                                            shift: e.target.checked ? `${monthName} ${dayNum} off` : "General (10AM–7PM)",
+                                            weeks: []
+                                          }
+                                        };
+                                        setFormData(prev => ({ ...prev, weeklySchedule: JSON.stringify(updatedFlex) }));
+                                      }}
+                                      className="w-4 h-4 rounded border-slate-300 text-[#0D47A1] focus:ring-[#0D47A1]/20 cursor-pointer"
+                                    />
+                                    <span className="text-xs font-bold text-slate-500 sm:hidden">Weekoff</span>
+                                  </div>
+
+                                  {/* Shifts Column */}
+                                  <div className="w-full sm:max-w-[280px]">
+                                    <button
+                                      type="button"
+                                      disabled={!isEditing || isOff}
+                                      onClick={() => {
+                                        setActiveShiftModalDay(dk);
+                                        setTempSelectedShift(activeShiftFlex);
+                                      }}
+                                      className={`w-full flex items-center justify-between px-3.5 py-1.5 text-sm border rounded-xl bg-white text-left font-semibold transition-all border-slate-200 text-slate-700 hover:border-[#0D47A1]/40 ${(!isEditing || isOff) ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+                                        }`}
+                                    >
+                                      <span className="truncate">{isOff ? `${monthName} ${dayNum} off` : (activeShiftFlex || "Select Shift")}</span>
+                                      {!isOff && (
+                                        <svg className="shrink-0 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()
+                    : (
+                      <div className="flex flex-col gap-1.5 p-5 bg-blue-50/50 border border-blue-100/50 rounded-2xl animate-fadeIn max-w-xl">
+                        <h4 className="text-xs font-extrabold text-[#0D47A1] uppercase tracking-wider flex items-center gap-1.5">
+                          <Clock size={14} /> Flexible Shift
+                        </h4>
+                        <p className="text-xs text-slate-500 leading-relaxed mt-1">
+                          Select a month to configure date-wise shifts.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowMonthPickerModal(true)}
+                          className="mt-2 w-fit px-4 py-2 text-xs font-bold text-white bg-[#0D47A1] rounded-xl hover:opacity-90 transition cursor-pointer border-none"
+                        >
+                          Select Month
+                        </button>
+                      </div>
+                    )
+                )}
+              </div>
+
+              {/* Right Column: Late Penalty Policy */}
+              <div className="lg:col-span-1">
+                {/* Late Attendance Penalty Settings Section */}
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] animate-fadeIn space-y-4">
+                  <div>
+                    <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                      ⚠️ Late Attendance & Penalty Settings
                     </h4>
-                    <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                      Select a month to configure date-wise shifts.
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      Configure grace days, thresholds, and custom multiplier deduction details for this employee.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => setShowMonthPickerModal(true)}
-                      className="mt-2 w-fit px-4 py-2 text-xs font-bold text-white bg-[#0D47A1] rounded-xl hover:opacity-90 transition cursor-pointer border-none"
-                    >
-                      Select Month
-                    </button>
                   </div>
-                )
-            )}
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <InputField
+                      label="Allowed Late Days"
+                      type="number"
+                      value={formData.allowedLateDays}
+                      onChange={(v: string) => setFormData({ ...formData, allowedLateDays: Number(v) })}
+                      placeholder="e.g. 5"
+                    />
+                    <InputField
+                      label="Only deduct if late by more than (mins)"
+                      type="number"
+                      value={formData.deductIfLateByMoreThan}
+                      onChange={(v: string) => setFormData({ ...formData, deductIfLateByMoreThan: Number(v) })}
+                      placeholder="e.g. 60"
+                    />
+                    <InputField
+                      label="Custom Multiplier — Amount (₹ per late Hour)"
+                      type="number"
+                      value={formData.deductionAmount}
+                      onChange={(v: string) => setFormData({ ...formData, deductionAmount: Number(v) })}
+                      placeholder="e.g. 100"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Week Off Details Modal */}
             {activeWeekOffModalDay && createPortal(
@@ -2902,114 +3037,158 @@ const EmployeeProfile = ({
       case "system":
         return (
           <div className="space-y-6">
-            {/* Asset Assignment Toggles */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
-              <InputField
-                label="Laptop Assigned"
-                value={formData.laptopAssigned}
-                onChange={(v: string) => setFormData({ ...formData, laptopAssigned: v as any })}
-                isSelect
-                options={["Yes", "No"]}
-                icon={<Laptop size={14} />}
-              />
-              <InputField
-                label="Mobile Assigned"
-                value={formData.mobileAssigned}
-                onChange={(v: string) => setFormData({ ...formData, mobileAssigned: v as any })}
-                isSelect
-                options={["Yes", "No"]}
-                icon={<Smartphone size={14} />}
-              />
+            {/* System Sub-tabs (Laptop / Mobile) - Sticky at the top of the tab content panel */}
+            <div className="sticky top-6 z-20 pb-3 mb-3 border-b border-slate-100 flex justify-start">
+              <div className="relative flex bg-blue-50/80 p-1 rounded-xl w-64 border border-[#0D47A1]/20">
+                {/* Active background pill */}
+                <div
+                  className="absolute top-1 bottom-1 rounded-lg bg-[#0D47A1] shadow-md transition-all duration-300 ease-out"
+                  style={{
+                    width: 'calc(50% - 4px)',
+                    left: systemSubTab === "Laptop" ? '4px' : 'calc(50%)',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setSystemSubTab("Laptop")}
+                  className={`relative z-10 w-1/2 py-2 text-xs font-bold text-center transition-colors duration-250 cursor-pointer ${systemSubTab === "Laptop" ? "text-white" : "text-slate-500 hover:text-[#0D47A1]"
+                    }`}
+                >
+                  Laptop
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSystemSubTab("Mobile")}
+                  className={`relative z-10 w-1/2 py-2 text-xs font-bold text-center transition-colors duration-250 cursor-pointer ${systemSubTab === "Mobile" ? "text-white" : "text-slate-500 hover:text-[#0D47A1]"
+                    }`}
+                >
+                  Mobile
+                </button>
+              </div>
             </div>
 
-            {/* Laptop Details (Visible only if Laptop Assigned is Yes) */}
-            {formData.laptopAssigned === "Yes" && (
-              <div className="space-y-3 bg-blue-50/10 p-4 rounded-xl border border-blue-100/50 animate-fadeIn">
-                <h4 className="text-xs font-bold text-[#0D47A1] uppercase tracking-wider flex items-center gap-2">
-                  <Laptop size={14} /> Laptop Asset Details
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <InputField
-                    label="Laptop Name / Brand"
-                    value={formData.laptopName}
-                    onChange={(v: string) => setFormData({ ...formData, laptopName: v })}
-                    placeholder="e.g. Dell Latitude 3420"
-                    icon={<Laptop size={14} />}
-                  />
-                  <InputField
-                    label="Laptop Serial Number"
-                    value={formData.laptopSerialNumber}
-                    onChange={(v: string) => setFormData({ ...formData, laptopSerialNumber: v })}
-                    placeholder="e.g. CN-0XXXXX-XXXXX"
-                    icon={<Hash size={14} />}
-                  />
-                  <InputField
-                    label="System Login ID"
-                    value={formData.systemLoginId}
-                    onChange={(v: string) => setFormData({ ...formData, systemLoginId: v })}
-                    icon={<UserCircle size={14} />}
-                  />
-                  <InputField
-                    label="System Password"
-                    value={formData.systemPassword}
-                    onChange={(v: string) => setFormData({ ...formData, systemPassword: v })}
-                    type="text"
-                    icon={<Lock size={14} />}
-                  />
+            {systemSubTab === "Laptop" ? (
+              <div className="space-y-4 animate-fadeIn">
+                {/* Laptop Toggle */}
+                <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                  <div className="max-w-[200px]">
+                    <InputField
+                      label="Laptop Assigned"
+                      value={formData.laptopAssigned}
+                      onChange={(v: string) => setFormData({ ...formData, laptopAssigned: v as any })}
+                      isSelect
+                      options={["Yes", "No"]}
+                      icon={<Laptop size={14} />}
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
 
-            {/* Mobile Details (Visible only if Mobile Assigned is Yes) */}
-            {formData.mobileAssigned === "Yes" && (
-              <div className="space-y-3 bg-emerald-50/10 p-4 rounded-xl border border-emerald-100/50 animate-fadeIn">
-                <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-2">
-                  <Smartphone size={14} /> Mobile Asset Details
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <InputField
-                    label="Mobile Name / Brand"
-                    value={formData.mobileName}
-                    onChange={(v: string) => setFormData({ ...formData, mobileName: v })}
-                    placeholder="e.g. Samsung Galaxy A34"
-                    icon={<Smartphone size={14} />}
-                  />
-                  <InputField
-                    label="IMEI Number"
-                    value={formData.mobileImei}
-                    onChange={(v: string) => setFormData({ ...formData, mobileImei: v })}
-                    placeholder="Enter IMEI number"
-                    icon={<Hash size={14} />}
-                  />
-                  <InputField
-                    label="Mobile Serial Number"
-                    value={formData.mobileSerialNumber}
-                    onChange={(v: string) => setFormData({ ...formData, mobileSerialNumber: v })}
-                    placeholder="Enter mobile serial number"
-                    icon={<Hash size={14} />}
-                  />
-                  <InputField
-                    label="Mobile Password"
-                    value={formData.mobilePassword}
-                    onChange={(v: string) => setFormData({ ...formData, mobilePassword: v })}
-                    type="text"
-                    icon={<Lock size={14} />}
-                  />
-                  <InputField
-                    label="SIM Card Operator/Details"
-                    value={formData.simCard}
-                    onChange={(v: string) => setFormData({ ...formData, simCard: v })}
-                    placeholder="e.g. Jio / Airtel / Vodafone"
-                    icon={<IdCard size={14} />}
-                  />
-                  <InputField
-                    label="Mobile Number (SIM)"
-                    value={formData.mobileNumberSim}
-                    onChange={(v: string) => setFormData({ ...formData, mobileNumberSim: v })}
-                    placeholder="e.g. +91 XXXXX XXXXX"
-                    icon={<Phone size={14} />}
-                  />
+                {/* Laptop Details (Visible only if Laptop Assigned is Yes) */}
+                {formData.laptopAssigned === "Yes" && (
+                  <div className="space-y-3 bg-blue-50/10 p-4 rounded-xl border border-blue-100/50">
+                    <h4 className="text-xs font-bold text-[#0D47A1] uppercase tracking-wider flex items-center gap-2">
+                      <Laptop size={14} /> Laptop Asset Details
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <InputField
+                        label="Laptop Name / Brand"
+                        value={formData.laptopName}
+                        onChange={(v: string) => setFormData({ ...formData, laptopName: v })}
+                        placeholder="e.g. Dell Latitude 3420"
+                        icon={<Laptop size={14} />}
+                      />
+                      <InputField
+                        label="Laptop Serial Number"
+                        value={formData.laptopSerialNumber}
+                        onChange={(v: string) => setFormData({ ...formData, laptopSerialNumber: v })}
+                        placeholder="e.g. CN-0XXXXX-XXXXX"
+                        icon={<Hash size={14} />}
+                      />
+                      <InputField
+                        label="System Login ID"
+                        value={formData.systemLoginId}
+                        onChange={(v: string) => setFormData({ ...formData, systemLoginId: v })}
+                        icon={<UserCircle size={14} />}
+                      />
+                      <InputField
+                        label="System Password"
+                        value={formData.systemPassword}
+                        onChange={(v: string) => setFormData({ ...formData, systemPassword: v })}
+                        type="text"
+                        icon={<Lock size={14} />}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4 animate-fadeIn">
+                {/* Mobile Toggle */}
+                <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                  <div className="max-w-[200px]">
+                    <InputField
+                      label="Mobile Assigned"
+                      value={formData.mobileAssigned}
+                      onChange={(v: string) => setFormData({ ...formData, mobileAssigned: v as any })}
+                      isSelect
+                      options={["Yes", "No"]}
+                      icon={<Smartphone size={14} />}
+                    />
+                  </div>
                 </div>
+
+                {/* Mobile Details (Visible only if Mobile Assigned is Yes) */}
+                {formData.mobileAssigned === "Yes" && (
+                  <div className="space-y-3 bg-emerald-50/10 p-4 rounded-xl border border-emerald-100/50">
+                    <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-2">
+                      <Smartphone size={14} /> Mobile Asset Details
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <InputField
+                        label="Mobile Name / Brand"
+                        value={formData.mobileName}
+                        onChange={(v: string) => setFormData({ ...formData, mobileName: v })}
+                        placeholder="e.g. Samsung Galaxy A34"
+                        icon={<Smartphone size={14} />}
+                      />
+                      <InputField
+                        label="IMEI Number"
+                        value={formData.mobileImei}
+                        onChange={(v: string) => setFormData({ ...formData, mobileImei: v })}
+                        placeholder="Enter IMEI number"
+                        icon={<Hash size={14} />}
+                      />
+                      <InputField
+                        label="Mobile Serial Number"
+                        value={formData.mobileSerialNumber}
+                        onChange={(v: string) => setFormData({ ...formData, mobileSerialNumber: v })}
+                        placeholder="Enter mobile serial number"
+                        icon={<Hash size={14} />}
+                      />
+                      <InputField
+                        label="Mobile Password"
+                        value={formData.mobilePassword}
+                        onChange={(v: string) => setFormData({ ...formData, mobilePassword: v })}
+                        type="text"
+                        icon={<Lock size={14} />}
+                      />
+                      <InputField
+                        label="SIM Card Operator/Details"
+                        value={formData.simCard}
+                        onChange={(v: string) => setFormData({ ...formData, simCard: v })}
+                        placeholder="e.g. Jio / Airtel / Vodafone"
+                        icon={<IdCard size={14} />}
+                      />
+                      <InputField
+                        label="Mobile Number (SIM)"
+                        value={formData.mobileNumberSim}
+                        onChange={(v: string) => setFormData({ ...formData, mobileNumberSim: v })}
+                        placeholder="e.g. +91 XXXXX XXXXX"
+                        icon={<Phone size={14} />}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -3018,7 +3197,7 @@ const EmployeeProfile = ({
               <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
                 <MailIcon size={14} /> Office Credentials
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <InputField
                   label="Office Email ID"
                   value={formData.officeEmailId}
@@ -3073,6 +3252,267 @@ const EmployeeProfile = ({
                 icon={<CreditCard size={14} />}
               />
             </div>
+
+            {/* Bank Verification Section */}
+            <div className="mt-6 border-t border-slate-100 pt-5">
+              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Bank Account Verification</h3>
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center border shrink-0 ${formData.bankVerificationStatus === 'Verified' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
+                    formData.bankVerificationStatus === 'Failed' ? 'bg-rose-50 border-rose-100 text-rose-600' :
+                      formData.bankVerificationStatus === 'Verifying' ? 'bg-blue-50 border-blue-100 text-blue-600 animate-pulse' :
+                        'bg-slate-100 border-slate-200 text-slate-500'
+                    }`}>
+                    {formData.bankVerificationStatus === 'Verified' ? <CheckCircle2 size={18} /> :
+                      formData.bankVerificationStatus === 'Failed' ? <AlertCircle size={18} /> :
+                        formData.bankVerificationStatus === 'Verifying' ? <RefreshCw size={18} className="animate-spin" /> :
+                          <ShieldCheck size={18} />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-slate-800">Status:</span>
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${formData.bankVerificationStatus === 'Verified' ? 'bg-emerald-100 text-emerald-800' :
+                        formData.bankVerificationStatus === 'Failed' ? 'bg-rose-100 text-rose-800' :
+                          formData.bankVerificationStatus === 'Verifying' ? 'bg-blue-100 text-blue-800 animate-pulse' :
+                            'bg-slate-200 text-slate-700'
+                        }`}>
+                        {formData.bankVerificationStatus || 'Not Verified'}
+                      </span>
+                    </div>
+                    {formData.bankVerificationStatus === 'Verified' && formData.bankVerifiedName && (
+                      <p className="text-[11px] text-slate-500 mt-1 font-semibold">
+                        Beneficiary Name: <span className="text-emerald-700 font-bold">{formData.bankVerifiedName}</span>
+                      </p>
+                    )}
+                    {formData.bankVerificationStatus === 'Failed' && (
+                      <p className="text-[11px] text-rose-600 mt-1 font-semibold">
+                        Verification failed. Please check the account details and try again.
+                      </p>
+                    )}
+                    {(formData.bankVerificationStatus !== 'Verified' && formData.bankVerificationStatus !== 'Failed' && formData.bankVerificationStatus !== 'Verifying') && (
+                      <p className="text-[11px] text-slate-400 mt-0.5 font-medium">
+                        Verify this bank account using RazorpayX Penny Drop verification.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowBankVerifyModal(true)}
+                    disabled={!formData.accountNumber || !formData.ifscCode}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${!formData.accountNumber || !formData.ifscCode
+                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                      : 'bg-[#0D47A1] text-white hover:bg-[#0D47A1]/95 shadow-sm hover:shadow active:scale-[0.98]'
+                      }`}
+                  >
+                    <Zap size={11} className="fill-current text-amber-400" />
+                    Verify with RazorpayX
+                  </button>
+                  {(!formData.accountNumber || !formData.ifscCode) && (
+                    <p className="text-[9px] text-rose-500 font-semibold text-right mt-1">IFSC & Account number required</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* RazorpayX Verification Portal Modal */}
+            {showBankVerifyModal && createPortal(
+              <>
+                <div
+                  className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto"
+                  onClick={() => {
+                    if (verifyStep !== 'loading') {
+                      setShowBankVerifyModal(false);
+                      setVerifyStep('idle');
+                      setVerifyError('');
+                      if (verifyStep === 'failed' && onSaveSuccess) onSaveSuccess();
+                    }
+                  }}
+                />
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 pointer-events-none">
+                  <div
+                    className="w-full max-w-md bg-white rounded-2xl shadow-2xl pointer-events-auto p-6 text-left border border-slate-100 flex flex-col space-y-4"
+                    style={{
+                      animation: 'modalVerifyOpen 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+                    }}
+                  >
+                    <style>{`
+                      @keyframes modalVerifyOpen {
+                        from { transform: scale(0.95); opacity: 0; }
+                        to { transform: scale(1); opacity: 1; }
+                      }
+                    `}</style>
+
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                          <Zap size={14} className="fill-current text-indigo-600" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-800">RazorpayX Verification</h4>
+                          <p className="text-[10px] text-slate-400 font-medium">Penny Drop Bank Validation</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowBankVerifyModal(false);
+                          setVerifyStep('idle');
+                          setVerifyError('');
+                          if (verifyStep === 'failed' && onSaveSuccess) onSaveSuccess();
+                        }}
+                        disabled={verifyStep === 'loading'}
+                        className="text-slate-400 hover:text-slate-600 disabled:opacity-50 transition cursor-pointer"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    {verifyStep === 'idle' && (
+                      <div className="space-y-4">
+                        <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3 space-y-2">
+                          <p className="text-xs font-semibold text-slate-700">Account Details to Validate:</p>
+                          <div className="grid grid-cols-2 gap-2 text-[11px] font-medium text-slate-500">
+                            <div>Account Holder:</div>
+                            <div className="text-slate-800 font-bold">{formData.accountHolderName || "N/A"}</div>
+                            <div>Account Number:</div>
+                            <div className="text-slate-800 font-bold">{formData.accountNumber || "N/A"}</div>
+                            <div>IFSC Code:</div>
+                            <div className="text-slate-800 font-bold">{formData.ifscCode || "N/A"}</div>
+                            {formData.bankName && (
+                              <>
+                                <div>Bank Name:</div>
+                                <div className="text-slate-800 font-bold">{formData.bankName}</div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="bg-indigo-50/50 border border-indigo-100/50 rounded-xl p-3 flex gap-2">
+                          <ShieldCheck className="text-indigo-600 flex-shrink-0 mt-0.5" size={14} />
+                          <p className="text-[10px] text-indigo-800 font-semibold leading-relaxed">
+                            RazorpayX will deposit ₹1.00 into this account to verify active status and retrieve the actual registered name from the beneficiary bank registry.
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleStartBankVerification}
+                          className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow active:scale-[0.99] transition cursor-pointer"
+                        >
+                          <Zap size={12} className="fill-current text-amber-400" />
+                          Proceed to Verify
+                        </button>
+                      </div>
+                    )}
+
+                    {verifyStep === 'loading' && (
+                      <div className="py-6 flex flex-col items-center justify-center space-y-4">
+                        <div className="relative w-12 h-12 flex items-center justify-center">
+                          <RefreshCw size={28} className="text-indigo-600 animate-spin" />
+                          <Zap size={12} className="absolute text-amber-500 fill-current animate-pulse" />
+                        </div>
+                        <div className="text-center space-y-1">
+                          <p className="text-xs font-bold text-slate-800">{verifyProgressMessage}</p>
+                          <p className="text-[10px] text-slate-400 font-medium animate-pulse">Please wait...</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {verifyStep === 'success' && (
+                      <div className="space-y-4">
+                        <div className="py-4 flex flex-col items-center justify-center space-y-2 text-center">
+                          <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center border border-emerald-100 text-emerald-500">
+                            <CheckCircle2 size={24} />
+                          </div>
+                          <h5 className="text-xs font-bold text-slate-800">Account Validated Successfully!</h5>
+                          <p className="text-[10px] text-slate-400 font-medium">Bank confirmation received</p>
+                        </div>
+
+                        <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3 space-y-2">
+                          <div className="grid grid-cols-2 gap-2 text-[11px] font-medium text-slate-500">
+                            <div>Beneficiary Name:</div>
+                            <div className="text-emerald-700 font-bold">{verifiedBeneficiaryName}</div>
+                            <div>Matches Form Name:</div>
+                            <div className="font-bold flex items-center gap-1">
+                              {formNameMatch ? (
+                                <span className="text-emerald-600">Yes (100% Match)</span>
+                              ) : (
+                                <span className="text-amber-600">Slight Variance</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowBankVerifyModal(false);
+                              setVerifyStep('idle');
+                            }}
+                            className="flex-1 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl text-xs transition cursor-pointer"
+                          >
+                            Close
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleApplyVerificationResult}
+                            className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition shadow active:scale-[0.99] cursor-pointer"
+                          >
+                            Update & Save
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {verifyStep === 'failed' && (
+                      <div className="space-y-4">
+                        <div className="py-4 flex flex-col items-center justify-center space-y-2 text-center">
+                          <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center border border-rose-100 text-rose-500">
+                            <AlertCircle size={24} />
+                          </div>
+                          <h5 className="text-xs font-bold text-slate-800">Verification Failed</h5>
+                          <p className="text-[10px] text-rose-600 font-semibold">{verifyError || "Unable to verify bank details"}</p>
+                        </div>
+
+                        <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3 flex gap-2">
+                          <AlertCircle className="text-slate-400 flex-shrink-0 mt-0.5" size={14} />
+                          <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
+                            Please check that the account number and IFSC code are correct, and your RazorpayX credentials in .env are valid.
+                          </p>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowBankVerifyModal(false);
+                              setVerifyStep('idle');
+                              setVerifyError('');
+                              if (onSaveSuccess) onSaveSuccess();
+                            }}
+                            className="flex-1 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl text-xs transition cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleStartBankVerification}
+                            className="flex-1 py-2 bg-[#0D47A1] hover:opacity-90 text-white font-bold rounded-xl text-xs transition shadow active:scale-[0.99] cursor-pointer border-none"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>,
+              document.body
+            )}
           </div>
         );
 
@@ -3200,7 +3640,7 @@ const EmployeeProfile = ({
                 { key: "sickLeave", label: "Sick Leave" },
                 { key: "casualLeave", label: "Casual Leave" }
               ].map((item) => (
-                <div key={item.key} className="flex flex-col justify-between bg-white border border-slate-150 rounded-2xl p-4 hover:border-[#0D47A1]/20 hover:shadow-[0_4px_12px_rgba(0,0,0,0.02)] transition duration-200">
+                <div key={item.key} className="flex flex-col justify-between  rounded-2xl p-4 hover:border-[#0D47A1]/20 hover:shadow-[0_4px_12px_rgba(0,0,0,0.02)] transition duration-200">
                   <div className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-2">
                     {item.label}
                   </div>
@@ -3335,7 +3775,7 @@ const EmployeeProfile = ({
               </div>
 
               {/* Right Column: Front and Back Upload Box */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Front Side */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Aadhaar Front Image</label>
@@ -3420,6 +3860,7 @@ const EmployeeProfile = ({
                   setUploadDocName("");
                   setUploadDocFile(null);
                   setUploadModalError("");
+                  setDocDropdownOpen(false);
                   setShowUploadModal(true);
                 }}
                 className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold bg-[#0D47A1] text-white rounded-lg hover:opacity-90 transition cursor-pointer shadow-sm border-none"
@@ -3430,54 +3871,54 @@ const EmployeeProfile = ({
 
             {/* Document Card Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {documentsList.map((doc) => {
+              {documentsList.filter(d => !d.adminDeleted).map((doc) => {
                 const hasFile = !!doc.fileName;
                 const isOffer = doc.id === "offer";
 
                 const getMockPdfBlob = (title: string, filename: string) => {
                   const pdfString = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Contents 4 0 R >>
-endobj
-4 0 obj
-<< /Length 120 >>
-stream
-q
-BT
-/F1 18 Tf
-70 750 Td
-(Hously HRMS - Document Vault) Tj
-/F1 12 Tf
-0 -30 Td
-(Document Name: ${title}) Tj
-0 -20 Td
-(File Name: ${filename}) Tj
-0 -20 Td
-(Status: Verified & Validated) Tj
-0 -20 Td
-(Date: ${new Date().toLocaleDateString()}) Tj
-ET
-Q
-endstream
-endobj
-xref
-0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000259 00000 n 
-trailer
-<< /Size 5 /Root 1 0 R >>
-startxref
-428
-%%EOF`;
+                  1 0 obj
+                  << /Type /Catalog /Pages 2 0 R >>
+                  endobj
+                  2 0 obj
+                  << /Type /Pages /Kids [3 0 R] /Count 1 >>
+                  endobj
+                  3 0 obj
+                  << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Contents 4 0 R >>
+                  endobj
+                  4 0 obj
+                  << /Length 120 >>
+                  stream
+                  q
+                  BT
+                  /F1 18 Tf
+                  70 750 Td
+                  (Hously HRMS - Document Vault) Tj
+                  /F1 12 Tf
+                  0 -30 Td
+                  (Document Name: ${title}) Tj
+                  0 -20 Td
+                  (File Name: ${filename}) Tj
+                  0 -20 Td
+                  (Status: Verified & Validated) Tj
+                  0 -20 Td
+                  (Date: ${new Date().toLocaleDateString()}) Tj
+                  ET
+                  Q
+                  endstream
+                  endobj
+                  xref
+                  0 5
+                  0000000000 65535 f 
+                  0000000009 00000 n 
+                  0000000058 00000 n 
+                  0000000115 00000 n 
+                  0000000259 00000 n 
+                  trailer
+                  << /Size 5 /Root 1 0 R >>
+                  startxref
+                  428
+                  %%EOF`;
                   const len = pdfString.length;
                   const buf = new ArrayBuffer(len);
                   const view = new Uint8Array(buf);
@@ -3543,7 +3984,7 @@ startxref
                 };
 
                 return (
-                  <div key={doc.id} className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between hover:border-slate-350 transition-all duration-200">
+                  <div key={doc.id} className="bg-white border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between hover:border-slate-350 transition-all duration-200">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex gap-2 text-left min-w-0">
                         <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-slate-100 shrink-0 shadow-sm">
@@ -3593,18 +4034,7 @@ startxref
                           {!isOffer && (
                             <button
                               type="button"
-                              onClick={async () => {
-                                const updatedList = documentsList.map(d => d.id === doc.id ? { ...d, fileName: "", fileContent: undefined, size: "", uploadDate: "", status: "Pending" } : d);
-                                setDocumentsList(updatedList);
-                                if (employee?.id) {
-                                  try {
-                                    await employeeApi.update(String(employee.id), { ...employee, documents: updatedList });
-                                    toast.success(`Removed ${doc.name}`);
-                                  } catch (err) {
-                                    toast.error("Failed to save changes");
-                                  }
-                                }
-                              }}
+                              onClick={() => setDeleteConfirmDoc(doc)}
                               className="px-1.5 py-1 text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer"
                             >
                               Remove
@@ -3620,6 +4050,7 @@ startxref
                               setUploadDocName(doc.name);
                               setUploadDocFile(null);
                               setUploadModalError("");
+                              setDocDropdownOpen(false);
                               setShowUploadModal(true);
                             }}
                             className="px-2.5 py-1 text-[10px] font-bold bg-[#0D47A1] text-white rounded-lg hover:opacity-90 transition cursor-pointer inline-flex items-center gap-1 border-none"
@@ -3665,23 +4096,56 @@ startxref
                     )}
 
                     <div className="space-y-3">
-                      {/* Doc Name Input */}
-                      <div className="space-y-1">
+                      {/* Doc Name Custom Dropdown */}
+                      <div className="space-y-1 relative">
                         <label className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">Document Name</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Experience Certificate"
-                          value={uploadDocName}
-                          onChange={(e) => setUploadDocName(e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none font-medium text-slate-700 bg-white"
-                        />
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setDocDropdownOpen(!docDropdownOpen)}
+                            className="w-full px-3 py-2 pr-8 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] outline-none font-medium text-slate-700 bg-white text-left flex items-center justify-between cursor-pointer h-9"
+                          >
+                            <span>{uploadDocName || "Select Document Type"}</span>
+                            <ChevronDown
+                              size={12}
+                              className={`text-slate-400 transition-transform duration-200 ${docDropdownOpen ? "rotate-180" : ""}`}
+                            />
+                          </button>
+
+                          {docDropdownOpen && (
+                            <div className="absolute z-[1010] left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-28 overflow-y-auto">
+                              <div
+                                onClick={() => {
+                                  setUploadDocName("");
+                                  setDocDropdownOpen(false);
+                                }}
+                                className="px-3 py-1.5 hover:bg-slate-50 text-[11px] font-semibold text-slate-400 cursor-pointer transition-colors"
+                              >
+                                Select Document Type
+                              </div>
+                              {documents && documents.map((docVal) => (
+                                <div
+                                  key={docVal}
+                                  onClick={() => {
+                                    setUploadDocName(docVal);
+                                    setDocDropdownOpen(false);
+                                  }}
+                                  className={`px-3 py-1.5 hover:bg-slate-50 text-[11px] font-semibold text-slate-700 cursor-pointer transition-colors ${uploadDocName === docVal ? "bg-slate-50 text-[#0D47A1]" : ""
+                                    }`}
+                                >
+                                  {docVal}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Browse File input */}
                       <div className="space-y-1">
                         <label className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">Select File</label>
                         <div className="flex items-center gap-2">
-                          <label className="px-3 py-2 text-xs font-bold bg-slate-100 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-200 transition cursor-pointer shrink-0">
+                          <label className="px-3 py-2 text-xs font-bold bg-slate-100 border border-slate-200 text-slate-650 rounded-xl hover:bg-slate-200 transition cursor-pointer shrink-0">
                             Browse File
                             <input
                               type="file"
@@ -3694,7 +4158,10 @@ startxref
                                     const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
                                     const formattedName = nameWithoutExt.split('_').join(' ').split('-').join(' ');
                                     const capitalizedName = formattedName.charAt(0).toUpperCase() + formattedName.slice(1);
-                                    setUploadDocName(capitalizedName);
+                                    const matchedDoc = documents?.find(d => d.toLowerCase() === capitalizedName.toLowerCase());
+                                    if (matchedDoc) {
+                                      setUploadDocName(matchedDoc);
+                                    }
                                   }
                                 }
                               }}
@@ -3726,6 +4193,14 @@ startxref
                             setUploadModalError("Please select a file to upload");
                             return;
                           }
+                          const alreadyUploaded = documentsList.some(d =>
+                            (d.name.toLowerCase() === uploadDocName.toLowerCase() || d.id === uploadDocName.toLowerCase().replace(/\s/g, '')) &&
+                            !d.adminDeleted
+                          );
+                          if (alreadyUploaded) {
+                            setUploadModalError("This document type is already uploaded.");
+                            return;
+                          }
                           const sizeStr = uploadDocFile.size > 1024 * 1024
                             ? `${(uploadDocFile.size / (1024 * 1024)).toFixed(1)} MB`
                             : `${(uploadDocFile.size / 1024).toFixed(0)} KB`;
@@ -3743,7 +4218,9 @@ startxref
                                 fileContent: fileBase64,
                                 size: sizeStr,
                                 uploadDate: dateStr,
-                                status: "Uploaded"
+                                status: "Uploaded",
+                                adminDeleted: false,
+                                employeeDeleted: false
                               } : d);
                             } else {
                               const newDoc = {
@@ -3754,7 +4231,9 @@ startxref
                                 status: "Uploaded",
                                 size: sizeStr,
                                 uploadDate: dateStr,
-                                icon: "file"
+                                icon: "file",
+                                adminDeleted: false,
+                                employeeDeleted: false
                               };
                               updatedList = [...documentsList, newDoc];
                             }
@@ -3762,7 +4241,8 @@ startxref
                             if (employee?.id) {
                               try {
                                 await employeeApi.update(String(employee.id), { ...employee, documents: updatedList });
-                                toast.success(`Uploaded and saved: ${uploadDocFile.name}`);
+                                toast.success("Document uploaded successfully");
+                                onSaveSuccess?.();
                               } catch (err) {
                                 toast.error("Failed to save document to database");
                               }
@@ -3781,6 +4261,74 @@ startxref
               </>,
               document.body
             )}
+
+            {/* Delete Confirmation Modal using React Portal */}
+            {deleteConfirmDoc && createPortal(
+              <>
+                <div
+                  className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto"
+                  onClick={() => setDeleteConfirmDoc(null)}
+                />
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 pointer-events-none">
+                  <div
+                    className="w-full max-w-sm bg-white rounded-2xl shadow-2xl pointer-events-auto p-5 text-left border border-slate-100 flex flex-col space-y-4"
+                    style={{
+                      animation: 'modalConfirmOpen 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+                    }}
+                  >
+                    <style>{`
+                      @keyframes modalConfirmOpen {
+                        from { opacity: 0; transform: scale(0.9) translateY(10px); }
+                        to { opacity: 1; transform: scale(1) translateY(0); }
+                      }
+                    `}</style>
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                        <Trash2 className="text-red-500 w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-extrabold text-slate-800">Remove Document</h3>
+                        <p className="text-xs text-slate-500 font-semibold mt-1 leading-relaxed">
+                          Are you sure you want to remove the document <span className="text-slate-800 font-extrabold">"{deleteConfirmDoc.name}"</span>?
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 justify-end border-t border-slate-50">
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirmDoc(null)}
+                        className="px-3.5 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const docToRemove = deleteConfirmDoc;
+                          setDeleteConfirmDoc(null);
+                          const updatedList = documentsList.map(d => d.id === docToRemove.id ? { ...d, adminDeleted: true } : d);
+                          setDocumentsList(updatedList);
+                          if (employee?.id) {
+                            try {
+                              await employeeApi.update(String(employee.id), { ...employee, documents: updatedList });
+                              toast.success("Document removed successfully");
+                              onSaveSuccess?.();
+                            } catch (err) {
+                              toast.error("Failed to save changes");
+                            }
+                          }
+                        }}
+                        className="px-3.5 py-1.5 text-xs font-bold bg-red-500 text-white rounded-xl hover:bg-red-650 transition cursor-pointer border-none shadow-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </>,
+              document.body
+            )}
           </div>
         );
 
@@ -3791,7 +4339,7 @@ startxref
 
   return (
     <div
-      className={`p-3 md:p-4 flex flex-col h-full overflow-y-auto md:overflow-hidden transition-all duration-300 ease-in-out ${visible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
+      className={`p-3 md:p-4 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out ${visible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
         }`}
     >
       {/* Top Header Section (Static, scrolls away on mobile) */}
@@ -3824,7 +4372,7 @@ startxref
         </div>
 
         {/* Profile Card */}
-        <div className="bg-slate-50 rounded-xl border border-slate-100 p-2.5 flex flex-col sm:flex-row items-center gap-3">
+        <div className="bg-slate-50 rounded-xl border border-slate-100 p-2.5 flex flex-col sm:flex-row items-center gap-3 shadow-sm">
           <div className="relative">
             <Avatar
               name={fullName}
@@ -3836,7 +4384,7 @@ startxref
           <div className="text-center sm:text-left flex-1 min-w-0">
             <h1 className="text-lg md:text-xl font-extrabold text-slate-800 truncate">{fullName}</h1>
             <div className="flex items-center gap-2 mt-1 flex-wrap justify-center sm:justify-start">
-              <span className="text-slate-400 text-xs font-semibold">{employee.employeeId}</span>
+              <span className="text-[#1379d0] text-xs font-semibold">{employee.employeeId}</span>
               <span
                 className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${statusCfg.bg} ${statusCfg.color}`}
               >
@@ -3879,7 +4427,7 @@ startxref
         </div>
       </div>
 
-      <div className="flex-1 mt-2 pb-4 md:overflow-y-auto no-scrollbar">
+      <div className="flex-1 mt-2 pb-4 overflow-y-auto no-scrollbar">
         <div className="p-6">
           <EditingContext.Provider value={isEditing}>
             {renderTabContent()}
@@ -4257,6 +4805,24 @@ export default function EmployeesPage() {
   const [deleteEmployee, setDeleteEmployee] = useState<EmployeeRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const handleViewEmployee = async (employee: EmployeeRecord) => {
+    try {
+      const fullEmp = await employeeApi.getById(employee.id);
+      setViewEmployee(fullEmp);
+    } catch (err) {
+      setViewEmployee(employee);
+    }
+  };
+
+  const handleEditEmployee = async (employee: EmployeeRecord) => {
+    try {
+      const fullEmp = await employeeApi.getById(employee.id);
+      setEditEmployee(fullEmp);
+    } catch (err) {
+      setEditEmployee(employee);
+    }
+  };
+
   const [filters, setFilters] = useState<FilterState>({
     status: "",
     department: "",
@@ -4266,6 +4832,7 @@ export default function EmployeesPage() {
   const [departments, setDepartments] = useState<string[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
   const [projects, setProjects] = useState<string[]>([]);
+  const [documents, setDocuments] = useState<string[]>([]);
 
   // Fetch master data
   useEffect(() => {
@@ -4280,6 +4847,9 @@ export default function EmployeesPage() {
         );
         const projectType = types.find((t: MasterItem) =>
           t.name?.toLowerCase().includes("project")
+        );
+        const documentsType = types.find((t: MasterItem) =>
+          t.name?.toLowerCase().includes("documents")
         );
 
         if (deptType) {
@@ -4308,6 +4878,15 @@ export default function EmployeesPage() {
               .map((v: any) => v.value)
           );
         }
+
+        if (documentsType) {
+          const documentsValues = await masterDataAPI.getMasterValues(documentsType.id);
+          setDocuments(
+            documentsValues
+              .filter((v: any) => v.status === "Active")
+              .map((v: any) => v.value)
+          );
+        }
       } catch (err) {
         // Fallback to static data
         const depts = new Set(employees.map(e => e.department));
@@ -4315,6 +4894,7 @@ export default function EmployeesPage() {
         const rolesSet = new Set(employees.map(e => e.role));
         setRoles(Array.from(rolesSet));
         setProjects(["Project Alpha", "Project Beta", "Project Gamma"]);
+        setDocuments(["Document 1", "Document 2", "Document 3"]);
       }
     };
 
@@ -4492,6 +5072,7 @@ export default function EmployeesPage() {
         isEdit={!!editEmployee}
         departments={departments}
         roles={roles}
+        documents={documents}
       />
     );
   }
@@ -4705,7 +5286,7 @@ export default function EmployeesPage() {
                 return (
                   <tr
                     key={employee.id}
-                    onClick={() => setViewEmployee(employee)}
+                    onClick={() => handleViewEmployee(employee)}
                     className={`border-b border-slate-100 transition-colors hover:bg-blue-50/30 cursor-pointer ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"
                       } ${isChecked ? "bg-blue-50/50" : ""}`}
                   >
@@ -4762,14 +5343,14 @@ export default function EmployeesPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         <button
-                          onClick={() => setViewEmployee(employee)}
+                          onClick={() => handleViewEmployee(employee)}
                           className="p-1.5 hover:bg-[#0D47A1]/10 rounded-lg text-slate-400 hover:text-[#0D47A1] transition cursor-pointer"
                           title="View Details"
                         >
                           <Eye size={12} className="text-blue-500" />
                         </button>
                         <button
-                          onClick={() => setEditEmployee(employee)}
+                          onClick={() => handleEditEmployee(employee)}
                           className="p-1.5 hover:bg-blue-50 rounded-lg text-slate-400 hover:text-blue-600 transition cursor-pointer"
                           title="Edit"
                         >
@@ -4787,6 +5368,7 @@ export default function EmployeesPage() {
                   </tr>
                 );
               })}
+              
             </tbody>
           </table>
         </div>
@@ -4938,13 +5520,13 @@ export default function EmployeesPage() {
                   </span>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setViewEmployee(employee)}
+                      onClick={() => handleViewEmployee(employee)}
                       className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold hover:bg-blue-100 transition"
                     >
                       <Eye size={12} /> View
                     </button>
                     <button
-                      onClick={() => setEditEmployee(employee)}
+                      onClick={() => handleEditEmployee(employee)}
                       className="flex items-center gap-1 px-2.5 py-1.5 bg-green-50 text-green-600 rounded-lg text-[10px] font-bold hover:bg-green-100 transition"
                     >
                       <Edit2 size={12} /> Edit

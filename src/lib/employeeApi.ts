@@ -46,6 +46,7 @@ export interface EmployeeRecord {
   percentage?: string;
   weekOffDays?: WeekOffDays[];
   shift?: string;
+  shiftType?: 'fixed' | 'flexible';
   weeklySchedule?: string;
   employeeType?: "Permanent" | "Contract" | "Intern" | "Probation";
   workMode?: string;
@@ -81,6 +82,8 @@ export interface EmployeeRecord {
   accountNumber?: string;
   ifscCode?: string;
   upiId?: string;
+  bankVerificationStatus?: string;
+  bankVerifiedName?: string;
   // KYC fields
   kyc_status?: "pending" | "verifying" | "verified" | "failed";
   aadhaar_front_image?: string;
@@ -150,6 +153,16 @@ export const employeeApi = {
     }
   ): Promise<EmployeeRecord> =>
     unwrap(api.patch<ApiResponse<EmployeeRecord>>(`/employees/${id}/kyc`, payload)),
+
+  verifyBank: (
+    id: string,
+    payload: {
+      accountNumber: string;
+      ifscCode: string;
+      accountHolderName?: string;
+    }
+  ): Promise<{ success: boolean; verifiedName: string; data: EmployeeRecord }> =>
+    unwrap(api.post<ApiResponse<{ success: boolean; verifiedName: string; data: EmployeeRecord }>>(`/employees/${id}/verify-bank`, payload)),
 };
 
 

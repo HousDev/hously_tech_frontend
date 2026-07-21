@@ -2004,13 +2004,22 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
   const [showSealOnPage, setShowSealOnPage] = useState(false);
   const [showSigOnPage, setShowSigOnPage] = useState(false);
   const [documentVariables, setDocumentVariables] = useState<any[]>([]);
+  const [varSearchQuery, setVarSearchQuery] = useState('');
+
+  const filteredVars = useMemo(() => {
+    if (!documentVariables) return [];
+    return documentVariables.filter((v: any) =>
+      v.value?.toLowerCase().includes(varSearchQuery.toLowerCase())
+    );
+  }, [documentVariables, varSearchQuery]);
+
 
   useEffect(() => {
     const fetchDocVariables = async () => {
       try {
-        const types = await masterDataAPI.getAllMasterTypes("common");
+        const types = await masterDataAPI.getAllMasterTypes("documents");
         const docVarType = types.find((t: any) =>
-          t.name?.toLowerCase().includes("document variable")
+          t.name?.toLowerCase().includes("documents variable") || t.name?.toLowerCase().includes("document variable")
         );
         if (docVarType) {
           const vals = await masterDataAPI.getMasterValues(docVarType.id);
@@ -2044,6 +2053,20 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
   const [sigError, setSigError] = useState('');
   const [editorMode, setEditorMode] = useState<'preview' | 'code'>('preview');
   const [templateHtml, setTemplateHtml] = useState<string>('');
+
+  const usedVariablesList = useMemo(() => {
+    if (!templateHtml) return [];
+    const regex = /{{\s*([^}\s]+)\s*}}/g;
+    const matches = new Set<string>();
+    let match;
+    while ((match = regex.exec(templateHtml)) !== null) {
+      if (match[1]) {
+        matches.add(match[1].trim());
+      }
+    }
+    return Array.from(matches);
+  }, [templateHtml]);
+
   const [savedRange, setSavedRange] = useState<Range | null>(null);
   const [showInsertVar, setShowInsertVar] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -2058,6 +2081,48 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
         setSavedRange(range);
       }
     }
+  };
+
+  const insertTextAtCursor = (text: string) => {
+    const canvas = document.getElementById('a4-editor-canvas');
+    if (!canvas) return;
+
+    // Focus the canvas
+    canvas.focus();
+
+    const sel = window.getSelection();
+    if (!sel) return;
+
+    // Restore saved range if it exists
+    if (savedRange) {
+      sel.removeAllRanges();
+      sel.addRange(savedRange);
+    }
+
+    // Insert the text at selection range
+    if (sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents(); // delete selection if any
+
+      // Create a text node with the variable
+      const textNode = document.createTextNode(text);
+      range.insertNode(textNode);
+
+      // Move the cursor to the end of the inserted text node
+      range.setStartAfter(textNode);
+      range.setEndAfter(textNode);
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      // Save the new selection range
+      setSavedRange(range);
+    } else {
+      // If no range exists, append to the end of the canvas
+      canvas.appendChild(document.createTextNode(text));
+    }
+
+    // Trigger update of templateHtml state
+    setTemplateHtml(canvas.innerHTML);
   };
 
   useEffect(() => {
@@ -3081,126 +3146,56 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
                             {/* Backdrop to close */}
                             <div className="fixed inset-0 z-10" onClick={() => setShowInsertVar(false)} />
                             <div
-                              className="absolute left-0 top-full mt-1 z-20 bg-white border border-slate-200 rounded-xl shadow-lg overflow-y-auto scrollbar-thin"
-                              style={{ maxHeight: '50vh', minWidth: '180px' }}
+                              className="absolute left-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg flex flex-col z-[9999] overflow-hidden"
+                              style={{ maxHeight: '300px', width: '220px' }}
                             >
-                              {/* Common variables */}
-                              <div className="px-2 pt-2 pb-1">
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-1 mb-1">Common</p>
-                                {[
-                                  { val: 'issue_date', label: 'issue_date (Today)' },
-                                  { val: 'date_of_leaving', label: 'date_of_leaving' },
-                                ].map(item => (
-                                  <button
-                                    key={item.val}
-                                    type="button"
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(`{{${item.val}}}`);
-                                      triggerToast(`Variable {{${item.val}}} copied!`, 'success');
-                                      setShowInsertVar(false);
-                                    }}
-                                    className="w-full text-left px-2 py-1 text-[11px] text-slate-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition cursor-pointer font-medium"
-                                  >
-                                    {`{{ ${item.val} }}`}
-                                    <span className="text-[10px] text-slate-400 ml-1">{item.label.includes('(') ? item.label.match(/\((.+)\)/)?.[1] : ''}</span>
-                                  </button>
-                                ))}
+                              {/* Search Input Box */}
+                              <div className="p-2 border-b border-slate-100 flex-shrink-0 bg-slate-50/50">
+                                <input
+                                  type="text"
+                                  placeholder="Search variables..."
+                                  value={varSearchQuery}
+                                  onChange={(e) => setVarSearchQuery(e.target.value)}
+                                  className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-[10px] text-gray-600 outline-none focus:border-blue-500 transition bg-white"
+                                  autoFocus
+                                />
                               </div>
 
-                              {/* Category variables */}
-                              {(() => {
-                                let vars: { val: string; label: string }[] = [];
-                                if (formCategory === 'Offer Letter') vars = [
-                                  { val: 'employee_name', label: 'Employee Name' },
-                                  { val: 'job_title', label: 'Job Title' },
-                                  { val: 'department', label: 'Department' },
-                                  { val: 'start_date', label: 'Start Date' },
-                                  { val: 'salary', label: 'Monthly Salary' },
-                                  { val: 'ctc', label: 'Annual CTC' },
-                                  { val: 'company_name', label: 'Company Name' },
-                                ];
-                                else if (formCategory === 'Pay Slip') vars = [
-                                  { val: 'employee_name', label: 'Employee Name' },
-                                  { val: 'employee_id', label: 'Employee ID' },
-                                  { val: 'department', label: 'Department' },
-                                  { val: 'month_year', label: 'Month & Year' },
-                                  { val: 'basic', label: 'Basic Salary' },
-                                  { val: 'hra', label: 'HRA' },
-                                  { val: 'allowance', label: 'Allowance' },
-                                  { val: 'pf', label: 'PF' },
-                                  { val: 'tax', label: 'Tax' },
-                                ];
-                                else if (formCategory === 'Contract') vars = [
-                                  { val: 'employee_name', label: 'Employee Name' },
-                                  { val: 'job_title', label: 'Job Title' },
-                                  { val: 'start_date', label: 'Start Date' },
-                                  { val: 'salary', label: 'Salary' },
-                                  { val: 'probation_months', label: 'Probation Months' },
-                                  { val: 'notice_days', label: 'Notice Days' },
-                                  { val: 'company_name', label: 'Company Name' },
-                                ];
-                                else if (formCategory === 'Agreement') vars = [
-                                  { val: 'employee_name', label: 'Employee Name' },
-                                  { val: 'effective_date', label: 'Effective Date' },
-                                  { val: 'company_name', label: 'Company Name' },
-                                ];
-
-                                if (vars.length === 0) return null;
-                                return (
-                                  <div className="px-2 pb-1 border-t border-slate-100 mt-1 pt-1">
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-1 mb-1">{formCategory}</p>
-                                    {vars.map(item => (
+                              {/* Scrollable list of matching variables */}
+                              <div className="overflow-y-auto scrollbar-thin flex-grow py-1">
+                                {filteredVars && filteredVars.length > 0 ? (
+                                  <div className="px-1.5">
+                                    {filteredVars.map((v: any) => (
                                       <button
-                                        key={item.val}
+                                        key={v.id}
                                         type="button"
                                         onClick={() => {
-                                          navigator.clipboard.writeText(`{{${item.val}}}`);
-                                          triggerToast(`Variable {{${item.val}}} copied!`, 'success');
+                                          insertTextAtCursor(v.value);
                                           setShowInsertVar(false);
+                                          setVarSearchQuery('');
                                         }}
-                                        className="w-full text-left px-2 py-1 text-[11px] text-slate-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition cursor-pointer font-medium"
+                                        className="w-full text-left px-2.5 py-1.5 text-[11px] text-slate-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition cursor-pointer font-medium"
                                       >
-                                        {`{{ ${item.val} }}`}
-                                        <span className="text-[10px] text-slate-400 ml-1">{item.label}</span>
+                                        {v.value}
                                       </button>
                                     ))}
                                   </div>
-                                );
-                              })()}
-
-                              {/* Custom/master variables */}
-                              {documentVariables && documentVariables.length > 0 && (
-                                <div className="px-2 pb-2 border-t border-slate-100 mt-1 pt-1">
-                                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-1 mb-1">Custom</p>
-                                  {documentVariables.map((v: any) => (
-                                    <button
-                                      key={v.id}
-                                      type="button"
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(`{{${v.value}}}`);
-                                        triggerToast(`Variable {{${v.value}}} copied!`, 'success');
-                                        setShowInsertVar(false);
-                                      }}
-                                      className="w-full text-left px-2 py-1 text-[11px] text-slate-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition cursor-pointer font-medium"
-                                    >
-                                      {`{{ ${v.value} }}`}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
+                                ) : (
+                                  <div className="px-4 py-3 text-center text-[10px] text-gray-400 font-medium">
+                                    No variables found.
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </>
                         )}
                       </div>
 
-                      <select className="bg-white border border-slate-200 rounded px-2 py-0.5 outline-none text-slate-500 font-medium">
-                        <option>Used variables (21)</option>
-                        <option>employee_name</option>
-                        <option>department</option>
-                        <option>company_name</option>
-                        <option>job_title</option>
-                        <option>salary</option>
-                        <option>start_date</option>
+                      <select className="bg-white border border-slate-200 rounded px-2 py-0.5 outline-none text-slate-500 font-medium text-xs">
+                        <option value="">Used variables ({usedVariablesList.length})</option>
+                        {usedVariablesList.map(vname => (
+                          <option key={vname} value={vname}>{vname}</option>
+                        ))}
                       </select>
                     </div>
                   </div>

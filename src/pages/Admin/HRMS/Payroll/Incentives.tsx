@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
 import {
   Clock,
@@ -28,9 +28,12 @@ import {
   AlertTriangle,
   Trash2,
   Award,
-  Plus
+  Plus,
+  Loader2,
+  IndianRupee
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
+import api from "../../../../lib/api";
 
 // --- Custom Components ---
 
@@ -58,19 +61,111 @@ const StatCard = ({ icon: Icon, label, value, color, subtitle }: any) => {
   );
 };
 
-const StatusBadge = ({ status }: { status: string }) => {
-  const config: Record<string, any> = {
-    Pending: { bg: "bg-amber-50 text-amber-700 border-amber-100", icon: Clock },
-    Approved: { bg: "bg-blue-50 text-blue-700 border-blue-100", icon: CheckCircle2 },
-    Paid: { bg: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: DollarSign },
-    Rejected: { bg: "bg-rose-50 text-rose-705 border-rose-100", icon: AlertCircle },
+// --- User Avatar Component ---
+const UserAvatar = ({ name, avatarUrl, size = "w-8 h-8", textSize = "text-[10px]" }: { name: string; avatarUrl?: string; size?: string; textSize?: string }) => {
+  const [imageError, setImageError] = useState(false);
+  const BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+
+  const getFullUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      return url;
+    }
+    return `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
   };
-  const { bg, icon: Icon } = config[status] || config.Pending;
+
+  const fullAvatarUrl = getFullUrl(avatarUrl || '');
+  const initials = (name || 'Employee').trim().split(/\s+/).map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+  if (fullAvatarUrl && !imageError) {
+    return (
+      <img
+        src={fullAvatarUrl}
+        alt={name}
+        onError={() => setImageError(true)}
+        className={`${size} rounded-full object-cover border border-purple-100 shadow-xs flex-shrink-0`}
+      />
+    );
+  }
+
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold border ${bg}`}>
-      <Icon className="w-3 h-3" />
-      {status}
-    </span>
+    <div className={`${size} rounded-full bg-[#155dfc] flex items-center justify-center text-white ${textSize} font-bold border border-purple-100 shadow-xs flex-shrink-0`}>
+      {initials}
+    </div>
+  );
+};
+
+// --- Interactive Status Dropdown Cell ---
+const StatusDropdownCell = ({ item, onUpdateStatus }: { item: any; onUpdateStatus: (item: any, status: string) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const statusOptions = [
+    { key: "Pending", label: "Pending", bg: "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200", icon: Clock },
+    { key: "Approved", label: "Approved", bg: "bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200", icon: CheckCircle2 },
+    { key: "Paid", label: "Paid", bg: "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200", icon: DollarSign },
+    { key: "Rejected", label: "Rejected", bg: "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200", icon: AlertCircle },
+  ];
+
+  const normalizedStatus = (item.status || "Pending").trim();
+  const currentOption = statusOptions.find(o => o.key.toLowerCase() === normalizedStatus.toLowerCase()) || statusOptions[0];
+  const CurrentIcon = currentOption.icon;
+
+  return (
+    <div className="relative inline-block text-left" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border ${currentOption.bg} transition-all shadow-xs cursor-pointer group`}
+        title="Click to change review status"
+      >
+        <CurrentIcon className="w-3 h-3 group-hover:scale-110 transition-transform" />
+        <span>{currentOption.label}</span>
+        <ChevronDown className="w-3 h-3 ml-0.5 opacity-70 group-hover:opacity-100 transition-opacity" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 mt-1 w-44 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="px-3 py-1 border-b border-gray-100 text-[9px] font-bold uppercase text-gray-400 tracking-wider">
+            Select Review Status
+          </div>
+
+          {statusOptions.map((opt) => {
+            const IconComp = opt.icon;
+            const isSelected = normalizedStatus.toLowerCase() === opt.key.toLowerCase();
+            return (
+              <button
+                key={opt.key}
+                onClick={() => {
+                  if (!isSelected) {
+                    onUpdateStatus(item, opt.key);
+                  }
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition-colors cursor-pointer ${isSelected ? 'bg-slate-100 font-bold text-gray-900' : 'hover:bg-slate-50 text-gray-700 font-semibold'
+                  }`}
+              >
+                <div className="flex items-center gap-2">
+                  <IconComp className="w-3.5 h-3.5 text-gray-500" />
+                  <span>{opt.label}</span>
+                </div>
+                {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -90,6 +185,10 @@ export default function Incentives() {
   }, [setHeaderTitle, setHeaderSubtitle]);
 
   // State
+  const [incentivesData, setIncentivesData] = useState<any[]>([]);
+  const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [pageSize, setPageSize] = useState<number | string>(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -125,6 +224,7 @@ export default function Incentives() {
 
   // Form states
   const [formData, setFormData] = useState({
+    userId: "",
     employee: "",
     employeeId: "",
     employeeDesignation: "",
@@ -147,92 +247,106 @@ export default function Incentives() {
     status: "",
   });
 
-  // Sample employees database
-  const availableEmployees = [
-    { name: "Suraj Kumar", id: "EMP0019", designation: "MTS-2", department: "Engineering", email: "suraj@hously.co" },
-    { name: "Anjali Sharma", id: "EMP0020", designation: "Design Lead", department: "Marketing", email: "anjali@hously.co" },
-    { name: "Vikram Patel", id: "EMP0021", designation: "Account Executive", department: "Sales", email: "vikram@hously.co" },
-    { name: "Kunal Sen", id: "EMP0022", designation: "Recruiter Manager", department: "HR", email: "kunal@hously.co" },
-    { name: "Priya Mehta", id: "EMP0023", designation: "Product Designer", department: "Design", email: "priya@hously.co" },
-    { name: "Rahul Verma", id: "EMP0024", designation: "Staff Engineer", department: "Engineering", email: "rahul@hously.co" },
-    { name: "SHEKH ABDUL", id: "EMP0016", designation: "GENERAL MANAGER", department: "Operations", email: "abdul@hously.co" }
-  ];
+  // Fetch Incentives & Employees from Backend
+  const fetchIncentives = async () => {
+    try {
+      setIsLoading(true);
+      const res = await api.get("/payroll/incentives");
+      if (res.data && res.data.success) {
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const mapped = (res.data.data || []).map((item: any) => {
+          const monthName = monthNames[(item.month || 1) - 1] || "July";
+          const periodStr = `${monthName} ${item.year || 2026}`;
 
-  // Sample incentive data
-  const [incentivesData, setIncentivesData] = useState([
-    {
-      id: "INC-001",
-      employee: "Suraj Kumar",
-      empId: "EMP0019",
-      type: "Performance Bonus",
-      amount: "15000",
-      period: "July 2026",
-      description: "Q2 Performance Excellence Award",
-      status: "Pending",
-      department: "Engineering"
-    },
-    {
-      id: "INC-002",
-      employee: "Anjali Sharma",
-      empId: "EMP0020",
-      type: "Referral Bonus",
-      amount: "10000",
-      period: "June 2026",
-      description: "Successful referral for Senior Designer position",
-      status: "Approved",
-      department: "Marketing"
-    },
-    {
-      id: "INC-003",
-      employee: "Vikram Patel",
-      empId: "EMP0021",
-      type: "Sales Incentive",
-      amount: "25000",
-      period: "June 2026",
-      description: "Exceeded quarterly sales target by 35%",
-      status: "Paid",
-      department: "Sales"
-    },
-    {
-      id: "INC-004",
-      employee: "Kunal Sen",
-      empId: "EMP0022",
-      type: "Spot Bonus",
-      amount: "5000",
-      period: "May 2026",
-      description: "Exceptional performance in recruitment drive",
-      status: "Pending",
-      department: "HR"
-    },
-    {
-      id: "INC-005",
-      employee: "Priya Mehta",
-      empId: "EMP0023",
-      type: "Performance Bonus",
-      amount: "12000",
-      period: "May 2026",
-      description: "Outstanding UI/UX design contributions",
-      status: "Approved",
-      department: "Design"
-    },
-    {
-      id: "INC-006",
-      employee: "Rahul Verma",
-      empId: "EMP0024",
-      type: "Project Bonus",
-      amount: "20000",
-      period: "April 2026",
-      description: "Successfully delivered major client project ahead of schedule",
-      status: "Paid",
-      department: "Engineering"
-    },
-  ]);
+          return {
+            id: String(item.id),
+            dbId: item.id,
+            displayId: `INC-${String(item.id).padStart(3, '0')}`,
+            userId: item.user_id,
+            employee: item.employee_name || "Employee",
+            empId: item.emp_id_details || item.employee_id || `EMP-${item.user_id}`,
+            type: item.incentive_type || "Bonus",
+            amount: String(item.amount || 0),
+            period: periodStr,
+            month: item.month,
+            year: item.year,
+            description: item.title || "Performance Reward",
+            status: item.status ? (item.status.charAt(0).toUpperCase() + item.status.slice(1)) : "Pending",
+            department: item.department || item.designation || "General",
+            avatarUrl: item.avatar_url || item.avatarUrl || item.avatar || '',
+          };
+        });
+        setIncentivesData(mapped);
+      }
+    } catch (err) {
+      console.error("Error fetching incentives:", err);
+      toast.error("Failed to load incentives data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchEmployees = async () => {
+    try {
+      let empsList: any[] = [];
+
+      try {
+        const res = await api.get("/payroll/employees");
+        if (res.data && res.data.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+          empsList = res.data.data;
+        }
+      } catch (e) {
+        // Ignore fallback
+      }
+
+      if (empsList.length === 0) {
+        try {
+          const res = await api.get("/employees");
+          if (res.data && (res.data.data || Array.isArray(res.data))) {
+            empsList = Array.isArray(res.data) ? res.data : (res.data.data || []);
+          }
+        } catch (e) {
+          // Ignore fallback
+        }
+      }
+
+      if (empsList.length === 0) {
+        try {
+          const res = await api.get("/tasks/employees");
+          if (res.data && (res.data.data || Array.isArray(res.data))) {
+            empsList = Array.isArray(res.data) ? res.data : (res.data.data || []);
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+
+      const mappedEmps = empsList.map((emp: any) => ({
+        name: emp.name || emp.full_name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.first_name || emp.username || `User #${emp.id}`,
+        id: emp.empId || emp.employeeId || emp.employee_id || `EMP-${emp.id}`,
+        userId: emp.id || emp.userId || emp.user_id,
+        designation: emp.designation || emp.role || "Employee",
+        department: emp.department || "General",
+        email: emp.email || "",
+        avatarUrl: emp.avatarUrl || emp.avatar_url || emp.avatar || '',
+      }));
+
+      setAvailableEmployees(mappedEmps);
+    } catch (err) {
+      console.error("Error fetching employees:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchIncentives();
+    fetchEmployees();
+  }, []);
 
   // Stats calculations
   const stats = {
     totalIncentives: incentivesData.length,
-    pending: incentivesData.filter(item => item.status === "Pending").length,
-    approved: incentivesData.filter(item => item.status === "Approved").length,
+    pending: incentivesData.filter(item => item.status.toLowerCase() === "pending").length,
+    approved: incentivesData.filter(item => item.status.toLowerCase() === "approved").length,
     totalAmount: incentivesData.reduce((sum, item) => sum + parseInt(item.amount || "0"), 0),
   };
 
@@ -247,7 +361,7 @@ export default function Incentives() {
       const q = globalSearch.toLowerCase();
       if (!item.employee.toLowerCase().includes(q) &&
         !item.empId.toLowerCase().includes(q) &&
-        !item.id.toLowerCase().includes(q) &&
+        !item.displayId.toLowerCase().includes(q) &&
         !item.type.toLowerCase().includes(q)) {
         return false;
       }
@@ -269,7 +383,7 @@ export default function Incentives() {
     if (columnFilters.description && !item.description.toLowerCase().includes(columnFilters.description.toLowerCase())) {
       return false;
     }
-    if (columnFilters.status !== "all" && item.status !== columnFilters.status) {
+    if (columnFilters.status !== "all" && item.status.toLowerCase() !== columnFilters.status.toLowerCase()) {
       return false;
     }
 
@@ -279,10 +393,10 @@ export default function Incentives() {
   // Pagination
   const isPageSizeAll = pageSize === "All";
   const numPageSize = isPageSizeAll ? filteredData.length : Number(pageSize);
-  const totalPages = isPageSizeAll ? 1 : Math.ceil(filteredData.length / numPageSize);
+  const totalPages = isPageSizeAll ? 1 : Math.ceil(filteredData.length / (numPageSize || 1));
   const paginatedData = isPageSizeAll ? filteredData : filteredData.slice((currentPage - 1) * numPageSize, currentPage * numPageSize);
 
-  // Filtered employees for dropdown (Capped strictly at 5 matches)
+  // Filtered employees for dropdown (all employees searchable)
   const filteredEmployees = availableEmployees.filter(emp => {
     if (employeeSearchQuery.trim() === "") return true;
     const q = employeeSearchQuery.toLowerCase();
@@ -291,7 +405,7 @@ export default function Incentives() {
       emp.id.toLowerCase().includes(q) ||
       emp.email.toLowerCase().includes(q)
     );
-  }).slice(0, 5);
+  });
 
   const toggleRow = (id: string) => {
     setSelectedRows(prev => prev.includes(id) ? prev.filter(row => row !== id) : [...prev, id]);
@@ -318,8 +432,27 @@ export default function Incentives() {
     toast.success("Filters cleared");
   };
 
-  const handleAddIncentive = () => {
-    if (!formData.employee) {
+  const handleStatusUpdate = async (item: any, newStatus: string) => {
+    try {
+      // Optimistic update
+      setIncentivesData(prev => prev.map(row => row.id === item.id ? { ...row, status: newStatus } : row));
+
+      const res = await api.patch(`/payroll/incentives/${item.id}/status`, { status: newStatus });
+      if (res.data && res.data.success) {
+        toast.success(`Incentive reward status marked as ${newStatus}`);
+      } else {
+        toast.error("Failed to update status");
+        fetchIncentives();
+      }
+    } catch (err) {
+      console.error("Error updating status:", err);
+      toast.error("Failed to update status in server");
+      fetchIncentives();
+    }
+  };
+
+  const handleAddIncentive = async () => {
+    if (!formData.userId) {
       toast.error("Please select an employee");
       return;
     }
@@ -327,9 +460,9 @@ export default function Incentives() {
       toast.error("Please select incentive type");
       return;
     }
-    const amt = parseInt(formData.amount);
+    const amt = parseFloat(formData.amount);
     if (isNaN(amt) || amt <= 0) {
-      toast.error("Please enter a valid amount");
+      toast.error("Please enter a valid positive amount");
       return;
     }
     if (!formData.period) {
@@ -341,44 +474,51 @@ export default function Incentives() {
       return;
     }
 
-    // Format period input from YYYY-MM to Month YYYY
-    const [year, month] = formData.period.split("-");
-    const dateObj = new Date(Number(year), Number(month) - 1, 1);
-    const periodStr = dateObj.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    const [yearStr, monthStr] = formData.period.split("-");
+    const m = parseInt(monthStr, 10);
+    const y = parseInt(yearStr, 10);
 
-    const newIncentive = {
-      id: `INC-00${incentivesData.length + 1}`,
-      employee: formData.employee,
-      empId: formData.employeeId,
-      type: formData.type,
-      amount: formData.amount,
-      period: periodStr,
-      description: formData.description,
-      status: "Pending",
-      department: formData.employeeDesignation || "General",
-    };
+    try {
+      const payload = {
+        userId: formData.userId,
+        title: formData.description,
+        amount: amt,
+        incentiveType: formData.type,
+        month: m,
+        year: y,
+        status: "Pending"
+      };
 
-    setIncentivesData([newIncentive, ...incentivesData]);
-    setFormData({
-      employee: "",
-      employeeId: "",
-      employeeDesignation: "",
-      type: "",
-      period: "2026-07",
-      amount: "",
-      description: "",
-    });
-    setShowAddIncentive(false);
-    toast.success("Incentive reward recorded!");
+      const res = await api.post("/payroll/incentives", payload);
+      if (res.data && res.data.success) {
+        toast.success("Incentive reward recorded successfully!");
+        setShowAddIncentive(false);
+        setFormData({
+          userId: "",
+          employee: "",
+          employeeId: "",
+          employeeDesignation: "",
+          type: "",
+          period: "2026-07",
+          amount: "",
+          description: "",
+        });
+        fetchIncentives();
+      } else {
+        toast.error(res.data?.message || "Failed to add incentive");
+      }
+    } catch (err) {
+      console.error("Error creating incentive:", err);
+      toast.error("Failed to record incentive");
+    }
   };
 
   const handleEditIncentive = (item: any) => {
-    // Parse period string back to YYYY-MM if possible
     let formattedPeriod = "2026-07";
     try {
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const parts = item.period.split(" ");
       if (parts.length === 2) {
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const mIdx = monthNames.indexOf(parts[0]) + 1;
         const formattedMonth = mIdx < 10 ? `0${mIdx}` : `${mIdx}`;
         formattedPeriod = `${parts[1]}-${formattedMonth}`;
@@ -401,12 +541,12 @@ export default function Incentives() {
     setShowEditIncentive(item);
   };
 
-  const handleUpdateIncentive = () => {
+  const handleUpdateIncentive = async () => {
     if (!editFormData.type) {
       toast.error("Please select incentive type");
       return;
     }
-    const amt = parseInt(editFormData.amount);
+    const amt = parseFloat(editFormData.amount);
     if (isNaN(amt) || amt <= 0) {
       toast.error("Please enter a valid amount");
       return;
@@ -416,29 +556,32 @@ export default function Incentives() {
       return;
     }
 
-    const [year, month] = editFormData.period.split("-");
-    const dateObj = new Date(Number(year), Number(month) - 1, 1);
-    const periodStr = dateObj.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    const [yearStr, monthStr] = editFormData.period.split("-");
+    const m = parseInt(monthStr, 10);
+    const y = parseInt(yearStr, 10);
 
-    setIncentivesData(prev => prev.map(item =>
-      item.id === editFormData.id ? {
-        ...item,
-        type: editFormData.type,
-        amount: editFormData.amount,
-        period: periodStr,
-        description: editFormData.description,
-      } : item
-    ));
+    try {
+      const payload = {
+        title: editFormData.description,
+        amount: amt,
+        incentiveType: editFormData.type,
+        month: m,
+        year: y,
+        status: editFormData.status || "Pending"
+      };
 
-    setShowEditIncentive(null);
-    toast.success("Incentive details updated successfully!");
-  };
-
-  const handleStatusUpdate = (id: string, newStatus: string) => {
-    setIncentivesData(prev => prev.map(item =>
-      item.id === id ? { ...item, status: newStatus } : item
-    ));
-    toast.success(`Incentive reward marked as ${newStatus}`);
+      const res = await api.put(`/payroll/incentives/${editFormData.id}`, payload);
+      if (res.data && res.data.success) {
+        toast.success("Incentive details updated successfully!");
+        setShowEditIncentive(null);
+        fetchIncentives();
+      } else {
+        toast.error(res.data?.message || "Failed to update incentive");
+      }
+    } catch (err) {
+      console.error("Error updating incentive:", err);
+      toast.error("Failed to update incentive details");
+    }
   };
 
   const handleDeleteIncentive = (id: string) => {
@@ -446,11 +589,22 @@ export default function Incentives() {
       isOpen: true,
       title: "Confirm Deletion",
       message: "Are you sure you want to delete this incentive record? This action cannot be undone.",
-      onConfirm: () => {
-        setIncentivesData(prev => prev.filter(item => item.id !== id));
-        setSelectedRows(prev => prev.filter(r => r !== id));
-        setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
-        toast.success("Incentive record deleted");
+      onConfirm: async () => {
+        try {
+          const res = await api.delete(`/payroll/incentives/${id}`);
+          if (res.data && res.data.success) {
+            toast.success("Incentive record deleted");
+            setSelectedRows(prev => prev.filter(r => r !== id));
+            fetchIncentives();
+          } else {
+            toast.error("Failed to delete incentive");
+          }
+        } catch (err) {
+          console.error("Error deleting incentive:", err);
+          toast.error("Failed to delete incentive record");
+        } finally {
+          setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
+        }
       }
     });
   };
@@ -460,11 +614,18 @@ export default function Incentives() {
       isOpen: true,
       title: "Confirm Bulk Deletion",
       message: `Are you sure you want to delete the ${selectedRows.length} selected incentive records? This action cannot be undone.`,
-      onConfirm: () => {
-        setIncentivesData(prev => prev.filter(item => !selectedRows.includes(item.id)));
-        setSelectedRows([]);
-        setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
-        toast.success("Selected records successfully deleted");
+      onConfirm: async () => {
+        try {
+          await Promise.all(selectedRows.map(id => api.delete(`/payroll/incentives/${id}`)));
+          toast.success("Selected records successfully deleted");
+          setSelectedRows([]);
+          fetchIncentives();
+        } catch (err) {
+          console.error("Error bulk deleting incentives:", err);
+          toast.error("Failed to delete selected incentives");
+        } finally {
+          setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
+        }
       }
     });
   };
@@ -488,6 +649,13 @@ export default function Incentives() {
         }
         .fade-in-backdrop {
           animation: fadeIn 0.18s ease-out forwards;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
 
@@ -515,7 +683,7 @@ export default function Incentives() {
           subtitle="Verified & ready for payroll run"
         />
         <StatCard
-          icon={DollarSign}
+          icon={IndianRupee}
           label="Total Provisioned"
           value={formatCurrency(stats.totalAmount)}
           color="bg-emerald-500"
@@ -535,6 +703,17 @@ export default function Incentives() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Global Search */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search incentives..."
+                value={globalSearch}
+                onChange={(e) => { setGlobalSearch(e.target.value); setCurrentPage(1); }}
+                className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500 bg-white shadow-xs w-48 focus:w-60 transition-all"
+              />
+            </div>
 
             {/* Clear Filters Button */}
             {(globalSearch || Object.values(columnFilters).some(v => v !== "" && v !== "all")) && (
@@ -560,7 +739,10 @@ export default function Incentives() {
 
             {/* Add Reward Button */}
             <button
-              onClick={() => setShowAddIncentive(true)}
+              onClick={() => {
+                fetchEmployees();
+                setShowAddIncentive(true);
+              }}
               className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm px-4 py-1.5 inline-flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Plus size={14} />
@@ -643,7 +825,7 @@ export default function Incentives() {
                     />
                   </div>
                 </th>
-                <th className="p-3 min-w-[125px]">
+                <th className="p-3 min-w-[135px]">
                   <div className="space-y-1">
                     <span>Review Status</span>
                     <select
@@ -663,7 +845,16 @@ export default function Incentives() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-gray-500 font-medium">
-              {paginatedData.map((item) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={8} className="p-12 text-center text-gray-400 font-bold bg-white">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                      <span>Loading incentives data...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : paginatedData.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="p-3 pl-6">
                     <button onClick={() => toggleRow(item.id)} className="hover:text-gray-700 cursor-pointer transition-colors">
@@ -676,9 +867,7 @@ export default function Incentives() {
                   </td>
                   <td className="p-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#155dfc] flex items-center justify-center text-white text-[10px] font-bold border border-purple-100 shadow-xs flex-shrink-0">
-                        {item.employee.split(' ').map(n => n[0]).join('')}
-                      </div>
+                      <UserAvatar name={item.employee} avatarUrl={item.avatarUrl} size="w-8 h-8" textSize="text-[10px]" />
                       <div>
                         <p className="font-bold text-gray-800 text-xs">{item.employee}</p>
                         <p className="text-[9px] text-gray-400 font-semibold">{item.empId} • {item.department}</p>
@@ -690,19 +879,19 @@ export default function Incentives() {
                       {item.type}
                     </span>
                   </td>
-                  <td className="p-3 font-bold text-gray-800">{formatCurrency(parseInt(item.amount))}</td>
+                  <td className="p-3 font-bold text-gray-800">{formatCurrency(parseFloat(item.amount))}</td>
                   <td className="p-3 font-semibold text-gray-600">{item.period}</td>
                   <td className="p-3 text-gray-400 text-[10px] max-w-[180px] truncate" title={item.description}>
                     {item.description}
                   </td>
                   <td className="p-3">
-                    <StatusBadge status={item.status} />
+                    <StatusDropdownCell item={item} onUpdateStatus={handleStatusUpdate} />
                   </td>
                   <td className="p-3 pr-6 text-right">
                     <div className="flex items-center justify-end gap-1.5 text-gray-405">
                       <button
                         onClick={() => setShowViewDetails(item)}
-                        className="p-1.5 hover:text-blue-600 hover:bg-blue-50 rounded-lg  transition-all shadow-xs cursor-pointer"
+                        className="p-1.5 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all shadow-xs cursor-pointer"
                         title="View Detailed Reason"
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -725,10 +914,10 @@ export default function Incentives() {
                   </td>
                 </tr>
               ))}
-              {filteredData.length === 0 && (
+              {!isLoading && filteredData.length === 0 && (
                 <tr>
                   <td colSpan={8} className="p-12 text-center text-gray-400 font-bold italic bg-white">
-                    No matching incentive reward requests logged.
+                    No incentive requests found. New requests will appear here once submitted.
                   </td>
                 </tr>
               )}
@@ -790,7 +979,7 @@ export default function Incentives() {
       </div>
 
       {/* --- MODAL 1: Add Incentive Request --- */}
-      <div className={`fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300  rounded-md  ${showAddIncentive ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
+      <div className={`fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 rounded-md ${showAddIncentive ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
         <div className={`bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-md overflow-visible flex flex-col transition-all duration-300 transform rounded-md ${showAddIncentive ? "scale-100 opacity-100 " : "scale-95 opacity-0"}`}>
 
           <div className="bg-slate-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center flex-shrink-0 rounded-sm">
@@ -826,7 +1015,7 @@ export default function Incentives() {
               {showEmployeeDropdown && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowEmployeeDropdown(false)} />
-                  <div className="absolute top-[60px] left-0 right-0 bg-white  rounded-xl shadow-xl z-50 p-2 space-y-2">
+                  <div className="absolute top-[60px] left-0 right-0 bg-white rounded-xl shadow-xl z-50 p-2 space-y-2 border border-gray-100">
                     <div className="relative">
                       <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                       <input
@@ -839,31 +1028,35 @@ export default function Incentives() {
                         autoFocus
                       />
                     </div>
-                    <div className="max-h-[180px] overflow-y-auto divide-y divide-gray-100">
-                      {filteredEmployees.map((emp) => (
-                        <div
-                          key={emp.id}
-                          onClick={() => {
-                            setFormData(prev => ({
-                              ...prev,
-                              employee: emp.name,
-                              employeeId: emp.id,
-                              employeeDesignation: emp.designation,
-                            }));
-                            setShowEmployeeDropdown(false);
-                            setEmployeeSearchQuery("");
-                          }}
-                          className="p-2 hover:bg-slate-55 cursor-pointer text-[11px] flex justify-between items-center transition-colors font-medium"
-                        >
-                          <div>
-                            <p className="font-bold text-gray-850">{emp.name}</p>
-                            <p className="text-[9px] text-gray-400 font-semibold">{emp.id} • {emp.email}</p>
+                    <div className="max-h-[180px] overflow-y-auto divide-y divide-gray-100 no-scrollbar">
+                      {filteredEmployees.length === 0 ? (
+                        <div className="p-3 text-center text-gray-400 text-xs">No employees found</div>
+                      ) : (
+                        filteredEmployees.map((emp) => (
+                          <div
+                            key={emp.userId}
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                userId: emp.userId,
+                                employee: emp.name,
+                                employeeId: emp.id,
+                                employeeDesignation: emp.designation,
+                              }));
+                              setShowEmployeeDropdown(false);
+                            }}
+                            className="p-2 hover:bg-blue-50/50 rounded-lg cursor-pointer transition-colors flex items-center gap-2"
+                          >
+                            <UserAvatar name={emp.name} avatarUrl={emp.avatarUrl} size="w-7 h-7" textSize="text-[9px]" />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex justify-between items-center">
+                                <span className="font-bold text-gray-800 text-xs truncate mr-2">{emp.name}</span>
+                                <span className="bg-blue-50 text-blue-600 font-bold border border-blue-100 px-1.5 py-0.5 rounded text-[9px] flex-shrink-0">{emp.id}</span>
+                              </div>
+                              <p className="text-[10px] text-gray-400 font-semibold">{emp.designation} • {emp.department}</p>
+                            </div>
                           </div>
-                          <span className="text-[9px] text-slate-400 italic font-bold">{emp.designation}</span>
-                        </div>
-                      ))}
-                      {filteredEmployees.length === 0 && (
-                        <p className="p-3 text-center text-gray-450 italic text-[11px]">No matching employees found.</p>
+                        ))
                       )}
                     </div>
                   </div>
@@ -871,25 +1064,25 @@ export default function Incentives() {
               )}
             </div>
 
-            {/* Category Type selection */}
+            {/* Incentive Type */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-gray-400 uppercase block">Incentive Category <span className="text-red-500">*</span></label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full text-xs border border-gray-200 rounded-xl p-2.5 bg-slate-50 focus:outline-none font-semibold text-gray-750 cursor-pointer"
+                className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500 text-gray-800 cursor-pointer"
               >
-                <option value="">Select Category Type...</option>
+                <option value="">Select Category</option>
                 <option value="Performance Bonus">Performance Bonus</option>
                 <option value="Sales Incentive">Sales Incentive</option>
                 <option value="Referral Bonus">Referral Bonus</option>
                 <option value="Spot Bonus">Spot Bonus</option>
                 <option value="Project Bonus">Project Bonus</option>
-                <option value="Annual Bonus">Annual Bonus</option>
               </select>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
+              {/* Amount */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-gray-400 uppercase block">Reward Amount (₹) <span className="text-red-500">*</span></label>
                 <input
@@ -897,249 +1090,257 @@ export default function Incentives() {
                   placeholder="e.g. 15000"
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500 text-gray-800"
                 />
               </div>
 
+              {/* Target Month/Year */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase block">Disbursal Month <span className="text-red-500">*</span></label>
+                <label className="text-[10px] font-bold text-gray-400 uppercase block">Target Payout Month <span className="text-red-500">*</span></label>
                 <input
                   type="month"
                   value={formData.period}
                   onChange={(e) => setFormData({ ...formData, period: e.target.value })}
-                  className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
+                  className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500 text-gray-800 cursor-pointer"
                 />
               </div>
             </div>
 
+            {/* Description */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase block">Description / Reason <span className="text-red-500">*</span></label>
+              <label className="text-[10px] font-bold text-gray-400 uppercase block">Justification / Remarks <span className="text-red-500">*</span></label>
               <textarea
-                placeholder="Explain justification for reward disbursal..."
+                rows={3}
+                placeholder="Describe reason or performance metric hit..."
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={2}
-                className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500 text-gray-800 resize-none"
               />
-            </div>
-
-            <div className="bg-gray-100 border border-purple-100 rounded-xl p-3 flex gap-2 text-purple-800">
-              <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
-              <div className="space-y-0.5 text-[10px] font-semibold text-blue-500">
-                <p className="font-bold text-red-500">Accounting Guidelines</p>
-                <p>New entries will be created in "Pending" status and will require review approval before release.</p>
-              </div>
             </div>
           </div>
 
-          <div className="bg-slate-50 border-t border-gray-100 px-6 py-4 flex justify-between items-center flex-shrink-0">
+          <div className="p-4 bg-slate-50/50 border-t border-gray-100 flex justify-end gap-2 flex-shrink-0">
             <button
               onClick={() => setShowAddIncentive(false)}
-              className="px-4 py-2 border border-gray-200 bg-white hover:bg-slate-55 rounded-xl text-xs font-semibold text-gray-500 shadow-sm cursor-pointer"
+              className="px-4 py-2 border border-gray-200 text-gray-600 font-bold rounded-xl text-xs hover:bg-slate-100 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               onClick={handleAddIncentive}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm px-5 py-2 inline-flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-4 py-2 bg-blue-600 text-white font-bold rounded-xl text-xs hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
             >
-              <Plus size={14} />
-              <span>Record Incentive</span>
+              Save Incentive Record
             </button>
           </div>
+
         </div>
       </div>
 
-      {/* --- MODAL 2: Edit Incentive Parameters --- */}
-      <div className={`fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 ${showEditIncentive ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
-        <div className={`bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-md overflow-hidden flex flex-col transition-all duration-300 transform ${showEditIncentive ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
-          {showEditIncentive && (
-            <>
-              <div className="bg-slate-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center">
-                <div className="flex items-center gap-2.5">
-                  <div className="bg-green-500/10 p-2 rounded-lg text-green-600">
-                    <Pencil className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm text-gray-800">Edit Incentive Parameters</h3>
-                    <p className="text-[10px] text-gray-400 font-semibold">Modify details for request {editFormData.id}</p>
-                  </div>
-                </div>
-                <button onClick={() => setShowEditIncentive(null)} className="text-gray-450 hover:text-gray-700 p-1.5 rounded-lg transition-colors cursor-pointer">
-                  <X className="w-4 h-4" />
-                </button>
+      {/* --- MODAL 2: Edit Incentive Modal --- */}
+      <div className={`fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 rounded-md ${showEditIncentive ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
+        <div className={`bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-md overflow-hidden flex flex-col transition-all duration-300 transform rounded-md ${showEditIncentive ? "scale-100 opacity-100 " : "scale-95 opacity-0"}`}>
+
+          <div className="bg-slate-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center flex-shrink-0 rounded-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="bg-green-500/10 p-2 rounded-lg text-green-600">
+                <Pencil className="w-4 h-4" />
               </div>
-
-              <div className="p-6 space-y-4 text-xs">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block">Selected Employee</label>
-                  <input
-                    type="text"
-                    disabled
-                    value={`${editFormData.employee} (${editFormData.employeeId})`}
-                    className="w-full bg-slate-100 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold text-gray-400 cursor-not-allowed"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block">Incentive Category <span className="text-red-500">*</span></label>
-                  <select
-                    value={editFormData.type}
-                    onChange={(e) => setEditFormData({ ...editFormData, type: e.target.value })}
-                    className="w-full text-xs border border-gray-200 rounded-xl p-2.5 bg-slate-50 focus:outline-none font-semibold text-gray-750 cursor-pointer"
-                  >
-                    <option value="Performance Bonus">Performance Bonus</option>
-                    <option value="Sales Incentive">Sales Incentive</option>
-                    <option value="Referral Bonus">Referral Bonus</option>
-                    <option value="Spot Bonus">Spot Bonus</option>
-                    <option value="Project Bonus">Project Bonus</option>
-                    <option value="Annual Bonus">Annual Bonus</option>
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase block">Reward Amount (₹) <span className="text-red-500">*</span></label>
-                    <input
-                      type="number"
-                      value={editFormData.amount}
-                      onChange={(e) => setEditFormData({ ...editFormData, amount: e.target.value })}
-                      className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase block">Disbursal Month <span className="text-red-500">*</span></label>
-                    <input
-                      type="month"
-                      value={editFormData.period}
-                      onChange={(e) => setEditFormData({ ...editFormData, period: e.target.value })}
-                      className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block">Description / Reason <span className="text-red-500">*</span></label>
-                  <textarea
-                    value={editFormData.description}
-                    onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                    rows={2}
-                    className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
-                  />
-                </div>
+              <div>
+                <h3 className="font-semibold text-sm text-gray-800">Edit Incentive Record</h3>
+                <p className="text-[10px] text-gray-400 font-semibold">Update reward amount or period parameters</p>
               </div>
-
-              <div className="bg-slate-50 border-t border-gray-100 px-6 py-4 flex justify-between items-center">
-                <button
-                  onClick={() => setShowEditIncentive(null)}
-                  className="px-4 py-2 border border-gray-200 bg-white hover:bg-slate-55 rounded-xl text-xs font-semibold text-gray-500 shadow-sm cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdateIncentive}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm px-5 py-2 inline-flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <CheckCircle2 size={14} />
-                  <span>Update Reward</span>
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* --- MODAL 3: View Incentive Details Card --- */}
-      <div className={`fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 ${showViewDetails ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
-        <div className={`bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-sm overflow-hidden flex flex-col transition-all duration-300 transform ${showViewDetails ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
-          {showViewDetails && (
-            <>
-              <div className="bg-slate-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold border border-purple-205">
-                    {showViewDetails.employee?.split(' ').map((n: string) => n[0]).join('')}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm text-gray-800">{showViewDetails.employee}</h3>
-                    <p className="text-[10px] text-gray-400 font-semibold">Compensation Reward Ledger ID: {showViewDetails.id}</p>
-                  </div>
-                </div>
-                <button onClick={() => setShowViewDetails(null)} className="text-gray-450 hover:text-gray-700 p-1.5 rounded-lg transition-colors cursor-pointer">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4 text-xs font-semibold text-gray-600">
-                <div className="border border-slate-150 rounded-xl p-3.5 bg-slate-50/50 space-y-2">
-                  <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Reward Allocations Details</p>
-                  <div className="grid grid-cols-2 gap-2 text-gray-750">
-                    <p>Employee ID:</p>
-                    <p className="font-bold text-gray-855 text-right">{showViewDetails.empId}</p>
-                    <p>Department:</p>
-                    <p className="font-bold text-gray-855 text-right">{showViewDetails.department}</p>
-                    <p>Bonus Category:</p>
-                    <p className="font-bold text-purple-650 text-right">{showViewDetails.type}</p>
-                    <p>Reward Payout:</p>
-                    <p className="font-bold text-emerald-600 text-right">{formatCurrency(parseInt(showViewDetails.amount))}</p>
-                    <p>Processing Month:</p>
-                    <p className="font-bold text-gray-855 text-right">{showViewDetails.period}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase block">Justification Description</p>
-                  <p className="p-3 bg-slate-50 border border-gray-100 rounded-xl text-gray-600 font-normal leading-relaxed">
-                    {showViewDetails.description}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 border-t border-gray-100 px-6 py-4 flex justify-between items-center">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-gray-450">Current Status:</span>
-                  <StatusBadge status={showViewDetails.status} />
-                </div>
-                <button
-                  onClick={() => setShowViewDetails(null)}
-                  className="px-4 py-2 border border-gray-200 bg-white hover:bg-slate-55 rounded-xl text-xs font-semibold text-gray-550 shadow-sm cursor-pointer"
-                >
-                  Close View
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* --- POPUP MODAL: Delete Confirmation --- */}
-      <div className={`fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 ${deleteConfirmation.isOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
-        <div className={`bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-sm overflow-hidden flex flex-col transition-all duration-300 transform ${deleteConfirmation.isOpen ? "scale-100 translate-y-0 opacity-100" : "scale-95 translate-y-4 opacity-0"}`}>
-          <div className="p-5 flex flex-col items-center text-center space-y-3">
-            <div className="w-12 h-12 bg-red-50 text-rose-650 rounded-full flex items-center justify-center border border-red-100">
-              <AlertTriangle className="w-5 h-5 text-red-600 animate-none" />
             </div>
-            <div>
-              <h3 className="font-bold text-gray-800 text-sm">{deleteConfirmation.title}</h3>
-              <p className="text-[11px] text-gray-450 font-semibold mt-1.5 leading-relaxed">{deleteConfirmation.message}</p>
+            <button onClick={() => setShowEditIncentive(null)} className="text-gray-450 hover:text-gray-700 p-1.5 rounded-lg transition-colors cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-4 flex-1 text-xs overflow-y-auto">
+
+            {/* Readonly Employee display */}
+            <div className="bg-slate-50 p-3 rounded-xl border border-gray-200/60 space-y-1">
+              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Assigned Beneficiary</span>
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-gray-800 text-xs">{editFormData.employee}</span>
+                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded">{editFormData.employeeId}</span>
+              </div>
+            </div>
+
+            {/* Category */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-gray-400 uppercase block">Incentive Category <span className="text-red-500">*</span></label>
+              <select
+                value={editFormData.type}
+                onChange={(e) => setEditFormData({ ...editFormData, type: e.target.value })}
+                className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500 text-gray-800 cursor-pointer"
+              >
+                <option value="Performance Bonus">Performance Bonus</option>
+                <option value="Sales Incentive">Sales Incentive</option>
+                <option value="Referral Bonus">Referral Bonus</option>
+                <option value="Spot Bonus">Spot Bonus</option>
+                <option value="Project Bonus">Project Bonus</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* Amount */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase block">Reward Amount (₹) <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  value={editFormData.amount}
+                  onChange={(e) => setEditFormData({ ...editFormData, amount: e.target.value })}
+                  className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500 text-gray-800"
+                />
+              </div>
+
+              {/* Target Month/Year */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase block">Payout Month <span className="text-red-500">*</span></label>
+                <input
+                  type="month"
+                  value={editFormData.period}
+                  onChange={(e) => setEditFormData({ ...editFormData, period: e.target.value })}
+                  className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500 text-gray-800 cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-gray-400 uppercase block">Remarks / Notes <span className="text-red-500">*</span></label>
+              <textarea
+                rows={3}
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500 text-gray-800 resize-none"
+              />
             </div>
           </div>
-          <div className="bg-slate-50 px-5 py-3 flex gap-2 justify-end border-t border-gray-100">
+
+          <div className="p-4 bg-slate-50/50 border-t border-gray-100 flex justify-end gap-2 flex-shrink-0">
             <button
-              onClick={() => setDeleteConfirmation(prev => ({ ...prev, isOpen: false }))}
-              className="px-3.5 py-1.5 border border-gray-200 bg-white hover:bg-slate-50 text-gray-550 rounded-lg text-[11px] font-semibold cursor-pointer shadow-xs"
+              onClick={() => setShowEditIncentive(null)}
+              className="px-4 py-2 border border-gray-200 text-gray-600 font-bold rounded-xl text-xs hover:bg-slate-100 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
-              onClick={deleteConfirmation.onConfirm}
-              className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-semibold cursor-pointer shadow-xs"
+              onClick={handleUpdateIncentive}
+              className="px-4 py-2 bg-blue-600 text-white font-bold rounded-xl text-xs hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
             >
-              Confirm Delete
+              Save Changes
             </button>
           </div>
+
         </div>
       </div>
+
+      {/* --- MODAL 3: View Details Modal --- */}
+      <div className={`fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 rounded-md ${showViewDetails ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
+        <div className={`bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-sm overflow-hidden flex flex-col transition-all duration-300 transform rounded-md ${showViewDetails ? "scale-100 opacity-100 " : "scale-95 opacity-0"}`}>
+
+          <div className="bg-slate-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center flex-shrink-0 rounded-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="bg-purple-500/10 p-2 rounded-lg text-purple-600">
+                <FileText className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm text-gray-800">Incentive Details</h3>
+                <p className="text-[10px] text-gray-400 font-semibold">{showViewDetails?.displayId || showViewDetails?.id}</p>
+              </div>
+            </div>
+            <button onClick={() => setShowViewDetails(null)} className="text-gray-450 hover:text-gray-700 p-1.5 rounded-lg transition-colors cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {showViewDetails && (
+            <div className="p-6 space-y-4 text-xs">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-gray-100">
+                <UserAvatar name={showViewDetails.employee} avatarUrl={showViewDetails.avatarUrl} size="w-9 h-9" textSize="text-xs" />
+                <div>
+                  <h4 className="font-bold text-gray-800 text-sm">{showViewDetails.employee}</h4>
+                  <p className="text-[10px] text-gray-400 font-semibold">{showViewDetails.empId} • {showViewDetails.department}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-50 rounded-xl border border-gray-100">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Category</span>
+                  <span className="font-bold text-blue-600 text-xs mt-0.5 block">{showViewDetails.type}</span>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl border border-gray-100">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Amount</span>
+                  <span className="font-bold text-gray-800 text-xs mt-0.5 block">{formatCurrency(parseFloat(showViewDetails.amount))}</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-xl border border-gray-100 space-y-1">
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Target Month</span>
+                <span className="font-semibold text-gray-700 text-xs">{showViewDetails.period}</span>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-xl border border-gray-100 space-y-1">
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Remarks / Metric hit</span>
+                <p className="text-xs text-gray-600 leading-relaxed">{showViewDetails.description}</p>
+              </div>
+
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-xs font-bold text-gray-400">Current Status</span>
+                <StatusDropdownCell item={showViewDetails} onUpdateStatus={(item, newStatus) => {
+                  handleStatusUpdate(item, newStatus);
+                  setShowViewDetails((prev: any) => prev ? { ...prev, status: newStatus } : null);
+                }} />
+              </div>
+            </div>
+          )}
+
+          <div className="p-4 bg-slate-50/50 border-t border-gray-100 flex justify-end flex-shrink-0">
+            <button
+              onClick={() => setShowViewDetails(null)}
+              className="px-4 py-2 bg-slate-800 text-white font-bold rounded-xl text-xs hover:bg-slate-900 transition-colors shadow-sm cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {/* --- MODAL 4: Delete Confirmation Dialog --- */}
+      {deleteConfirmation.isOpen && (
+        <div className="fixed inset-0 z-[120] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 fade-in-backdrop">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-sm overflow-hidden p-6 space-y-4 modal-animate-scale text-center">
+            <div className="w-12 h-12 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center mx-auto text-rose-600">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="font-bold text-base text-gray-800">{deleteConfirmation.title}</h3>
+              <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                {deleteConfirmation.message}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => setDeleteConfirmation(prev => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2 border border-gray-200 text-gray-600 font-bold rounded-xl text-xs hover:bg-slate-100 transition-colors flex-1 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteConfirmation.onConfirm}
+                className="px-4 py-2 bg-rose-600 text-white font-bold rounded-xl text-xs hover:bg-rose-700 transition-colors flex-1 shadow-sm cursor-pointer"
+              >
+                Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

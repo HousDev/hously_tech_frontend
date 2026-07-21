@@ -27,6 +27,8 @@ interface AttendanceLog {
   hours: string;
   workMode: 'Office' | 'Remote' | 'Client Site';
   status: 'Present' | 'Late' | 'Half Day' | 'On Leave' | 'Absent';
+  checkOutStatus?: string | null;
+  lateDeduction?: number;
   checkInLat?: number | null;
   checkInLng?: number | null;
   checkOutLat?: number | null;
@@ -107,15 +109,20 @@ const Attendance: React.FC = () => {
   const [isCheckedIn, setIsCheckedIn] = useState<boolean>(false);
   const [checkInTime, setCheckInTime] = useState<string | null>(null);
   const [workMode, setWorkMode] = useState<'Office' | 'Remote' | 'Client Site'>('Office');
-  const [selectedShift, setSelectedShift] = useState<string>('General (9AM–6PM)');
+  const [selectedShift, setSelectedShift] = useState<string>('');
   const [assignedBranch, setAssignedBranch] = useState<{ name: string; address: string; latitude: number; longitude: number } | null>(null);
   const [securitySettings, setSecuritySettings] = useState<any>(null);
   const [weekOffDays, setWeekOffDays] = useState<string[]>([]);
   const [weeklySchedule, setWeeklySchedule] = useState<any>(null);
   const [punchInTime, setPunchInTime] = useState<string | null>(null);
   const [punchOutTime, setPunchOutTime] = useState<string | null>(null);
+  const [todayCheckOutTime, setTodayCheckOutTime] = useState<string | null>(null);
   const [employeeShift, setEmployeeShift] = useState<string | null>(null);
   const [deductIfLateByMoreThan, setDeductIfLateByMoreThan] = useState<number>(10);
+  const [shiftType, setShiftType] = useState<'fixed' | 'flexible'>('fixed');
+  const [shiftAssigned, setShiftAssigned] = useState<boolean>(true);
+  const [allowedLateDays, setAllowedLateDays] = useState<number>(5);
+  const [monthlyLateCount, setMonthlyLateCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   // Biometric scanner state simulation
@@ -156,6 +163,7 @@ const Attendance: React.FC = () => {
       const statusData = await attendanceApi.getStatus();
       setIsCheckedIn(statusData.isCheckedIn);
       setCheckInTime(statusData.checkInTime);
+      setTodayCheckOutTime(statusData.checkOutTime);
       setAssignedBranch(statusData.assignedBranch);
       setSecuritySettings(statusData.securitySettings);
       if ((statusData as any).weekOffDays) {
@@ -177,6 +185,16 @@ const Attendance: React.FC = () => {
       }
       if ((statusData as any).deductIfLateByMoreThan) {
         setDeductIfLateByMoreThan(Number((statusData as any).deductIfLateByMoreThan));
+      }
+      if ((statusData as any).shiftType) {
+        setShiftType((statusData as any).shiftType as 'fixed' | 'flexible');
+      }
+      setShiftAssigned((statusData as any).shiftAssigned ?? true);
+      if ((statusData as any).allowedLateDays !== undefined) {
+        setAllowedLateDays(Number((statusData as any).allowedLateDays));
+      }
+      if ((statusData as any).monthlyLateCount !== undefined) {
+        setMonthlyLateCount(Number((statusData as any).monthlyLateCount));
       }
 
       const logsData = await attendanceApi.getLogs();
@@ -304,28 +322,54 @@ const Attendance: React.FC = () => {
     setTotalWeekOffs(getWeekOffsCount(calendarDate.getFullYear(), calendarDate.getMonth()));
   }, [logs, calendarDate]);
 
-  // Average Hours Calculation
-  const [avgHoursStr, setAvgHoursStr] = useState('8:00h');
+  // Monthly Working Hours Calculation
+  const [monthlyHoursStr, setMonthlyHoursStr] = useState('0h 00m');
+
+  const parseHoursToMinutes = (hoursStr: string): number => {
+    if (!hoursStr || hoursStr === 'In Progress' || hoursStr === '-' || hoursStr === '—') return 0;
+    const hmMatch = hoursStr.match(/(\d+)\s*h(?:ours?)?(?:\s*(\d+)\s*m(?:ins?)?)?/i);
+    if (hmMatch) {
+      const h = parseInt(hmMatch[1]) || 0;
+      const m = parseInt(hmMatch[2]) || 0;
+      return h * 60 + m;
+    }
+    const timeMatch = hoursStr.match(/^(\d{1,2}):(\d{2})$/);
+    if (timeMatch) {
+      const h = parseInt(timeMatch[1]) || 0;
+      const m = parseInt(timeMatch[2]) || 0;
+      return h * 60 + m;
+    }
+    const numMatch = hoursStr.match(/^(\d+(?:\.\d+)?)/);
+    if (numMatch) {
+      const val = parseFloat(numMatch[1]);
+      if (!isNaN(val)) return Math.round(val * 60);
+    }
+    return 0;
+  };
+
   useEffect(() => {
-    const validLogs = logs.filter(l => l.status?.toLowerCase() === 'present' && l.hours !== 'In Progress' && l.hours !== '-');
+    const targetMonth = calendarDate.getMonth();
+    const targetYear = calendarDate.getFullYear();
+
+    const validLogs = logs.filter(l => {
+      if (!l.hours || l.hours === 'In Progress' || l.hours === '-' || l.hours === '—') return false;
+      if (!l.date) return false;
+      const d = new Date(l.date);
+      return d.getMonth() === targetMonth && d.getFullYear() === targetYear;
+    });
+
     if (validLogs.length > 0) {
       let totalMins = 0;
       validLogs.forEach(l => {
-        const matches = l.hours.match(/(\d+)h\s*(\d+)m/);
-        if (matches) {
-          const h = parseInt(matches[1]);
-          const m = parseInt(matches[2]);
-          totalMins += h * 60 + m;
-        }
+        totalMins += parseHoursToMinutes(l.hours);
       });
-      const avgMins = Math.round(totalMins / validLogs.length);
-      const h = Math.floor(avgMins / 60);
-      const m = avgMins % 60;
-      setAvgHoursStr(`${h}:${String(m).padStart(2, '0')}h`);
+      const h = Math.floor(totalMins / 60);
+      const m = totalMins % 60;
+      setMonthlyHoursStr(`${h}h ${String(m).padStart(2, '0')}m`);
     } else {
-      setAvgHoursStr('8:00h');
+      setMonthlyHoursStr('0h 00m');
     }
-  }, [logs]);
+  }, [logs, calendarDate]);
 
   // Working hours dynamic calculations for today's clock ticker
   const [currentWorkingHours, setCurrentWorkingHours] = useState('00h 00m');
@@ -454,6 +498,28 @@ const Attendance: React.FC = () => {
     }
   }
 
+  const isTodayWeekOff = isWeeklyOff || (isFlexible && weeklySchedule && !!weeklySchedule[todayDateKey]?.isWeekOff);
+
+  const isShiftDeclaredForToday = (() => {
+    if (isTodayWeekOff) return true;
+
+    // No weeklySchedule set at all — block attendance
+    if (!weeklySchedule) return false;
+
+    if (isFlexible) {
+      const config = weeklySchedule[todayDateKey];
+      if (!config) return false;
+      if (config.isWeekOff) return true;
+      return !!config.shift && config.shift.trim() !== "";
+    } else {
+      const config = weeklySchedule[todayDayName];
+      // No entry for today's day — block attendance
+      if (!config) return false;
+      if (config.isWeekOff) return true;
+      return !!config.shift && config.shift.trim() !== "";
+    }
+  })();
+
   // Work mode is determined by shift TYPE first (Fixed = Office, Flexible = WFH/Remote).
   // Any stored workMode in configForToday is only used for Flexible shifts.
   const todayDisplayWorkMode = isFlexible
@@ -469,10 +535,6 @@ const Attendance: React.FC = () => {
     // Check if today is active
     const todayStr = getLocalDateString(today);
     const isActiveToday = isCheckedIn && formattedDay === todayStr;
-
-    if (isActiveToday) {
-      return 'bg-emerald-600 text-white border-emerald-700 font-semibold shadow-xs';
-    }
 
     const d = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), dayNum);
     const dayName = DAY_NAMES[d.getDay()];
@@ -510,10 +572,18 @@ const Attendance: React.FC = () => {
     }
 
     if (s === 'late') {
+      // Yellow if deduction was applied (late_deduction > 0), green if within allowed days
+      const isPenalized = log && (log as any).lateDeduction > 0;
+      if (isPenalized) {
+        return 'bg-yellow-400 text-slate-900 border-yellow-500 font-semibold shadow-xs';
+      }
       return 'bg-emerald-500 text-white border-emerald-600 font-semibold shadow-xs';
     }
 
-    // Recorded present -> GREEN
+    // Recorded present -> GREEN (Darker green if today is active)
+    if (isActiveToday) {
+      return 'bg-emerald-600 text-white border-emerald-700 font-semibold shadow-xs';
+    }
     return 'bg-emerald-500 text-white border-emerald-600 font-semibold shadow-xs';
   };
 
@@ -669,25 +739,10 @@ const Attendance: React.FC = () => {
       const updatedStatus = await attendanceApi.getStatus();
       setIsCheckedIn(updatedStatus.isCheckedIn);
       setCheckInTime(updatedStatus.checkInTime);
+      setTodayCheckOutTime(updatedStatus.checkOutTime);
 
-      // Late arrival toast
+      // Silent status update — no toast on punch
       const punchMsg = response.message || "Attendance updated!";
-      if (isCheckingIn && (punchMsg.toLowerCase().includes('late') || response.isLate)) {
-        toast(
-          () => (
-            <div className="flex items-center gap-2">
-              <span className="text-amber-500 text-lg">⚠️</span>
-              <div>
-                <p className="font-bold text-amber-700 text-sm">Late Arrival Marked</p>
-                <p className="text-xs text-slate-600">{punchMsg}</p>
-              </div>
-            </div>
-          ),
-          { duration: 5000, style: { border: '1px solid #f59e0b', background: '#fffbeb' } }
-        );
-      } else {
-        toast.success(punchMsg);
-      }
 
       setTimeout(() => {
         if (activeStream) {
@@ -835,6 +890,135 @@ const Attendance: React.FC = () => {
     }
   };
 
+  // Helper to parse start time from shift string
+  const parseStartFromStr = (sName: string) => {
+    if (!sName) return null;
+    const match = sName.match(/\(([^)]+)\)/);
+    if (match && match[1]) {
+      const parts = match[1].split(/[–-]/);
+      if (parts.length === 2) {
+        const timeStr = parts[0].trim();
+        const matchTime = timeStr.match(/(\d+)(?::(\d+))?\s*(AM|PM)?/i);
+        if (matchTime) {
+          let hour = parseInt(matchTime[1]);
+          const minute = matchTime[2] ? parseInt(matchTime[2]) : 0;
+          const ampm = matchTime[3] ? matchTime[3].toUpperCase() : null;
+          if (ampm === 'PM' && hour !== 12) hour += 12;
+          if (ampm === 'AM' && hour === 12) hour = 0;
+          return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Helper to parse end time from shift string
+  const parseEndFromStr = (sName: string) => {
+    if (!sName) return null;
+    const match = sName.match(/\(([^)]+)\)/);
+    if (match && match[1]) {
+      const parts = match[1].split(/[–-]/);
+      if (parts.length === 2) {
+        const timeStr = parts[1].trim();
+        const matchTime = timeStr.match(/(\d+)(?::(\d+))?\s*(AM|PM)?/i);
+        if (matchTime) {
+          let hour = parseInt(matchTime[1]);
+          const minute = matchTime[2] ? parseInt(matchTime[2]) : 0;
+          const ampm = matchTime[3] ? matchTime[3].toUpperCase() : null;
+          if (ampm === 'PM' && hour !== 12) hour += 12;
+          if (ampm === 'AM' && hour === 12) hour = 0;
+          return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Resolve today's shift from schedule
+  let todayShift = {
+    shift: employeeShift || selectedShift || 'General (10AM–7PM)',
+    isWeekOff: false,
+    startTime: null,
+    allowPunchInHours: null,
+    allowPunchInMinutes: null,
+    allowPunchOutHours: null,
+    allowPunchOutMinutes: null
+  } as any;
+
+  if (weeklySchedule) {
+    const todayStr = getLocalDateString(new Date());
+    if (weeklySchedule[todayStr] && typeof weeklySchedule[todayStr] === 'object') {
+      todayShift = { ...todayShift, ...weeklySchedule[todayStr] };
+    } else if (weeklySchedule[todayDayName] && typeof weeklySchedule[todayDayName] === 'object') {
+      todayShift = { ...todayShift, ...weeklySchedule[todayDayName] };
+    }
+  }
+
+  const shiftStartTime = todayShift.startTime || parseStartFromStr(todayShift.shift) || punchInTime || '10:00:00';
+  const shiftEndTime = todayShift.endTime || parseEndFromStr(todayShift.shift) || punchOutTime || '19:00:00';
+
+  let latestCheckInTimeStr = shiftStartTime.substring(0, 5);
+  let latestCheckInTotalMins = 1440;
+  let hasCheckInLimit = false;
+
+  try {
+    if (todayShift.allowPunchInHours !== undefined && todayShift.allowPunchInHours !== null && todayShift.allowPunchInHours !== '') {
+      hasCheckInLimit = true;
+      let limitH = Number(todayShift.allowPunchInHours);
+      let limitM = Number(todayShift.allowPunchInMinutes) || 0;
+
+      const [shH] = shiftStartTime.split(':').map(Number);
+      const isShiftPM = shH >= 12;
+      if (isShiftPM && limitH < 12) {
+        limitH += 12;
+      } else if (!isShiftPM && limitH === 12) {
+        limitH = 0;
+      }
+
+      latestCheckInTotalMins = limitH * 60 + limitM;
+      latestCheckInTimeStr = `${String(limitH).padStart(2, '0')}:${String(limitM).padStart(2, '0')}`;
+    }
+  } catch (_) {}
+
+  const isCheckInAllowed = (() => {
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    if (hasCheckInLimit) {
+      return currentMins <= latestCheckInTotalMins;
+    } else {
+      const [shH, shM] = shiftStartTime.split(':').map(Number);
+      const shiftStartMins = shH * 60 + shM;
+      return currentMins >= shiftStartMins;
+    }
+  })();
+
+  let latestCheckOutTimeStr = shiftEndTime.substring(0, 5);
+  let latestCheckOutTotalMins = 1440;
+  let hasCheckOutLimit = false;
+
+  try {
+    if (todayShift.allowPunchOutHours !== undefined && todayShift.allowPunchOutHours !== null && todayShift.allowPunchOutHours !== '') {
+      hasCheckOutLimit = true;
+      let limitH = Number(todayShift.allowPunchOutHours);
+      let limitM = Number(todayShift.allowPunchOutMinutes) || 0;
+
+      const [sheH] = shiftEndTime.split(':').map(Number);
+      const isShiftEndPM = sheH >= 12;
+      if (isShiftEndPM && limitH < 12) {
+        limitH += 12;
+      } else if (!isShiftEndPM && limitH === 12) {
+        limitH = 0;
+      }
+
+      latestCheckOutTotalMins = limitH * 60 + limitM;
+      latestCheckOutTimeStr = `${String(limitH).padStart(2, '0')}:${String(limitM).padStart(2, '0')}`;
+    }
+  } catch (_) {}
+
+  const isCheckOutAllowed = true; // Punch-out is always allowed anytime once checked-in
+
+  const isAttendanceComplete = !!todayCheckOutTime;
+
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center py-40 min-h-[60vh] bg-slate-50/20">
@@ -963,23 +1147,23 @@ const Attendance: React.FC = () => {
           </span>
         </div>
 
-        {/* Card 7: Avg. Hours */}
+        {/* Card 7: Monthly Working Hours */}
         <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-xs flex flex-col justify-between min-h-[105px]">
-          <span className="text-slate-500 text-xs font-semibold">Avg. Hours</span>
+          <span className="text-slate-500 text-xs font-semibold">Monthly Hours</span>
           <div className="flex items-center justify-between mt-2 mb-1">
-            <span className="text-xl font-bold text-blue-600">{avgHoursStr}</span>
+            <span className="text-xl font-bold text-blue-600">{monthlyHoursStr}</span>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600">
-              <TrendingUp className="w-4 h-4" />
+              <Clock className="w-4 h-4" />
             </div>
           </div>
-          <span className="text-slate-400 text-[10px] font-semibold">per employee</span>
+          <span className="text-slate-400 text-[10px] font-semibold">total working hours</span>
         </div>
       </div>
 
       {/* 2. Sleek Action Buttons Row + Real-time Clock Timer placed to the right */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/40 p-3 rounded-2xl border border-slate-100/50 shadow-2xs">
         <div className="flex items-center gap-3 flex-wrap">
-          {isWeeklyOff ? (
+          {isTodayWeekOff ? (
             <div className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl">
               <span className="text-lg">🏖️</span>
               <div>
@@ -989,174 +1173,29 @@ const Attendance: React.FC = () => {
             </div>
           ) : (
             <>
-              {(() => {
-                let todayShift = {
-                  shift: employeeShift || selectedShift || 'General (10AM–7PM)',
-                  isWeekOff: false,
-                  startTime: null,
-                  allowPunchInHours: null,
-                  allowPunchInMinutes: null,
-                  allowPunchOutHours: null,
-                  allowPunchOutMinutes: null
-                } as any;
-
-                if (weeklySchedule) {
-                  const todayStr = getLocalDateString(new Date());
-                  if (weeklySchedule[todayStr] && typeof weeklySchedule[todayStr] === 'object') {
-                    todayShift = { ...todayShift, ...weeklySchedule[todayStr] };
-                  } else if (weeklySchedule[todayDayName] && typeof weeklySchedule[todayDayName] === 'object') {
-                    todayShift = { ...todayShift, ...weeklySchedule[todayDayName] };
-                  }
-                }
-
-                const parseStartFromStr = (sName: string) => {
-                  if (!sName) return null;
-                  const match = sName.match(/\(([^)]+)\)/);
-                  if (match && match[1]) {
-                    const parts = match[1].split(/[–-]/);
-                    if (parts.length === 2) {
-                      const timeStr = parts[0].trim();
-                      const matchTime = timeStr.match(/(\d+)(?::(\d+))?\s*(AM|PM)?/i);
-                      if (matchTime) {
-                        let hour = parseInt(matchTime[1]);
-                        const minute = matchTime[2] ? parseInt(matchTime[2]) : 0;
-                        const ampm = matchTime[3] ? matchTime[3].toUpperCase() : null;
-                        if (ampm === 'PM' && hour !== 12) hour += 12;
-                        if (ampm === 'AM' && hour === 12) hour = 0;
-                        return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
-                      }
-                    }
-                  }
-                  return null;
-                };
-
-                const parseEndFromStr = (sName: string) => {
-                  if (!sName) return null;
-                  const match = sName.match(/\(([^)]+)\)/);
-                  if (match && match[1]) {
-                    const parts = match[1].split(/[–-]/);
-                    if (parts.length === 2) {
-                      const timeStr = parts[1].trim();
-                      const matchTime = timeStr.match(/(\d+)(?::(\d+))?\s*(AM|PM)?/i);
-                      if (matchTime) {
-                        let hour = parseInt(matchTime[1]);
-                        const minute = matchTime[2] ? parseInt(matchTime[2]) : 0;
-                        const ampm = matchTime[3] ? matchTime[3].toUpperCase() : null;
-                        if (ampm === 'PM' && hour !== 12) hour += 12;
-                        if (ampm === 'AM' && hour === 12) hour = 0;
-                        return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
-                      }
-                    }
-                  }
-                  return null;
-                };
-
-                const shiftStartTime = todayShift.startTime || parseStartFromStr(todayShift.shift) || punchInTime || '10:00:00';
-                const shiftEndTime = todayShift.endTime || parseEndFromStr(todayShift.shift) || punchOutTime || '19:00:00';
-                
-                let latestCheckInTimeStr = shiftStartTime.substring(0, 5);
-                let latestCheckInTotalMins = 1440;
-                let hasCheckInLimit = false;
-
-                try {
-                  if (todayShift.allowPunchInHours !== undefined && todayShift.allowPunchInHours !== null && todayShift.allowPunchInHours !== '') {
-                    hasCheckInLimit = true;
-                    let limitH = Number(todayShift.allowPunchInHours);
-                    let limitM = Number(todayShift.allowPunchInMinutes) || 0;
-
-                    const [shH] = shiftStartTime.split(':').map(Number);
-                    const isShiftPM = shH >= 12;
-                    if (isShiftPM && limitH < 12) {
-                      limitH += 12;
-                    } else if (!isShiftPM && limitH === 12) {
-                      limitH = 0;
-                    }
-
-                    latestCheckInTotalMins = limitH * 60 + limitM;
-                    latestCheckInTimeStr = `${String(limitH).padStart(2, '0')}:${String(limitM).padStart(2, '0')}`;
-                  }
-                } catch (_) {}
-
-                const isCheckInAllowed = (() => {
-                  const now = new Date();
-                  const currentMins = now.getHours() * 60 + now.getMinutes();
-                  if (hasCheckInLimit) {
-                    return currentMins <= latestCheckInTotalMins;
-                  } else {
-                    const [shH, shM] = shiftStartTime.split(':').map(Number);
-                    const shiftStartMins = shH * 60 + shM;
-                    return currentMins >= shiftStartMins;
-                  }
-                })();
-
-                let latestCheckOutTimeStr = shiftEndTime.substring(0, 5);
-                let latestCheckOutTotalMins = 1440;
-                let hasCheckOutLimit = false;
-
-                try {
-                  if (todayShift.allowPunchOutHours !== undefined && todayShift.allowPunchOutHours !== null && todayShift.allowPunchOutHours !== '') {
-                    hasCheckOutLimit = true;
-                    let limitH = Number(todayShift.allowPunchOutHours);
-                    let limitM = Number(todayShift.allowPunchOutMinutes) || 0;
-
-                    const [sheH] = shiftEndTime.split(':').map(Number);
-                    const isShiftEndPM = sheH >= 12;
-                    if (isShiftEndPM && limitH < 12) {
-                      limitH += 12;
-                    } else if (!isShiftEndPM && limitH === 12) {
-                      limitH = 0;
-                    }
-
-                    latestCheckOutTotalMins = limitH * 60 + limitM;
-                    latestCheckOutTimeStr = `${String(limitH).padStart(2, '0')}:${String(limitM).padStart(2, '0')}`;
-                  }
-                } catch (_) {}
-
-                const isCheckOutAllowed = (() => {
-                  if (!hasCheckOutLimit) return true;
-                  const now = new Date();
-                  const currentMins = now.getHours() * 60 + now.getMinutes();
-                  return currentMins <= latestCheckOutTotalMins;
-                })();
-
-                const canPunch = !isCheckedIn ? isCheckInAllowed : isCheckOutAllowed;
-
-                return (
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <button
-                      type="button"
-                      disabled={!canPunch}
-                      onClick={() => handleOpenPunchPopup(isCheckedIn)}
-                      className={`font-bold text-xs py-2.5 px-6 rounded-xl shadow-md transition-all duration-200 flex items-center space-x-2 ${
-                        canPunch 
-                          ? 'bg-[#0D47A1] hover:bg-blue-800 text-white transform active:scale-95 cursor-pointer shadow-md hover:shadow-lg' 
-                          : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none border border-slate-200/50'
-                      }`}
-                    >
-                      <Clock className={`w-4 h-4 ${canPunch ? 'text-blue-200 animate-pulse' : 'text-slate-300'}`} />
-                      <span>Mark {isCheckedIn ? 'Check-Out' : 'Check-In'}</span>
-                    </button>
-                    {!canPunch && !isCheckedIn && (
-                      <div className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-100 rounded-xl text-amber-700 text-[10px] font-bold">
-                        <span>⚠️</span>
-                        <span>
-                          {hasCheckInLimit 
-                            ? `Punch-In closed at ${formatTimeStr(latestCheckInTimeStr)}` 
-                            : `Punch-In opens at ${formatTimeStr(shiftStartTime.substring(0, 5))}`}
-                        </span>
-                      </div>
-                    )}
-                    {!canPunch && isCheckedIn && (
-                      <div className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 text-[10px] font-bold">
-                        <span>⚠️</span>
-                        <span>
-                          Punch-Out closed at {formatTimeStr(latestCheckOutTimeStr)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <button
+                    type="button"
+                    disabled={!shiftAssigned || !isShiftDeclaredForToday}
+                    onClick={() => handleOpenPunchPopup(isCheckedIn)}
+                    className={`font-bold text-xs py-2.5 px-6 rounded-xl shadow-md transition-all duration-200 flex items-center space-x-2 ${
+                      shiftAssigned && isShiftDeclaredForToday
+                        ? 'bg-[#0D47A1] hover:bg-blue-800 text-white transform active:scale-95 cursor-pointer shadow-md hover:shadow-lg' 
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none border border-slate-200/50'
+                    }`}
+                  >
+                    <Clock className={`w-4 h-4 ${shiftAssigned && isShiftDeclaredForToday ? 'text-blue-200 animate-pulse' : 'text-slate-300'}`} />
+                    <span>{isAttendanceComplete ? 'Punch Completed' : `Mark ${isCheckedIn ? 'Check-Out' : 'Check-In'}`}</span>
+                  </button>
+                  {!isShiftDeclaredForToday && (
+                    <div className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-100 rounded-xl text-amber-700 text-[10px] font-bold">
+                      <span>⚠️</span>
+                      <span>Shift not declared, please contact HR</span>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-100 rounded-xl">
                 <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Scheduled Work Mode:</span>
                 <span className="text-xs font-extrabold bg-[#0D47A1] text-white px-2 py-0.5 rounded-md">
@@ -1269,7 +1308,7 @@ const Attendance: React.FC = () => {
                 >
                   <span className="font-semibold">{dayNum}</span>
                   {dayLog && dayLog.status?.toLowerCase() === 'late' && (
-                    <span className="text-[7px] font-black tracking-wider mt-0.5 text-yellow-300 uppercase">LATE</span>
+                    <span className="text-[7px] font-black tracking-wider mt-0.5 uppercase text-white">Late</span>
                   )}
                   {dayLog && (dayLog.status?.toLowerCase() === 'half_day' || dayLog.status?.toLowerCase() === 'half day') && (
                     <span className="text-[6.5px] font-black tracking-wider mt-0.5 text-white/90 uppercase">HALF DAY</span>
@@ -1308,8 +1347,16 @@ const Attendance: React.FC = () => {
               <span>Holiday</span>
             </div>
             <div className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded bg-emerald-500 border border-emerald-600 inline-flex items-center justify-center text-[5px] font-extrabold text-yellow-400">L</span>
-              <span>Late Check-in</span>
+              <span className="w-2.5 h-2.5 rounded bg-emerald-500 border border-emerald-600 inline-flex items-center justify-center text-[5px] font-extrabold text-yellow-300">L</span>
+              <span>Late (Grace Period)</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <span className="w-2.5 h-2.5 rounded bg-yellow-400 border border-yellow-500 inline-flex items-center justify-center text-[5px] font-extrabold text-amber-800">L</span>
+              <span>Late (Deducted)</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <span className="w-2.5 h-2.5 rounded bg-emerald-100 border border-emerald-300 inline-flex items-center justify-center text-[5px] font-extrabold text-emerald-700">E</span>
+              <span>Early Punch Out</span>
             </div>
           </div>
         </div>
@@ -1437,7 +1484,43 @@ const Attendance: React.FC = () => {
                   className="w-full h-full object-cover transform -scale-x-100"
                 />
 
-                {!cameraActive && (
+                {/* 1. If attendance is completed */}
+                {isAttendanceComplete ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-800 p-4 text-center z-10 bg-slate-50 border border-slate-200">
+                    <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center shadow-md mb-3">
+                      <Check className="w-8 h-8 text-emerald-600 stroke-[3.5px]" />
+                    </div>
+                    <span className="text-xs font-black uppercase text-emerald-700 tracking-wider">Attendance Complete</span>
+                    <span className="text-[10px] font-bold text-slate-500 mt-2 max-w-[200px]">
+                      You have already checked out today. Attendance for today is complete.
+                    </span>
+                  </div>
+                ) : !isCheckedIn && !isCheckInAllowed ? (
+                  /* 2. If Punch-in is not allowed yet or closed */
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-800 p-4 text-center z-10 bg-amber-50/95 border border-amber-200">
+                    <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center shadow-xs mb-3">
+                      <span className="text-xl">⚠️</span>
+                    </div>
+                    <span className="text-[10px] font-black uppercase text-amber-700 tracking-widest">Punch-In Locked</span>
+                    <span className="text-xs font-extrabold text-amber-800 mt-2 leading-snug">
+                      {hasCheckInLimit 
+                        ? `Punch-In closed at ${formatTimeStr(latestCheckInTimeStr)}` 
+                        : `Punch-In opens at ${formatTimeStr(shiftStartTime.substring(0, 5))}`}
+                    </span>
+                  </div>
+                ) : isCheckedIn && !isCheckOutAllowed ? (
+                  /* 3. If Punch-out is closed */
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-800 p-4 text-center z-10 bg-rose-50 border border-rose-200">
+                    <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center shadow-xs mb-3">
+                      <span className="text-xl">⚠️</span>
+                    </div>
+                    <span className="text-[10px] font-black uppercase text-rose-700 tracking-widest">Punch-Out Locked</span>
+                    <span className="text-xs font-extrabold text-rose-800 mt-2 leading-snug">
+                      Punch-Out closed at {formatTimeStr(latestCheckOutTimeStr)}
+                    </span>
+                  </div>
+                ) : !cameraActive ? (
+                  /* 4. Normal offline webcam state */
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-404 p-4 text-center z-10 bg-slate-900 border border-slate-800">
                     <Camera className="w-10 h-10 text-[#0d47a1] opacity-80 mb-2.5 animate-pulse" />
                     <span className="text-[10px] font-black uppercase text-slate-200 tracking-widest">Webcam Offline</span>
@@ -1445,13 +1528,12 @@ const Attendance: React.FC = () => {
                       Click {punchPopup.isCheckingIn ? 'Check-In' : 'Check-Out'} below to start verification
                     </span>
                   </div>
-                )}
-                {cameraActive && !stream && (
+                ) : !stream ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 p-4 text-center z-10 bg-slate-950">
                     <RefreshCw className="w-5 h-5 text-slate-450 animate-spin mb-1.5" />
                     <span className="text-[8px] font-black uppercase text-slate-400 tracking-wider">Loading camera...</span>
                   </div>
-                )}
+                ) : null}
 
                 {/* Dashed face alignment guide silhouette overlay (Scaled up to match w-72 camera viewport) */}
                 {stream && !isScanning && (
@@ -1531,7 +1613,7 @@ const Attendance: React.FC = () => {
               {punchPopup.isCheckingIn ? (
                 <button
                   type="button"
-                  disabled={isScanning || scanStep === 'success'}
+                  disabled={isScanning || scanStep === 'success' || isAttendanceComplete || !isCheckInAllowed}
                   onClick={() => handleStartPunch(true)}
                   className="w-full py-3 text-sm font-black rounded-2xl transition cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed bg-[#0D47A1] text-white hover:bg-blue-808 shadow-md hover:shadow-lg active:scale-[0.98] transform duration-150"
                 >
@@ -1540,7 +1622,7 @@ const Attendance: React.FC = () => {
               ) : (
                 <button
                   type="button"
-                  disabled={isScanning || scanStep === 'success'}
+                  disabled={isScanning || scanStep === 'success' || isAttendanceComplete || !isCheckOutAllowed}
                   onClick={() => handleStartPunch(false)}
                   className="w-full py-3 text-sm font-black rounded-2xl transition cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed bg-rose-600 text-white hover:bg-rose-700 shadow-md hover:shadow-lg active:scale-[0.98] transform duration-150"
                 >
@@ -1581,15 +1663,23 @@ const Attendance: React.FC = () => {
                 {/* Large Status Badge */}
                 <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
                   <span className="text-xs font-bold text-slate-550">Day Status</span>
-                  <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider
-                    ${selectedDayDetail.log.status === 'Present' ? 'text-emerald-707 bg-emerald-50 border-emerald-200' :
-                      selectedDayDetail.log.status === 'Late' ? 'text-amber-707 bg-amber-50 border-amber-200' :
-                        selectedDayDetail.log.status === 'Half Day' ? 'text-blue-707 bg-blue-50 border-blue-200' :
-                          'text-purple-707 bg-purple-50 border-purple-200'
-                    }`}
-                  >
-                    {selectedDayDetail.log.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider
+                      ${selectedDayDetail.log.status === 'Present' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' :
+                        selectedDayDetail.log.status === 'Late' ? 'text-amber-700 bg-amber-50 border-amber-200' :
+                          selectedDayDetail.log.status === 'Half Day' ? 'text-blue-700 bg-blue-50 border-blue-200' :
+                            'text-purple-700 bg-purple-50 border-purple-200'
+                      }`}
+                    >
+                      {selectedDayDetail.log.status}
+                    </span>
+                    {selectedDayDetail.log.status === 'Present' && selectedDayDetail.log.checkOutStatus === 'early_leave' && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black border uppercase tracking-wider bg-emerald-50 text-emerald-700 border-emerald-200">
+                        <span>🟢</span>
+                        <span>Early Punch Out</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* In & Out Grid with Thumbs */}

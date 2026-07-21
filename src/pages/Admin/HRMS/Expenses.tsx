@@ -3,7 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import {
   FileText, Eye, Trash2, Calendar, ChevronDown, ChevronLeft, ChevronRight,
   Clock, CheckCircle, XCircle, DollarSign, Filter, Download, ArrowUpRight,
-  Search, X, User, Tag, ShoppingBag, Edit3, ShieldAlert, Image
+  Search, X, User, Tag, ShoppingBag, Edit3, ShieldAlert, Image, Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiClient } from "../../../lib/api";
@@ -24,6 +24,7 @@ interface ExpenseClaim {
   amount: number;
   date: string; // YYYY-MM-DD
   status: "Pending" | "Approved" | "Rejected";
+  payrollStatus?: string;
   receiptNo?: string;
   taxAmount?: number;
   receiptUrl?: string;
@@ -112,6 +113,7 @@ export default function HRMSExpenses() {
         amount: Number(c.amount),
         date: c.date,
         status: c.status,
+        payrollStatus: c.payroll_status,
         receiptUrl: c.receipt_url
       }));
       setClaims(mapped);
@@ -225,6 +227,12 @@ export default function HRMSExpenses() {
     const claim = claims.find(c => c.id === claimId);
     if (!claim || !claim.dbId) return;
 
+    if (claim.payrollStatus === 'reimbursed' || claim.payrollStatus === 'in_salary_payrun') {
+      toast.error("This claim has already been processed in Payroll Reimbursements and cannot be modified.");
+      setActiveStatusEditId(null);
+      return;
+    }
+
     try {
       await apiClient.put(`/expenses/${claim.dbId}/status`, { status: newStatus });
       toast.success(`Claim ${claimId} marked as ${newStatus}`);
@@ -239,6 +247,12 @@ export default function HRMSExpenses() {
   // Claim deletion
   const handleDeleteClaim = async () => {
     if (!claimToDelete || !claimToDelete.dbId) return;
+
+    if (claimToDelete.payrollStatus === 'reimbursed' || claimToDelete.payrollStatus === 'in_salary_payrun') {
+      toast.error("This claim has already been processed in Payroll Reimbursements and cannot be deleted.");
+      setClaimToDelete(null);
+      return;
+    }
 
     try {
       await apiClient.delete(`/expenses/${claimToDelete.dbId}`);
@@ -286,8 +300,7 @@ export default function HRMSExpenses() {
   };
 
   return (
-    // Height increased on desktop by another 5% (Total 30% increase: offset reduced to 5px)
-    <div className="flex flex-col w-full md:h-[calc(100vh-5px)] md:overflow-hidden  p-4 md:p-6 space-y-5">
+    <div className="flex flex-col w-full flex-1 h-[calc(100vh-80px)] min-h-0 p-4 md:p-5 space-y-4">
       <style dangerouslySetInnerHTML={{
         __html: `
         .scrollbar-none::-webkit-scrollbar {
@@ -349,7 +362,7 @@ export default function HRMSExpenses() {
       </div>
 
       {/* ─── MAIN CONTROL CARD & TABLE ─── */}
-      <div className="bg-white rounded-2xl border border-slate-100/90 shadow-xs flex flex-col flex-1 overflow-hidden min-h-[350px]">
+      <div className="bg-white rounded-2xl border border-slate-100/90 shadow-xs flex flex-col flex-1 h-full min-h-0 overflow-hidden">
 
         {/* Action Header & Buttons */}
         <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3.5 bg-white flex-shrink-0">
@@ -392,19 +405,19 @@ export default function HRMSExpenses() {
         </div>
 
         {/* ─── DATA TABLE (Scrollable Container) ─── */}
-        <div className="flex-1 overflow-auto scrollbar-thin">
-          <table className="w-full text-left border-collapse min-w-[1000px] table-fixed relative">
+        <div className="flex-1 overflow-y-auto overflow-x-auto md:overflow-x-hidden scrollbar-thin md:scrollbar-none">
+          <table className="w-full text-left border-collapse min-w-[850px] md:min-w-0 table-auto md:table-fixed relative">
             <thead className="bg-slate-50/70 border-b border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 z-10 backdrop-blur-xs">
               <tr>
-                <th className="py-2.5 px-3 w-32">Claim No.</th>
-                <th className="py-2.5 px-3 w-44">Employee Name</th>
-                <th className="py-2.5 px-3 w-40">Category</th>
-                <th className="py-2.5 px-3 w-44">Merchant/Vendor</th>
-                <th className="py-2.5 px-3 w-52">Description</th>
-                <th className="py-2.5 px-3 w-32 text-right">Amount</th>
-                <th className="py-2.5 px-3 w-36">Date</th>
-                <th className="py-2.5 px-3 w-36">Status</th>
-                <th className="py-2.5 px-3 w-24 text-center">Actions</th>
+                <th className="py-2.5 px-2.5 w-[110px]">Claim No.</th>
+                <th className="py-2.5 px-2.5 w-[140px]">Employee Name</th>
+                <th className="py-2.5 px-2.5 w-[110px]">Category</th>
+                <th className="py-2.5 px-2.5 w-[120px]">Merchant/Vendor</th>
+                <th className="py-2.5 px-2.5 w-[150px]">Description</th>
+                <th className="py-2.5 px-2.5 w-[90px] text-right">Amount</th>
+                <th className="py-2.5 px-2.5 w-[100px]">Date</th>
+                <th className="py-2.5 px-2.5 w-[110px]">Status</th>
+                <th className="py-2.5 px-2.5 w-[70px] text-center">Actions</th>
               </tr>
 
               {/* Column-wise Search Filters Input Row (Always visible as requested!) */}
@@ -573,24 +586,51 @@ export default function HRMSExpenses() {
                     </td>
 
                     {/* Status with Inline Edit Click */}
-                    <td className="py-1.5 px-3 relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveStatusEditId(activeStatusEditId === claim.id ? null : claim.id);
-                        }}
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border transition cursor-pointer select-none ${claim.status === "Approved" ? "bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100/70" :
-                          claim.status === "Rejected" ? "bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100/70" :
-                            "bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100/70"
-                          }`}
-                        title="Click to change status"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full" style={{
-                          backgroundColor: claim.status === "Approved" ? "#10b981" : claim.status === "Rejected" ? "#f43f5e" : "#f59e0b"
-                        }} />
-                        <span>{claim.status}</span>
-                        <ChevronDown size={8} className="opacity-60" />
-                      </button>
+                    <td className="py-1.5 px-3 relative group">
+                      {claim.payrollStatus === 'reimbursed' || claim.payrollStatus === 'in_salary_payrun' ? (
+                        <>
+                          <span
+                            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold border bg-purple-50/90 text-purple-700 border-purple-200 cursor-not-allowed select-none shadow-xs transition-all group-hover:bg-purple-100 group-hover:border-purple-300"
+                          >
+                            <Lock size={10} className="text-purple-600 flex-shrink-0" />
+                            <span>Locked</span>
+                          </span>
+
+                          {/* Industry-Level Animated Hover Card (Opens Below, White BG, Blue Text) */}
+                          <div className="absolute left-0 top-full mt-2 hidden group-hover:flex flex-col w-64 bg-white text-blue-950 rounded-xl p-3 border border-blue-100 shadow-xl z-50 animate-in fade-in slide-in-from-top-1 duration-150 pointer-events-none">
+                            {/* Top Pointer Arrow */}
+                            <div className="absolute -top-1 left-4 w-2.5 h-2.5 bg-white border-t border-l border-blue-100 rotate-45" />
+
+                            <div className="flex items-center gap-2 border-b border-blue-50 pb-2 mb-1.5 relative z-10">
+                              <div className="p-1 rounded-lg bg-blue-50 text-blue-600">
+                                <Lock size={12} />
+                              </div>
+                              <span className="font-bold text-[10px] text-blue-600 uppercase tracking-wider">Payroll Protected</span>
+                            </div>
+                            <p className="text-[11px] text-blue-900 leading-relaxed font-semibold relative z-10">
+                              This expense claim has already been processed in Payroll Reimbursements and cannot be modified.
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveStatusEditId(activeStatusEditId === claim.id ? null : claim.id);
+                          }}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border transition cursor-pointer select-none ${claim.status === "Approved" ? "bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100/70" :
+                            claim.status === "Rejected" ? "bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100/70" :
+                              "bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100/70"
+                            }`}
+                          title="Click to change status"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full" style={{
+                            backgroundColor: claim.status === "Approved" ? "#10b981" : claim.status === "Rejected" ? "#f43f5e" : "#f59e0b"
+                          }} />
+                          <span>{claim.status}</span>
+                          <ChevronDown size={8} className="opacity-60" />
+                        </button>
+                      )}
 
                       {/* Inline Status Selection Popover */}
                       {activeStatusEditId === claim.id && (
@@ -633,13 +673,23 @@ export default function HRMSExpenses() {
                         >
                           <Eye size={13} />
                         </button>
-                        <button
-                          onClick={() => setClaimToDelete(claim)}
-                          className="p-1 text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                          title="Delete Claim"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {claim.payrollStatus === 'reimbursed' || claim.payrollStatus === 'in_salary_payrun' ? (
+                          <button
+                            disabled
+                            className="p-1 text-slate-300 bg-slate-50 rounded-md cursor-not-allowed opacity-60"
+                            title="This expense claim has already been processed in Payroll Reimbursements and cannot be deleted."
+                          >
+                            <Lock size={13} className="text-slate-400" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setClaimToDelete(claim)}
+                            className="p-1 text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                            title="Delete Claim"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -650,7 +700,7 @@ export default function HRMSExpenses() {
         </div>
 
         {/* ─── STICKY FOOTER (Pagination & Page Size selection) ─── */}
-        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white flex-shrink-0">
+        <div className="p-3 md:p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white flex-shrink-0 mt-auto sticky bottom-0 z-10 md:relative">
           <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold">
             <span>Show</span>
             <select
@@ -1005,24 +1055,34 @@ export default function HRMSExpenses() {
                       Audit Status
                     </span>
 
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${selectedClaim.status === "Approved"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : selectedClaim.status === "Rejected"
-                          ? "border-rose-200 bg-rose-50 text-rose-700"
-                          : "border-amber-200 bg-amber-50 text-amber-700"
-                        }`}
-                    >
+                    {selectedClaim.payrollStatus === 'reimbursed' || selectedClaim.payrollStatus === 'in_salary_payrun' ? (
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${selectedClaim.status === "Approved"
-                          ? "bg-emerald-500"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-[10px] font-bold text-purple-700 cursor-not-allowed"
+                        title="This expense claim has already been processed in Payroll Reimbursements and cannot be modified"
+                      >
+                        <Lock size={10} className="text-purple-600" />
+                        <span>Locked</span>
+                      </span>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${selectedClaim.status === "Approved"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                           : selectedClaim.status === "Rejected"
-                            ? "bg-rose-500"
-                            : "bg-amber-500"
+                            ? "border-rose-200 bg-rose-50 text-rose-700"
+                            : "border-amber-200 bg-amber-50 text-amber-700"
                           }`}
-                      />
-                      {selectedClaim.status}
-                    </span>
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${selectedClaim.status === "Approved"
+                            ? "bg-emerald-500"
+                            : selectedClaim.status === "Rejected"
+                              ? "bg-rose-500"
+                              : "bg-amber-500"
+                            }`}
+                        />
+                        {selectedClaim.status}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -1057,7 +1117,7 @@ export default function HRMSExpenses() {
                     Close
                   </button>
 
-                  {selectedClaim.status === "Pending" && (
+                  {selectedClaim.status === "Pending" && selectedClaim.payrollStatus !== 'reimbursed' && selectedClaim.payrollStatus !== 'in_salary_payrun' && (
                     <button
                       onClick={() => {
                         handleStatusUpdate(selectedClaim.id, "Approved");

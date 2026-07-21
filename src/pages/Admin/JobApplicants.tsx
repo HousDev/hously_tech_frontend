@@ -480,16 +480,18 @@ const JobApplicants: React.FC = () => {
       console.log('[JobApplicants] application_status_change received:', data);
       const index = lastUpdatedIdsRef.current.indexOf(Number(data.id));
       if (index > -1) {
+        // Own update - handleUpdateApplicationStatus already refreshes data, skip here
         lastUpdatedIdsRef.current.splice(index, 1);
       } else {
+        // Another user/admin changed a status - refresh and notify
         toast(`Status updated → ${data.status}`, {
           position: 'bottom-right',
           duration: 3000,
           icon: '🔄',
         });
+        fetchApplications();
+        fetchAppStats();
       }
-      fetchApplications();
-      fetchAppStats();
     });
 
     return () => {
@@ -837,12 +839,14 @@ const JobApplicants: React.FC = () => {
 
     setProcessingIds(prev => new Set(prev).add(id));
 
+    // Push BEFORE API call so socket event always finds it and skips duplicate toast
+    lastUpdatedIdsRef.current.push(id);
+
     try {
-      lastUpdatedIdsRef.current.push(id);
       await careerApi.updateApplicationStatus(id, status);
       await fetchApplications();
       await fetchAppStats();
-      toast.success(`Updated status to ${status}`);
+      toast.success('Application updated successfully', { id: 'app-status-update' });
     } catch (err) {
       setApplications(prev =>
         prev.map(app => app.id === id ? { ...app, status: currentApp?.status || 'pending' } : app)
