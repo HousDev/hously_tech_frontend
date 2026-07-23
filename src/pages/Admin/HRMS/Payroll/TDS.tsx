@@ -10,14 +10,44 @@ import {
   Plus,
   Trash2,
   Search,
-  DollarSign,
+  IndianRupee,
   ChevronDown,
   Building,
   RefreshCw,
   Eye,
-  FileText
+  FileText,
+  Clock,
+  Gift,
+  Loader2,
+  Sparkles
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
+import api from "../../../../lib/api";
+
+// --- Custom StatCard Component (Exact match with Incentives.tsx) ---
+const StatCard = ({ icon: Icon, label, value, color, subtitle }: any) => {
+  const bgLightMap: any = {
+    "bg-purple-500": "bg-purple-50 text-purple-600 border-purple-100",
+    "bg-amber-500": "bg-amber-50 text-amber-600 border-amber-100",
+    "bg-blue-500": "bg-blue-50 text-blue-600 border-blue-100",
+    "bg-emerald-500": "bg-emerald-50 text-emerald-600 border-emerald-100",
+  };
+  const theme = bgLightMap[color] || "bg-slate-50 text-slate-600 border-slate-100";
+  const [bgClass, textClass, borderClass] = theme.split(" ");
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4 flex items-center gap-3.5 transition-all duration-300 hover:shadow-md hover:border-blue-500/20 group flex-1">
+      <div className={`p-2.5 rounded-lg border ${bgClass} ${borderClass} group-hover:scale-105 transition-transform duration-300`}>
+        <Icon className={`w-4.5 h-4.5 ${textClass}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</p>
+        <h3 className="text-base font-bold text-gray-800 mt-0.5">{value}</h3>
+        {subtitle && <p className="text-[9px] text-gray-400 font-semibold mt-0.5">{subtitle}</p>}
+      </div>
+    </div>
+  );
+};
 
 // --- Types ---
 interface Employee {
@@ -66,103 +96,65 @@ export default function TDS() {
   // --- Tabs State ---
   const [activeTab, setActiveTab] = useState<"calculator" | "records">("calculator");
 
-  // --- Static Employee Database for a new startup ---
-  const availableEmployees: Employee[] = [
-    { name: "Suraj Kumar", id: "EMP0019", dept: "Engineering", designation: "MTS-2", email: "suraj@hously.co", salary: 75000 },
-    { name: "Anjali Sharma", id: "EMP0020", dept: "Marketing", designation: "Design Lead", email: "anjali@hously.co", salary: 90000 },
-    { name: "Vikram Patel", id: "EMP0021", dept: "Sales", designation: "Account Executive", email: "vikram@hously.co", salary: 65000 },
-    { name: "Kunal Sen", id: "EMP0022", dept: "HR", designation: "Recruiter Manager", email: "kunal@hously.co", salary: 55000 },
-    { name: "Priya Mehta", id: "EMP0023", dept: "Design", designation: "Product Designer", email: "priya@hously.co", salary: 80000 },
-    { name: "Rahul Verma", id: "EMP0024", dept: "Engineering", designation: "Staff Engineer", email: "rahul@hously.co", salary: 140000 },
-    { name: "Shekh Abdul", id: "EMP0016", dept: "Operations", designation: "General Manager", email: "abdul@hously.co", salary: 120000 }
-  ];
+  // --- Dynamic Employees and TDS Records from Backend ---
+  const [availableEmployees, setAvailableEmployees] = useState<Employee[]>([]);
+  const [tdsRecords, setTdsRecords] = useState<TDSRecord[]>([]);
+  const [stats, setStats] = useState({
+    totalDeclarations: 0,
+    activeEmployees: 0,
+    pendingProofs: 0,
+    totalMonthlyTDS: 0,
+    totalAnnualTDS: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
-  // --- Saved TDS Log Database (Initial Static Data) ---
-  const [tdsRecords, setTdsRecords] = useState<TDSRecord[]>([
-    {
-      id: "DEC-001",
-      employeeName: "Suraj Kumar",
-      empId: "EMP0019",
-      designation: "MTS-2",
-      dept: "Engineering",
-      regime: "New Regime",
-      grossAnnual: 1275000,
-      deductions80C: 0,
-      deductions80D: 0,
-      deductions24b: 0,
-      deductions80CCD: 0,
-      hraExemption: 0,
-      standardDeduction: 75000,
-      taxableIncome: 1200000,
-      annualTax: 0,
-      monthlyTDS: 0,
-      verificationStatus: "Pending"
-    },
-    {
-      id: "DEC-002",
-      employeeName: "Anjali Sharma",
-      empId: "EMP0020",
-      designation: "Design Lead",
-      dept: "Marketing",
-      regime: "Old Regime",
-      grossAnnual: 1800000,
-      deductions80C: 150000,
-      deductions80D: 25000,
-      deductions24b: 50000,
-      deductions80CCD: 0,
-      hraExemption: 80000,
-      standardDeduction: 50000,
-      taxableIncome: 1445000,
-      annualTax: 255840,
-      monthlyTDS: 21320,
-      verificationStatus: "Pending",
-      documents: [
-        { name: "80C_Investment_Proof.pdf", category: "80C", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-        { name: "80D_Health_Insurance_Premium.pdf", category: "80D", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-        { name: "Sec_24b_Home_Loan_Interest_Cert.pdf", category: "24(b)", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-        { name: "HRA_Rent_Agreement.pdf", category: "HRA", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-        { name: "HRA_Rent_Receipts.pdf", category: "HRA", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
-      ]
-    },
-    {
-      id: "DEC-003",
-      employeeName: "Vikram Patel",
-      empId: "EMP0021",
-      designation: "Account Executive",
-      dept: "Sales",
-      regime: "New Regime",
-      grossAnnual: 780000,
-      deductions80C: 0,
-      deductions80D: 0,
-      deductions24b: 0,
-      deductions80CCD: 0,
-      hraExemption: 0,
-      standardDeduction: 75000,
-      taxableIncome: 705000,
-      annualTax: 0,
-      monthlyTDS: 0,
-      verificationStatus: "Pending"
-    },
-    {
-      id: "DEC-004",
-      employeeName: "Rahul Verma",
-      empId: "EMP0024",
-      designation: "Staff Engineer",
-      dept: "Engineering",
-      regime: "New Regime",
-      grossAnnual: 1680000,
-      deductions80C: 0,
-      deductions80D: 0,
-      deductions24b: 0,
-      deductions80CCD: 0,
-      hraExemption: 0,
-      standardDeduction: 75000,
-      taxableIncome: 1605000,
-      annualTax: 125840,
-      monthlyTDS: 10487,
-      verificationStatus: "Pending"
+  // Fetch real data from backend
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [empRes, tdsRes] = await Promise.all([
+        api.get('/payroll/employees'),
+        api.get('/payroll/tds')
+      ]);
+
+      if (empRes.data && empRes.data.success) {
+        const mappedEmps = (empRes.data.data || []).map((e: any) => {
+          const ctcVal = Number(e.ctc) || 0;
+          const grossAnnualVal = Number(e.gross_annual) || (ctcVal > 0 ? ctcVal : (Number(e.monthly_salary) * 12)) || 0;
+          const monthlySalaryVal = Number(e.monthly_salary) || (grossAnnualVal > 0 ? Math.round(grossAnnualVal / 12) : 0) || 50000;
+
+          return {
+            id: e.empId || `EMP-${e.id}`,
+            dbUserId: e.id,
+            name: e.name || `${e.first_name || ''} ${e.last_name || ''}`.trim() || 'Employee',
+            dept: e.department || 'Engineering',
+            designation: e.designation || 'Specialist',
+            email: e.email || '',
+            salary: monthlySalaryVal,
+            ctc: ctcVal > 0 ? ctcVal : grossAnnualVal,
+            grossAnnual: grossAnnualVal
+          };
+        });
+        setAvailableEmployees(mappedEmps);
+      }
+
+      if (tdsRes.data && tdsRes.data.success) {
+        setTdsRecords(tdsRes.data.data || []);
+        if (tdsRes.data.stats) {
+          setStats(tdsRes.data.stats);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching TDS data:", err);
+      toast.error("Failed to fetch TDS records from server");
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // --- Calculator Input States ---
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -191,96 +183,29 @@ export default function TDS() {
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(0);
 
-  const runBulkCalculation = () => {
+  const runBulkCalculation = async () => {
     setBulkProcessing(true);
-    setBulkProgress(0);
-    
-    const interval = setInterval(() => {
-      setBulkProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          
-          // Complete the calculations
-          const updatedRecords = [...tdsRecords];
-          
-          availableEmployees.forEach(emp => {
-            const annualGross = emp.salary * 12;
-            const existingIndex = updatedRecords.findIndex(r => r.empId === emp.id);
-            
-            let selectedRegime: "New Regime" | "Old Regime";
-            let c80 = 0, c80d = 0, c24b = 0, c80ccd = 0, hra = 0;
-            
-            if (existingIndex >= 0) {
-              // Respect already selected regime and custom investment declarations
-              selectedRegime = updatedRecords[existingIndex].regime;
-              if (selectedRegime === "Old Regime") {
-                c80 = updatedRecords[existingIndex].deductions80C;
-                c80d = updatedRecords[existingIndex].deductions80D;
-                c24b = updatedRecords[existingIndex].deductions24b || 0;
-                c80ccd = updatedRecords[existingIndex].deductions80CCD || 0;
-                hra = updatedRecords[existingIndex].hraExemption;
-              }
-            } else {
-              // For new configurations, auto-select the cheaper regime
-              const calcNew = calculateTDS(annualGross, "New Regime", 0, 0, 0, 0, 0);
-              const default80C = 150000;
-              const default80D = 25000;
-              const defaultHRA = Math.round(annualGross * 0.1);
-              const calcOld = calculateTDS(annualGross, "Old Regime", default80C, default80D, 0, 0, defaultHRA);
-              
-              selectedRegime = calcNew.annualTax <= calcOld.annualTax ? "New Regime" : "Old Regime";
-              if (selectedRegime === "Old Regime") {
-                c80 = default80C;
-                c80d = default80D;
-                hra = defaultHRA;
-              }
-            }
+    setBulkProgress(20);
 
-            const currentCalc = calculateTDS(annualGross, selectedRegime, c80, c80d, c24b, c80ccd, hra);
-            
-            const record: TDSRecord = {
-              id: existingIndex >= 0 ? updatedRecords[existingIndex].id : `DEC-00${updatedRecords.length + 1}`,
-              employeeName: emp.name,
-              empId: emp.id,
-              designation: emp.designation,
-              dept: emp.dept,
-              regime: selectedRegime,
-              grossAnnual: annualGross,
-              deductions80C: c80,
-              deductions80D: c80d,
-              deductions24b: c24b,
-              deductions80CCD: c80ccd,
-              hraExemption: hra,
-              standardDeduction: currentCalc.standardDeduction,
-              taxableIncome: currentCalc.taxableIncome,
-              annualTax: currentCalc.annualTax,
-              monthlyTDS: currentCalc.monthlyTDS,
-              verificationStatus: existingIndex >= 0 ? (updatedRecords[existingIndex].verificationStatus || "Pending") : "Pending",
-              documents: selectedRegime === "Old Regime" ? [
-                { name: "80C_Investment_Proof.pdf", category: "80C", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-                { name: "80D_Health_Insurance_Premium.pdf", category: "80D", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-                { name: "Sec_24b_Home_Loan_Interest_Cert.pdf", category: "24(b)", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-                { name: "HRA_Rent_Agreement.pdf", category: "HRA", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
-              ] : undefined
-            };
-            
-            if (existingIndex >= 0) {
-              updatedRecords[existingIndex] = record;
-            } else {
-              updatedRecords.push(record);
-            }
-          });
-          
-          setTdsRecords(updatedRecords);
-          setBulkProcessing(false);
-          setShowBulkModal(false);
-          toast.success(`Successfully processed optimized TDS for all ${availableEmployees.length} employees in bulk!`);
-          setActiveTab("records");
-          return 100;
-        }
-        return prev + 25;
-      });
-    }, 250);
+    try {
+      setBulkProgress(60);
+      const res = await api.post('/payroll/tds/bulk-calculate');
+      setBulkProgress(100);
+
+      if (res.data && res.data.success) {
+        toast.success(res.data.message || "Bulk TDS calculation completed successfully!");
+        fetchData();
+        setActiveTab("records");
+      } else {
+        toast.error("Failed to perform bulk calculation");
+      }
+    } catch (err) {
+      console.error("Error in bulk calculation:", err);
+      toast.error("Bulk calculation failed on server");
+    } finally {
+      setBulkProcessing(false);
+      setShowBulkModal(false);
+    }
   };
 
   // Pagination State for Saved Records Log
@@ -290,7 +215,8 @@ export default function TDS() {
   // --- Quick fill-in helper when selecting employee ---
   const handleSelectEmployee = (emp: Employee) => {
     setSelectedEmployee(emp);
-    setGrossAnnualSalary(emp.salary * 12);
+    const annual = (emp as any).grossAnnual || (emp as any).ctc || (emp.salary ? emp.salary * 12 : 0);
+    setGrossAnnualSalary(annual);
     setDeductions80C(0);
     setDeductions80D(0);
     setDeductions24b(0);
@@ -298,7 +224,7 @@ export default function TDS() {
     setHraExemption(0);
     setShowEmpDropdown(false);
     setEmpSearchQuery("");
-    toast.success(`Loaded profile for ${emp.name}`);
+    toast.success(`Loaded profile for ${emp.name} (Gross CTC: \u20B9${annual.toLocaleString('en-IN')})`);
   };
 
   // --- TDS Calculation Engine (FY 2026-27 India Slabs) ---
@@ -486,57 +412,74 @@ export default function TDS() {
   const taxDifference = Math.abs(comparisonNew.annualTax - comparisonOld.annualTax);
 
   // --- Save / Record Action ---
-  const handleApplyTDS = () => {
+  const handleApplyTDS = async () => {
     if (!selectedEmployee) {
       toast.error("Please select an employee first!");
       return;
     }
 
-    // Add to list or update existing
-    const existingIndex = tdsRecords.findIndex(r => r.empId === selectedEmployee.id);
-    const newRecord: TDSRecord = {
-      id: existingIndex >= 0 ? tdsRecords[existingIndex].id : `DEC-00${tdsRecords.length + 1}`,
-      employeeName: selectedEmployee.name,
-      empId: selectedEmployee.id,
-      designation: selectedEmployee.designation,
-      dept: selectedEmployee.dept,
-      regime: selectedRegime,
-      grossAnnual: grossAnnualSalary,
-      deductions80C: selectedRegime === "Old Regime" ? deductions80C : 0,
-      deductions80D: selectedRegime === "Old Regime" ? deductions80D : 0,
-      deductions24b: selectedRegime === "Old Regime" ? deductions24b : 0,
-      deductions80CCD: selectedRegime === "Old Regime" ? deductions80CCD : 0,
-      hraExemption: selectedRegime === "Old Regime" ? hraExemption : 0,
-      standardDeduction: currentCalculation.standardDeduction,
-      taxableIncome: currentCalculation.taxableIncome,
-      annualTax: currentCalculation.annualTax,
-      monthlyTDS: currentCalculation.monthlyTDS,
-      verificationStatus: existingIndex >= 0 ? (tdsRecords[existingIndex].verificationStatus || "Pending") : "Pending",
-      documents: selectedRegime === "Old Regime" ? [
-        { name: "80C_Investment_Proof.pdf", category: "80C", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-        { name: "80D_Health_Insurance_Premium.pdf", category: "80D", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-        { name: "Sec_24b_Home_Loan_Interest_Cert.pdf", category: "24(b)", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-        { name: "HRA_Rent_Agreement.pdf", category: "HRA", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
-      ] : undefined
-    };
+    try {
+      const payload = {
+        userId: (selectedEmployee as any).dbUserId || selectedEmployee.id,
+        empId: selectedEmployee.id,
+        regime: selectedRegime,
+        grossAnnual: grossAnnualSalary,
+        deductions80C: selectedRegime === "Old Regime" ? deductions80C : 0,
+        deductions80D: selectedRegime === "Old Regime" ? deductions80D : 0,
+        deductions24b: selectedRegime === "Old Regime" ? deductions24b : 0,
+        deductions80CCD: selectedRegime === "Old Regime" ? deductions80CCD : 0,
+        hraExemption: selectedRegime === "Old Regime" ? hraExemption : 0,
+        verificationStatus: "Pending"
+      };
 
-    if (existingIndex >= 0) {
-      const updated = [...tdsRecords];
-      updated[existingIndex] = newRecord;
-      setTdsRecords(updated);
-      toast.success(`TDS parameters updated for ${selectedEmployee.name}.`);
-    } else {
-      setTdsRecords([newRecord, ...tdsRecords]);
-      toast.success(`Monthly TDS of \u20B9${newRecord.monthlyTDS} applied to ${selectedEmployee.name}'s profile!`);
+      const res = await api.post('/payroll/tds', payload);
+      if (res.data && res.data.success) {
+        toast.success(`TDS parameters saved for ${selectedEmployee.name}.`);
+        fetchData();
+        setActiveTab("records");
+      } else {
+        toast.error(res.data?.message || "Failed to save TDS declaration");
+      }
+    } catch (err) {
+      console.error("Error saving TDS declaration:", err);
+      toast.error("Failed to save TDS configuration to server");
     }
-
-    // Switch tab to see entry
-    setActiveTab("records");
   };
 
-  const handleDeleteRecord = (id: string) => {
-    setTdsRecords(prev => prev.filter(r => r.id !== id));
-    toast.success("TDS Settings deleted successfully.");
+  const handleUpdateVerificationStatus = async (item: TDSRecord, newStatus: string) => {
+    try {
+      setTdsRecords(prev => prev.map(r => r.id === item.id ? { ...r, verificationStatus: newStatus as any } : r));
+      const res = await api.patch(`/payroll/tds/${item.id}/status`, { status: newStatus });
+      if (res.data && res.data.success) {
+        toast.success(`Verification status updated to ${newStatus}`);
+        fetchData();
+      } else {
+        toast.error("Failed to update status");
+        fetchData();
+      }
+    } catch (err) {
+      console.error("Error updating verification status:", err);
+      toast.error("Failed to update verification status");
+      fetchData();
+    }
+  };
+
+  const handleDeleteRecord = async (id: string) => {
+    try {
+      setTdsRecords(prev => prev.filter(r => r.id !== id));
+      const res = await api.delete(`/payroll/tds/${id}`);
+      if (res.data && res.data.success) {
+        toast.success("TDS record deleted successfully.");
+        fetchData();
+      } else {
+        toast.error("Failed to delete record");
+        fetchData();
+      }
+    } catch (err) {
+      console.error("Error deleting TDS record:", err);
+      toast.error("Failed to delete record");
+      fetchData();
+    }
   };
 
   // --- Formatters ---
@@ -566,7 +509,7 @@ export default function TDS() {
   const totalPages = rowsPerPage === "All" ? 1 : Math.ceil(filteredRecords.length / Number(rowsPerPage));
 
   return (
-    <div className="p-6 w-full space-y-6 bg-slate-50/50 min-h-screen text-slate-700 font-medium">
+    <div className="p-6 w-full space-y-6 bg-slate-50/50 lg:h-[calc(100vh-40px)] lg:overflow-hidden flex flex-col min-h-screen lg:min-h-0 text-slate-700 font-medium">
       <Toaster position="top-right" />
       <style>{`
         .no-scrollbar::-webkit-scrollbar {
@@ -600,44 +543,36 @@ export default function TDS() {
 
       {/* Sticky Header Group: Top Dashboard Stats & Navigation Tabs */}
       <div className="md:sticky md:top-0 bg-slate-50/95 backdrop-blur-xs z-30 pt-4 pb-2.5 space-y-4 border-b border-slate-200/60">
-        {/* --- Top Dashboard Stats --- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 flex items-center gap-4 transition-all duration-300 hover:shadow-md">
-            <div className="p-3.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
-              <Calculator className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Deductions</p>
-              <h3 className="text-xl font-black text-slate-800 mt-1">{tdsRecords.length} Employees</h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">With custom configured TDS</p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 flex items-center gap-4 transition-all duration-300 hover:shadow-md">
-            <div className="p-3.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
-              <DollarSign className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Monthly TDS Collection</p>
-              <h3 className="text-xl font-black text-slate-800 mt-1">
-                {formatCurrency(tdsRecords.reduce((sum, item) => sum + item.monthlyTDS, 0))}
-              </h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">To deposit in Govt. Portal</p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 flex items-center gap-4 transition-all duration-300 hover:shadow-md">
-            <div className="p-3.5 bg-purple-50 text-purple-600 rounded-xl border border-purple-100">
-              <Building className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Annual TDS Collection</p>
-              <h3 className="text-xl font-black text-slate-800 mt-1">
-                {formatCurrency(tdsRecords.reduce((sum, item) => sum + item.annualTax, 0))}
-              </h3>
-              <p className="text-[10px] text-purple-500 font-semibold mt-0.5">Projected yearly deposits</p>
-            </div>
-          </div>
+        {/* --- Top Dashboard Status Cards (Matching Incentives.tsx) --- */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
+          <StatCard
+            icon={Calculator}
+            label="Active Deductions"
+            value={`${stats.activeEmployees || tdsRecords.length} Employees`}
+            color="bg-purple-500"
+            subtitle="With custom configured TDS"
+          />
+          <StatCard
+            icon={Clock}
+            label="Pending Proofs"
+            value={`${stats.pendingProofs || tdsRecords.filter(r => r.verificationStatus === 'Pending').length} Pending`}
+            color="bg-amber-500"
+            subtitle="Awaiting administrative review"
+          />
+          <StatCard
+            icon={IndianRupee}
+            label="Monthly TDS Collection"
+            value={formatCurrency(stats.totalMonthlyTDS || tdsRecords.reduce((sum, item) => sum + (item.monthlyTDS || 0), 0))}
+            color="bg-blue-500"
+            subtitle="To deposit in Govt. Portal"
+          />
+          <StatCard
+            icon={Building}
+            label="Annual TDS Collection"
+            value={formatCurrency(stats.totalAnnualTDS || tdsRecords.reduce((sum, item) => sum + (item.annualTax || 0), 0))}
+            color="bg-emerald-500"
+            subtitle="Projected yearly deposits"
+          />
         </div>
 
         {/* --- Switch Navigation Tabs --- */}
@@ -677,7 +612,7 @@ export default function TDS() {
 
       {/* --- Tab 1: Interactive Easy TDS Calculator --- */}
       {activeTab === "calculator" && (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 flex-1 min-h-0 overflow-y-auto no-scrollbar pr-1 pb-4">
           
           {/* Left Inputs Column */}
           <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-6">
@@ -686,61 +621,57 @@ export default function TDS() {
               <h3 className="font-bold text-sm text-slate-850">Employee & Base Salary Settings</h3>
             </div>
 
-            {/* A. Search and Select Employee dropdown */}
+            {/* A. Search and Select Employee Combobox (Inline Searchable Field) */}
             <div className="space-y-1.5 relative">
               <label className="text-[10px] font-bold text-slate-400 uppercase block">Choose Employee <span className="text-rose-500">*</span></label>
-              <div
-                onClick={() => setShowEmpDropdown(!showEmpDropdown)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold flex justify-between items-center cursor-pointer hover:bg-slate-100/30"
-              >
-                {selectedEmployee ? (
-                  <div className="flex items-center gap-2 text-slate-800">
-                    <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[9px] font-black">
-                      {selectedEmployee.name.split(" ").map(n => n[0]).join("")}
-                    </div>
-                    <span>{selectedEmployee.name} ({selectedEmployee.id} - {selectedEmployee.designation})</span>
-                  </div>
-                ) : (
-                  <span className="text-slate-400">Please choose an employee...</span>
-                )}
-                <ChevronDown className="w-4 h-4 text-slate-400" />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Please choose an employee or search by ID/name..."
+                  value={showEmpDropdown ? empSearchQuery : (selectedEmployee ? `${selectedEmployee.name} (${selectedEmployee.id} - ${selectedEmployee.designation})` : empSearchQuery)}
+                  onFocus={() => {
+                    setShowEmpDropdown(true);
+                    setEmpSearchQuery("");
+                  }}
+                  onChange={(e) => {
+                    setEmpSearchQuery(e.target.value);
+                    setShowEmpDropdown(true);
+                  }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 pr-10 text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white shadow-xs"
+                />
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
 
               {showEmpDropdown && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowEmpDropdown(false)} />
-                  <div className="absolute top-[65px] left-0 right-0 bg-white rounded-xl shadow-xl border border-slate-200 z-50 p-2.5 space-y-2">
-                    <div className="relative">
-                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="Search by ID or Name..."
-                        value={empSearchQuery}
-                        onChange={(e) => setEmpSearchQuery(e.target.value)}
-                        className="w-full pl-8 pr-3 py-1.5 border border-slate-200 bg-slate-50 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-500"
-                        autoFocus
-                      />
-                    </div>
-                    <div className="max-h-[180px] overflow-y-auto no-scrollbar divide-y divide-slate-100">
-                      {filteredEmployeesList.map((emp) => (
+                  <div className="absolute top-[68px] left-0 right-0 bg-white rounded-xl shadow-xl border border-slate-200 z-50 py-1 max-h-60 overflow-y-auto no-scrollbar">
+                    {filteredEmployeesList.map((emp) => {
+                      const annualCTC = (emp as any).ctc || (emp as any).grossAnnual || (emp.salary * 12);
+                      return (
                         <div
                           key={emp.id}
                           onClick={() => handleSelectEmployee(emp)}
-                          className="p-2 hover:bg-slate-50 cursor-pointer text-xs flex justify-between items-center transition-colors font-semibold"
+                          className="p-3 hover:bg-slate-50 flex items-center justify-between cursor-pointer border-b border-slate-100 last:border-none transition-colors"
                         >
-                          <div>
-                            <p className="text-slate-800">{emp.name}</p>
-                            <p className="text-[10px] text-slate-400">{emp.id} • {emp.dept}</p>
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-full bg-blue-600/10 text-blue-700 flex items-center justify-center text-[10px] font-bold">
+                              {emp.name.split(" ").map((n: string) => n[0]).join("")}
+                            </div>
+                            <div>
+                              <p className="font-bold text-xs text-slate-800 leading-tight">{emp.name}</p>
+                              <p className="text-[10px] text-slate-400 font-medium">{emp.id} • {emp.dept}</p>
+                            </div>
                           </div>
-                          <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded">
-                            {formatCurrency(emp.salary * 12)}/yr
+                          <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md">
+                            {formatCurrency(annualCTC)}/yr
                           </span>
                         </div>
-                      ))}
-                      {filteredEmployeesList.length === 0 && (
-                        <p className="p-3 text-center text-slate-400 italic text-[11px]">No matching employees found.</p>
-                      )}
-                    </div>
+                      );
+                    })}
+                    {filteredEmployeesList.length === 0 && (
+                      <p className="p-3 text-center text-slate-400 italic text-[11px]">No matching employees found.</p>
+                    )}
                   </div>
                 </>
               )}
@@ -1068,9 +999,9 @@ export default function TDS() {
 
       {/* --- Tab 2: Saved TDS Logs Table --- */}
       {activeTab === "records" && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col overflow-hidden min-h-[485px] justify-between">
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col flex-1 min-h-0 overflow-hidden">
           
-          <div className="flex-grow flex flex-col">
+          <div className="flex-1 min-h-0 flex flex-col">
             {/* Header Actions Menu */}
             <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -1126,12 +1057,12 @@ export default function TDS() {
             </div>
 
             {/* Table Container - Dynamic Columns based on Selected Filter */}
-            <div className="overflow-x-auto flex-grow no-scrollbar">
+            <div className="overflow-auto flex-1 min-h-0 no-scrollbar">
               <table className="w-full border-collapse text-left text-[10px]">
                 {recordsRegimeFilter === "New Regime" ? (
                   // --- NEW REGIME TABLE HEADERS ---
-                  <thead>
-                    <tr className="bg-slate-100/50 text-slate-500 font-bold select-none border-b border-slate-200">
+                  <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm">
+                    <tr className="border-b border-gray-250 text-gray-455 font-semibold select-none uppercase tracking-wider text-[10px]">
                       <th className="py-2.5 px-2 pl-4 whitespace-nowrap">Employee Info</th>
                       <th className="py-2.5 px-2 text-right whitespace-nowrap">Gross CTC</th>
                       <th className="py-2.5 px-2 text-right whitespace-nowrap">Std. Deduct.</th>
@@ -1147,8 +1078,8 @@ export default function TDS() {
                   </thead>
                 ) : (
                   // --- OLD REGIME TABLE HEADERS ---
-                  <thead>
-                    <tr className="bg-slate-100/50 text-slate-500 font-bold select-none border-b border-slate-200">
+                  <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm">
+                    <tr className="border-b border-gray-250 text-gray-455 font-semibold select-none uppercase tracking-wider text-[10px]">
                       <th className="py-2.5 px-2 pl-4 whitespace-nowrap">Employee Info</th>
                       <th className="py-2.5 px-2 text-right whitespace-nowrap">Gross CTC</th>
                       <th className="py-2.5 px-2 text-right whitespace-nowrap">Std. Deduct.</th>
@@ -1168,7 +1099,7 @@ export default function TDS() {
                   </thead>
                 )}
 
-                <tbody className="divide-y divide-slate-100 text-slate-500">
+                <tbody className="divide-y divide-gray-100 text-gray-500 font-medium">
                   {paginatedRecords.map((item) => {
                     const calc = calculateTDS(
                       item.grossAnnual,
@@ -1621,14 +1552,7 @@ export default function TDS() {
                   <button
                     key={status}
                     onClick={() => {
-                      setTdsRecords((prev) =>
-                        prev.map((rec) =>
-                          rec.id === statusUpdateRecord.id
-                            ? { ...rec, verificationStatus: status }
-                            : rec
-                        )
-                      );
-                      toast.success(`Verification status updated to ${status} for ${statusUpdateRecord.employeeName}`);
+                      handleUpdateVerificationStatus(statusUpdateRecord, status);
                       setStatusUpdateRecord(null);
                     }}
                     className={`w-full p-3 rounded-xl border text-left text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${

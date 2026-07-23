@@ -3,7 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import {
   Settings,
   Plus,
-  DollarSign,
+  IndianRupee,
   Percent,
   CheckCircle2,
   Clock,
@@ -20,10 +20,52 @@ import {
   Pencil,
   Wallet,
   ShieldCheck,
-  Zap
+  Zap,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { employeeApi, type EmployeeRecord } from "../../../../lib/employeeApi";
+
+// --- User Avatar Component ---
+const UserAvatar = ({ name, avatarUrl, size = "w-8 h-8", textSize = "text-[10px]" }: { name: string; avatarUrl?: string; size?: string; textSize?: string }) => {
+  const [imageError, setImageError] = useState(false);
+  const BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+
+  const getFullUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      return url;
+    }
+    return `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const fullAvatarUrl = getFullUrl(avatarUrl || '');
+  const initials = (name || 'Employee').trim().split(/\s+/).map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+  if (fullAvatarUrl && !imageError) {
+    return (
+      <img
+        src={fullAvatarUrl}
+        alt={name}
+        onError={() => setImageError(true)}
+        className={`${size} rounded-full object-cover border border-gray-200 shadow-xs flex-shrink-0`}
+      />
+    );
+  }
+
+  return (
+    <div className={`${size} rounded-full bg-[#155dfc] flex items-center justify-center text-white ${textSize} font-bold border border-gray-200 shadow-xs flex-shrink-0`}>
+      {initials}
+    </div>
+  );
+};
+
+const formatLakhs = (num: number) => {
+  if (!num) return "0.00 Lakh";
+  const lakhs = num / 100000;
+  return `${lakhs.toFixed(2)} Lakh`;
+};
 
 const StatCard = ({ icon: Icon, label, value, color }: any) => {
   const bgLightMap: any = {
@@ -65,6 +107,18 @@ export default function CTCConfiguration() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingEmp, setEditingEmp] = useState<EmployeeRecord | null>(null);
+
+  // Pagination & Column Filter States
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number | string>(10);
+  const [columnFilters, setColumnFilters] = useState({
+    employee: "",
+    department: "",
+    compModel: "",
+    monthlySalary: "",
+    annualCtc: "",
+    taxStatus: "",
+  });
 
   // Modal edit form state
   const [compType, setCompType] = useState<"fixed_monthly" | "ctc">("fixed_monthly");
@@ -136,28 +190,67 @@ export default function CTCConfiguration() {
   };
 
   const filteredEmployees = employees.filter(e => {
-    const full = `${e.firstName} ${e.lastName} ${e.employeeId} ${e.department || ""}`.toLowerCase();
-    return full.includes(searchQuery.toLowerCase());
+    // General Search query (if set)
+    if (searchQuery) {
+      const full = `${e.firstName || ""} ${e.lastName || ""} ${e.employeeId || ""} ${e.department || ""}`.toLowerCase();
+      if (!full.includes(searchQuery.toLowerCase())) return false;
+    }
+
+    // Column Filters
+    if (columnFilters.employee) {
+      const name = `${e.firstName || ""} ${e.lastName || ""} ${e.employeeId || ""}`.toLowerCase();
+      if (!name.includes(columnFilters.employee.toLowerCase())) return false;
+    }
+    if (columnFilters.department) {
+      const deptRole = `${e.department || ""} ${e.role || ""}`.toLowerCase();
+      if (!deptRole.includes(columnFilters.department.toLowerCase())) return false;
+    }
+    if (columnFilters.compModel) {
+      const isCtc = Boolean(e.ctc && Number(e.ctc) > 0);
+      const modelStr = isCtc ? "ctc package" : "fixed monthly";
+      if (!modelStr.includes(columnFilters.compModel.toLowerCase())) return false;
+    }
+    if (columnFilters.monthlySalary) {
+      const salary = String(e.salary || 0);
+      if (!salary.includes(columnFilters.monthlySalary)) return false;
+    }
+    if (columnFilters.annualCtc) {
+      const ctcVal = String(e.ctc || 0);
+      if (!ctcVal.includes(columnFilters.annualCtc)) return false;
+    }
+    if (columnFilters.taxStatus) {
+      const isCtc = Boolean(e.ctc && Number(e.ctc) > 0);
+      const taxStatusStr = isCtc ? "no pf (0% deduction) tds tax active" : "no pf (0% deduction) tds exempt";
+      if (!taxStatusStr.toLowerCase().includes(columnFilters.taxStatus.toLowerCase())) return false;
+    }
+
+    return true;
   });
+
+  // Pagination bounds
+  const isPageSizeAll = pageSize === "All";
+  const numPageSize = isPageSizeAll ? filteredEmployees.length : Number(pageSize);
+  const totalPages = isPageSizeAll ? 1 : Math.ceil(filteredEmployees.length / numPageSize);
+  const paginatedEmployees = isPageSizeAll ? filteredEmployees : filteredEmployees.slice((currentPage - 1) * numPageSize, currentPage * numPageSize);
 
   const ctcCount = employees.filter(e => e.ctc && Number(e.ctc) > 0).length;
   const fixedCount = employees.length - ctcCount;
 
   return (
-    <div className="p-6 space-y-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
+    <div className="p-6 space-y-6 w-full h-full flex flex-col bg-gray-50/50 overflow-hidden box-border">
       <Toaster position="top-right" />
 
       {/* Top Stats */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex-shrink-0 flex flex-col sm:flex-row gap-4">
         <StatCard icon={User} label="Total Staff Configured" value={employees.length} color="bg-blue-500" />
         <StatCard icon={Wallet} label="Fixed Monthly Salaries" value={fixedCount} color="bg-emerald-500" />
-        <StatCard icon={DollarSign} label="CTC Package Staff" value={ctcCount} color="bg-purple-500" />
+        <StatCard icon={IndianRupee} label="CTC Package Staff" value={ctcCount} color="bg-purple-500" />
         <StatCard icon={ShieldCheck} label="PF Statutory Status" value="Exempt / Disables (0 PF)" color="bg-amber-500" />
       </div>
 
       {/* Main Table Panel */}
-      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/30">
+      <div className="flex-1 min-h-0 bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden flex flex-col">
+        <div className="flex-shrink-0 p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/30">
           <div>
             <h3 className="font-bold text-gray-800 text-sm">Employee Compensation Roster</h3>
             <p className="text-xs text-gray-400 mt-0.5">Configure monthly base pay or annual CTC structures</p>
@@ -174,30 +267,103 @@ export default function CTCConfiguration() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-gray-600">
-            <thead className="bg-gray-50/80 uppercase font-semibold text-[10px] text-gray-500 border-b border-gray-100">
-              <tr>
-                <th className="py-3 px-4">Employee</th>
-                <th className="py-3 px-4">Department & Role</th>
-                <th className="py-3 px-4">Compensation Model</th>
-                <th className="py-3 px-4 text-right">Base Monthly Salary</th>
-                <th className="py-3 px-4 text-right">Annual CTC Package</th>
-                <th className="py-3 px-4">PF / Tax Status</th>
-                <th className="py-3 px-4 text-center">Actions</th>
+        <div className="flex-1 overflow-auto min-h-0">
+          <table className="w-full text-left text-xs text-gray-600 border-collapse table-fixed">
+            <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm">
+              <tr className="border-b border-gray-250 text-gray-455 font-semibold select-none uppercase tracking-wider text-[10px]">
+                <th className="py-3 px-4 min-w-[200px]">
+                  <div className="space-y-1">
+                    <span>Employee</span>
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={columnFilters.employee}
+                      onChange={e => { setColumnFilters({ ...columnFilters, employee: e.target.value }); setCurrentPage(1); }}
+                      className="w-full font-semibold bg-white border border-gray-200 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 transition-colors shadow-xs"
+                    />
+                  </div>
+                </th>
+                <th className="py-3 px-4 min-w-[150px]">
+                  <div className="space-y-1">
+                    <span>Department & Role</span>
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={columnFilters.department}
+                      onChange={e => { setColumnFilters({ ...columnFilters, department: e.target.value }); setCurrentPage(1); }}
+                      className="w-full font-semibold bg-white border border-gray-200 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 transition-colors shadow-xs"
+                    />
+                  </div>
+                </th>
+                <th className="py-3 px-4 min-w-[140px]">
+                  <div className="space-y-1">
+                    <span>Compensation Model</span>
+                    <select
+                      value={columnFilters.compModel}
+                      onChange={e => { setColumnFilters({ ...columnFilters, compModel: e.target.value }); setCurrentPage(1); }}
+                      className="w-full font-semibold bg-white border border-gray-200 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 transition-colors shadow-xs cursor-pointer"
+                    >
+                      <option value="">All</option>
+                      <option value="fixed monthly">Fixed Monthly</option>
+                      <option value="ctc package">CTC Package</option>
+                    </select>
+                  </div>
+                </th>
+                <th className="py-3 px-4 text-right min-w-[140px]">
+                  <div className="space-y-1">
+                    <span>Base Monthly Salary</span>
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={columnFilters.monthlySalary}
+                      onChange={e => { setColumnFilters({ ...columnFilters, monthlySalary: e.target.value }); setCurrentPage(1); }}
+                      className="w-full font-semibold bg-white border border-gray-200 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 transition-colors shadow-xs text-right"
+                    />
+                  </div>
+                </th>
+                <th className="py-3 px-4 text-right min-w-[140px]">
+                  <div className="space-y-1">
+                    <span>Annual CTC Package</span>
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={columnFilters.annualCtc}
+                      onChange={e => { setColumnFilters({ ...columnFilters, annualCtc: e.target.value }); setCurrentPage(1); }}
+                      className="w-full font-semibold bg-white border border-gray-200 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 transition-colors shadow-xs text-right"
+                    />
+                  </div>
+                </th>
+                <th className="py-3 px-4 min-w-[160px]">
+                  <div className="space-y-1">
+                    <span>PF / Tax Status</span>
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={columnFilters.taxStatus}
+                      onChange={e => { setColumnFilters({ ...columnFilters, taxStatus: e.target.value }); setCurrentPage(1); }}
+                      className="w-full font-semibold bg-white border border-gray-200 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 transition-colors shadow-xs"
+                    />
+                  </div>
+                </th>
+                <th className="py-3 px-4 text-center min-w-[120px]">
+                  <div className="space-y-1">
+                    <span>Actions</span>
+                    <div className="h-6"></div>
+                  </div>
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 text-gray-500 font-medium">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="text-center py-8 text-gray-400">Loading compensation data...</td>
                 </tr>
-              ) : filteredEmployees.length === 0 ? (
+              ) : paginatedEmployees.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-8 text-gray-400">No employees found</td>
                 </tr>
               ) : (
-                filteredEmployees.map(emp => {
+                paginatedEmployees.map(emp => {
                   const isCtc = Boolean(emp.ctc && Number(emp.ctc) > 0);
                   const baseMonthly = Number(emp.salary) || 0;
                   const ctcVal = Number(emp.ctc) || 0;
@@ -205,8 +371,16 @@ export default function CTCConfiguration() {
                   return (
                     <tr key={emp.id} className="hover:bg-gray-50/60 transition-colors">
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-gray-900">{emp.firstName} {emp.lastName}</div>
-                        <div className="text-[10px] text-gray-400 font-mono">{emp.employeeId}</div>
+                        <div className="flex items-center gap-2.5">
+                          <UserAvatar
+                            name={`${emp.firstName} ${emp.lastName}`}
+                            avatarUrl={emp.avatarUrl}
+                          />
+                          <div>
+                            <div className="font-semibold text-gray-900">{emp.firstName} {emp.lastName}</div>
+                            <div className="text-[10px] text-gray-400 font-mono">{emp.employeeId}</div>
+                          </div>
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="text-gray-800 font-medium">{emp.department || "General"}</div>
@@ -241,7 +415,7 @@ export default function CTCConfiguration() {
                       <td className="py-3 px-4 text-center">
                         <button
                           onClick={() => openEditModal(emp)}
-                          className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-[11px] font-semibold transition-colors flex items-center gap-1 mx-auto"
+                          className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-[11px] font-semibold transition-colors flex items-center gap-1 mx-auto cursor-pointer"
                         >
                           <Pencil className="w-3 h-3" />
                           Configure
@@ -254,12 +428,65 @@ export default function CTCConfiguration() {
             </tbody>
           </table>
         </div>
+
+        {/* Table Pagination Footer */}
+        <div className="border-t border-gray-200 px-5 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50/50 flex-shrink-0">
+          <div className="flex items-center gap-3 text-gray-400">
+            <span className="text-xs font-semibold">Rows per page:</span>
+            <select
+              value={pageSize}
+              onChange={e => {
+                setPageSize(e.target.value === "All" ? "All" : Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="text-xs border border-gray-200 rounded-lg px-2.5 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-bold text-gray-655 cursor-pointer shadow-xs"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value="All">All</option>
+            </select>
+            <span className="text-xs font-semibold">
+              Showing {filteredEmployees.length > 0 ? `${(currentPage - 1) * numPageSize + 1}-${Math.min(currentPage * numPageSize, filteredEmployees.length)}` : 0} of {filteredEmployees.length} records
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-gray-500">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1 || isPageSizeAll}
+              className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white disabled:cursor-not-allowed transition-all shadow-sm cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+              <button
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  currentPage === pageNum
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-white text-gray-655 border border-gray-200 hover:bg-slate-50"
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages || totalPages === 0 || isPageSizeAll}
+              className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white disabled:cursor-not-allowed transition-all shadow-sm cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Edit Config Modal */}
       {editingEmp && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 space-y-5">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-gray-100 space-y-3.5 max-h-[95vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <div>
                 <h3 className="font-bold text-base text-gray-800">Configure Package</h3>
@@ -291,7 +518,7 @@ export default function CTCConfiguration() {
                     compType === "ctc" ? "bg-purple-50 border-purple-500 text-purple-700 shadow-sm" : "border-gray-200 text-gray-500 hover:bg-gray-50"
                   }`}
                 >
-                  <DollarSign className="w-4 h-4" />
+                  <IndianRupee className="w-4 h-4" />
                   Annual CTC Package
                 </button>
               </div>
@@ -311,8 +538,8 @@ export default function CTCConfiguration() {
                 <p className="text-[10px] text-gray-400">Direct monthly payout without CTC component restructuring (0 PF)</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="space-y-1.5">
+              <div className="space-y-3">
+                <div className="space-y-1">
                   <label className="text-xs font-semibold text-gray-700">Annual CTC Package (₹)</label>
                   <input
                     type="number"
@@ -323,29 +550,33 @@ export default function CTCConfiguration() {
                       setMonthlySalary(Math.round(ctc / 12));
                     }}
                     placeholder="e.g. 600000"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 outline-none focus:border-purple-500"
+                    className="w-full px-3 py-1.5 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 outline-none focus:border-purple-500"
                   />
-                  <p className="text-[10px] text-gray-400">Monthly Base = ₹{Math.round(annualCtc / 12).toLocaleString("en-IN")}/month</p>
+                  <p className="text-[10px] text-gray-400 font-medium">
+                    Monthly Base = ₹{Math.round(annualCtc / 12).toLocaleString("en-IN")}/month ({formatLakhs(annualCtc)})
+                  </p>
                 </div>
 
                 {/* Auto Component Breakdown Display */}
-                <div className="bg-purple-50/50 p-3.5 rounded-xl border border-purple-100 text-xs space-y-2">
-                  <div className="font-bold text-purple-900 uppercase text-[10px]">CTC Component Breakdown (PF Free)</div>
-                  <div className="flex justify-between text-gray-700">
-                    <span>Basic Salary (50%)</span>
-                    <span className="font-semibold">₹{Math.round(annualCtc * 0.50 / 12).toLocaleString("en-IN")}/mo</span>
-                  </div>
-                  <div className="flex justify-between text-gray-700">
-                    <span>HRA (40% of Basic)</span>
-                    <span className="font-semibold">₹{Math.round(annualCtc * 0.20 / 12).toLocaleString("en-IN")}/mo</span>
-                  </div>
-                  <div className="flex justify-between text-gray-700">
-                    <span>Special Allowance (Balance)</span>
-                    <span className="font-semibold">₹{Math.round(annualCtc * 0.30 / 12).toLocaleString("en-IN")}/mo</span>
-                  </div>
-                  <div className="flex justify-between text-emerald-700 font-bold border-t border-purple-200/60 pt-1">
-                    <span>Provident Fund (PF)</span>
-                    <span>₹0 (Exempt)</span>
+                <div className="bg-purple-50/50 p-2.5 rounded-xl border border-purple-100 text-xs">
+                  <div className="font-bold text-purple-900 uppercase text-[9px] mb-1.5">CTC Component Breakdown (PF Free)</div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-gray-750 font-medium">
+                    <div className="flex justify-between">
+                      <span className="text-[10px] text-gray-400">Basic (50%):</span>
+                      <span className="font-semibold">₹{Math.round(annualCtc * 0.50 / 12).toLocaleString("en-IN")}/mo</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[10px] text-gray-400">HRA (40%):</span>
+                      <span className="font-semibold">₹{Math.round(annualCtc * 0.20 / 12).toLocaleString("en-IN")}/mo</span>
+                    </div>
+                    <div className="flex justify-between col-span-2 border-t border-purple-100 pt-1.5">
+                      <span className="text-[10px] text-gray-400">Special Allowance:</span>
+                      <span className="font-semibold">₹{Math.round(annualCtc * 0.30 / 12).toLocaleString("en-IN")}/mo</span>
+                    </div>
+                    <div className="flex justify-between col-span-2 font-bold text-emerald-700">
+                      <span>Provident Fund (PF):</span>
+                      <span>₹0 (Exempt)</span>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -1842,8 +1842,15 @@ const JobApplicants: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredApplications.map((app: Application) => (
-                <tr key={app.id} className="hover:bg-slate-50 transition duration-150">
-                  <td className="px-2 py-2 border-r border-slate-100">
+                <tr
+                  key={app.id}
+                  onClick={() => {
+                    setViewingCandidateApp(app);
+                    setCandidatePopupTab('overview');
+                  }}
+                  className="hover:bg-slate-50 transition duration-150 cursor-pointer"
+                >
+                  <td className="px-2 py-2 border-r border-slate-100" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selectedApplications.includes(app.id)}
@@ -1861,7 +1868,8 @@ const JobApplicants: React.FC = () => {
                       <div className="min-w-0">
                         <div className="text-xs font-bold text-slate-800 truncate leading-tight">{app.applicant_name}</div>
                         <div
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const subject = `Interview Schedule: ${app.job_title || 'Position'} - Hously`;
                             const body = `Dear ${app.applicant_name},\n\nThank you for applying for the ${app.job_title || 'Position'} role at Hously.\n\nWe have reviewed your application and would like to invite you for an interview. Here are the details:\n\n- Date: [Enter Date]\n- Time: [Enter Time]\n- Mode: [Online (Google Meet) / In-person]\n- Link/Address: [Meeting Link or Address]\n\nPlease let us know if this works for you.\n\nBest regards,\nHously HR Team`;
                             window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${app.email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
@@ -1885,7 +1893,7 @@ const JobApplicants: React.FC = () => {
                   <td className="px-3 py-2 border-r border-slate-100 text-xs font-bold text-slate-600 truncate max-w-[150px]" title={getBranchSpecVal(app) || ''}>
                     {getBranchSpecVal(app)}
                   </td>
-                  <td className="px-3 py-2 border-r border-slate-100">
+                  <td className="px-3 py-2 border-r border-slate-100" onClick={(e) => e.stopPropagation()}>
                     <select
                       value={app.status}
                       onChange={(e) => handleUpdateApplicationStatus(app.id, e.target.value as any)}
@@ -1898,7 +1906,7 @@ const JobApplicants: React.FC = () => {
                       <option value="hired">Hired</option>
                     </select>
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1.5">
                       <button
                         onClick={() => { setViewingCandidateApp(app); setCandidatePopupTab('overview'); }}

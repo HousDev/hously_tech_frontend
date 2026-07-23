@@ -1,10 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DollarSign, Send, Wallet, Award, Plus, Clock, X, AlertCircle, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
+import api from "../../../lib/api";
+import { useAdvanceSocket } from "../../../hooks/useAdvanceSocket";
 
 interface AdvanceRequest {
   id: string;
+  dbId?: number;
   amount: number;
+  balance?: number;
   reason: string;
   tenureMonths: number;
   date: string;
@@ -12,40 +16,8 @@ interface AdvanceRequest {
 }
 
 export default function AdvanceSalary() {
-  const [requests, setRequests] = useState<AdvanceRequest[]>([
-    {
-      id: "ADV-2026-004",
-      amount: 15000,
-      reason: "Medical Checkup & Medicines",
-      tenureMonths: 2,
-      date: "05/10/2026",
-      status: "Settled",
-    },
-    {
-      id: "ADV-2026-003",
-      amount: 30000,
-      reason: "Home Rental Deposit Support",
-      tenureMonths: 6,
-      date: "03/15/2026",
-      status: "Approved",
-    },
-    {
-      id: "ADV-2026-002",
-      amount: 10000,
-      reason: "Laptop Upgrade Contribution",
-      tenureMonths: 3,
-      date: "01/12/2026",
-      status: "Rejected",
-    },
-    {
-      id: "ADV-2026-001",
-      amount: 5000,
-      reason: "Festival Advance Salary",
-      tenureMonths: 1,
-      date: "01/02/2026",
-      status: "Settled",
-    },
-  ]);
+  const [requests, setRequests] = useState<AdvanceRequest[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Modal & Form States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,6 +27,7 @@ export default function AdvanceSalary() {
   const [reqDate, setReqDate] = useState<string>("2026-07-13");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [editingReqId, setEditingReqId] = useState<string | null>(null);
+  const [editingDbId, setEditingDbId] = useState<number | null>(null);
 
   // Column-wise Filters State
   const [filterId, setFilterId] = useState<string>("");
@@ -68,6 +41,78 @@ export default function AdvanceSalary() {
 
   const maxLimit = 50000;
 
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${mm}/${dd}/${yyyy}`;
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  const mapStatusToFrontend = (status: string) => {
+    if (!status) return "Pending";
+    const s = status.toLowerCase();
+    if (s === "pending") return "Pending";
+    if (s === "approved") return "Approved";
+    if (s === "disbursed") return "Approved";
+    if (s === "rejected") return "Rejected";
+    if (s === "completed") return "Settled";
+    return "Pending";
+  };
+
+  const mapAdvanceFromBackend = (item: any): AdvanceRequest => {
+    return {
+      id: `ADV-${String(item.id).padStart(3, '0')}`,
+      dbId: item.id,
+      amount: Number(item.amount),
+      balance: Math.max(0, Number(item.amount) - Number(item.paid_amount || 0)),
+      reason: item.reason || "",
+      tenureMonths: Number(item.total_tenor_months),
+      date: formatDate(item.created_at),
+      status: mapStatusToFrontend(item.status),
+    };
+  };
+
+  const fetchRequests = async () => {
+    try {
+      setIsLoading(true);
+      const res = await api.get("/payroll/advances?myAdvances=true");
+      if (res.data && res.data.success) {
+        const mapped = (res.data.data || []).map(mapAdvanceFromBackend);
+        setRequests(mapped);
+      }
+    } catch (err) {
+      console.error("Error fetching requests:", err);
+      toast.error("Failed to load advance history.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  useAdvanceSocket((event, data) => {
+    console.log(`[EmployeeAdvanceSocket] Event: ${event}`, data);
+    if (event === 'advance_status_changed') {
+      const statusText = mapStatusToFrontend(data.status);
+      toast.success(`Your Advance Request status has been updated to "${statusText}"!`, {
+        icon: '🔔',
+        duration: 5000
+      });
+      fetchRequests();
+    } else if (event === 'advance_new' || event === 'advance_deleted') {
+      fetchRequests();
+    }
+  });
+
   // Metric Computations
   const totalTaken = requests
     .filter((r) => r.status === "Approved" || r.status === "Settled")
@@ -75,7 +120,7 @@ export default function AdvanceSalary() {
 
   const activeOutstanding = requests
     .filter((r) => r.status === "Approved")
-    .reduce((sum, r) => sum + r.amount, 0);
+    .reduce((sum, r) => sum + (r.balance || 0), 0);
 
   const availableLimit = Math.max(0, maxLimit - activeOutstanding);
 
@@ -100,7 +145,7 @@ export default function AdvanceSalary() {
     currentPage * (effectiveLimit || 1)
   );
 
-  const handleRequestSubmit = (e: React.FormEvent) => {
+  const handleRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amountNum = Number(reqAmount);
 
@@ -124,49 +169,45 @@ export default function AdvanceSalary() {
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const dateParts = reqDate.split("-");
-      const formattedDate = dateParts.length === 3 
-        ? `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`
-        : "07/13/2026";
-
-      if (editingReqId) {
+    
+    try {
+      if (editingReqId && editingDbId) {
         // Edit flow
-        setRequests((prev) =>
-          prev.map((r) =>
-            r.id === editingReqId
-              ? {
-                  ...r,
-                  amount: amountNum,
-                  reason: reason,
-                  tenureMonths: tenure,
-                  date: formattedDate,
-                }
-              : r
-          )
-        );
-        toast.success("Salary advance request updated successfully!", { icon: "📝" });
+        const res = await api.put(`/payroll/advances/${editingDbId}`, {
+          amount: amountNum,
+          totalTenorMonths: tenure,
+          reason: reason
+        });
+        if (res.data && res.data.success) {
+          toast.success("Salary advance request updated successfully!", { icon: "📝" });
+          fetchRequests();
+        }
       } else {
         // Create flow
-        const newReq: AdvanceRequest = {
-          id: `ADV-2026-00${requests.length + 5}`,
+        const res = await api.post('/payroll/advances', {
           amount: amountNum,
+          totalTenorMonths: tenure,
           reason: reason,
-          tenureMonths: tenure,
-          date: formattedDate,
-          status: "Pending",
-        };
-        setRequests((prev) => [newReq, ...prev]);
-        toast.success("Salary advance request submitted successfully!", { icon: "📨" });
+          status: 'pending'
+        });
+        if (res.data && res.data.success) {
+          toast.success("Salary advance request submitted successfully!", { icon: "📨" });
+          fetchRequests();
+        }
       }
-
+      
       setReqAmount("");
       setReason("");
       setTenure(3);
       setEditingReqId(null);
+      setEditingDbId(null);
       setIsModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to submit request.");
+    } finally {
       setIsSubmitting(false);
-    }, 850);
+    }
   };
 
   return (
@@ -348,26 +389,29 @@ export default function AdvanceSalary() {
                       </span>
                     </td>
                     <td className="px-5 py-5 text-right">
-                      <button
-                        onClick={() => {
-                          setEditingReqId(req.id);
-                          setReqAmount(String(req.amount));
-                          setTenure(req.tenureMonths);
-                          setReason(req.reason);
-                          // Parse date format MM/DD/YYYY back to YYYY-MM-DD
-                          const parts = req.date.split("/");
-                          if (parts.length === 3) {
-                            setReqDate(`${parts[2]}-${parts[0]}-${parts[1]}`);
-                          } else {
-                            setReqDate("2026-07-13");
-                          }
-                          setIsModalOpen(true);
-                        }}
-                        className="p-1.5 hover:bg-blue-50 rounded-lg text-slate-400 hover:text-[#0273d8] transition cursor-pointer"
-                        title="Edit Request"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
+                      {req.status === "Pending" && (
+                        <button
+                          onClick={() => {
+                            setEditingReqId(req.id);
+                            setEditingDbId(req.dbId || null);
+                            setReqAmount(String(req.amount));
+                            setTenure(req.tenureMonths);
+                            setReason(req.reason);
+                            // Parse date format MM/DD/YYYY back to YYYY-MM-DD
+                            const parts = req.date.split("/");
+                            if (parts.length === 3) {
+                              setReqDate(`${parts[2]}-${parts[0]}-${parts[1]}`);
+                            } else {
+                              setReqDate("2026-07-13");
+                            }
+                            setIsModalOpen(true);
+                          }}
+                          className="p-1.5 hover:bg-blue-50 rounded-lg text-slate-400 hover:text-[#0273d8] transition cursor-pointer"
+                          title="Edit Request"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
