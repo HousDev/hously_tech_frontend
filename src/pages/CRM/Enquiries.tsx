@@ -834,6 +834,79 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
     setCurrentPage(page);
   };
 
+  const renderPagination = (isTableIntegrated = false) => {
+    if (filteredEnquiries.length === 0 || itemsPerPage === 'all') return null;
+
+    return (
+      <div className={isTableIntegrated 
+        ? "px-4 py-3 flex items-center justify-between border-t border-slate-200 bg-slate-50/50 backdrop-blur-md flex-shrink-0"
+        : "p-4 mt-4 flex items-center justify-between flex-shrink-0"
+      }>
+        <div className="flex items-center justify-between gap-1 sm:gap-2 w-full">
+          {/* Left side - Showing info compact */}
+          <div className="text-[9px] sm:text-xs text-gray-600 whitespace-nowrap">
+            <span className="hidden sm:inline">Showing </span>
+            <span className="font-semibold text-gray-800">{indexOfFirstItem + 1}</span>
+            <span className="hidden sm:inline"> - </span>
+            <span className="sm:hidden">-</span>
+            <span className="font-semibold text-gray-800">
+              {Math.min(indexOfLastItem, filteredEnquiries.length)}
+            </span>
+            <span className="hidden sm:inline"> of </span>
+            <span className="sm:hidden">/</span>
+            <span className="font-semibold text-gray-800">{filteredEnquiries.length}</span>
+
+            {/* Filter indicators - compact */}
+            {(filters.search || filters.status !== 'all' || filters.priority !== 'all') && (
+              <span className="ml-1 text-indigo-600 text-[8px] sm:text-[10px] hidden sm:inline">
+                {filters.search && `🔍 "${filters.search.slice(0, 8)}${filters.search.length > 8 ? '…' : ''}"`}
+                {filters.status !== 'all' && ` • ${filters.status === 'in_progress' ? 'In Prog' : filters.status === 'converted' ? 'Conv' : filters.status}`}
+                {filters.priority !== 'all' && ` • ${filters.priority === 'urgent' ? 'Urg' : filters.priority === 'medium' ? 'Med' : filters.priority === 'high' ? 'High' : filters.priority}`}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            {/* Previous button */}
+            <button
+              type="button"
+              onClick={prevPage}
+              disabled={currentPage === 1}
+              className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+            >
+              <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            </button>
+
+            {/* Page numbers - Desktop */}
+            <div className="hidden sm:flex items-center gap-0.5 sm:gap-1">
+              <button
+                type="button"
+                className="min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs rounded-md bg-[#1a56db] text-white font-medium shadow-sm border-none cursor-default"
+              >
+                {currentPage}
+              </button>
+            </div>
+
+            {/* Mobile: Current page indicator */}
+            <span className="sm:hidden text-[10px] font-medium text-gray-700 px-1">
+              {currentPage}/{totalPages}
+            </span>
+
+            {/* Next button */}
+            <button
+              type="button"
+              onClick={nextPage}
+              disabled={currentPage === totalPages}
+              className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+            >
+              <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Stats cards
   const statsCards = [
     { label: 'Total', value: stats?.total || 0, icon: FileText, textColor: 'text-indigo-600', bgColor: 'bg-indigo-50/40 border-indigo-100/30 hover:bg-indigo-50/60', iconBg: 'bg-indigo-100/80 text-indigo-600' },
@@ -859,13 +932,34 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
         position="top-right"
         toastOptions={{
           duration: 4000,
-          style: { background: '#363636', color: '#fff' },
-          success: { duration: 3000, style: { background: '#10B981' } },
-          error: { duration: 4000, style: { background: '#EF4444' } },
+          style: {
+            background: '#ffffff',
+            color: '#1f2937',
+            border: '1px solid #f3f4f6',
+            borderRadius: '12px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+            fontSize: '15px',
+            padding: '12px 16px'
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10B981',
+              secondary: '#ffffff',
+            }
+          },
+          error: { duration: 4000, style: { background: '#EF4444', color: '#fff' } },
           loading: { duration: Infinity },
         }}
       />
       <style>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
         @keyframes modalBackdropIn {
           from { opacity: 0; backdrop-filter: blur(0px); }
           to   { opacity: 1; backdrop-filter: blur(4px); }
@@ -989,25 +1083,7 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
                 <span>/pg</span>
               </span>
 
-              {/* View Switcher Toggle (only visible on md screens and up) */}
-              <div className="hidden md:flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 ml-2">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('table')}
-                  className={`p-1 rounded-md transition-all cursor-pointer ${viewMode === 'table' ? 'bg-white text-[#0D47A1] shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
-                  title="Table View"
-                >
-                  <FileText size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1 rounded-md transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-white text-[#0D47A1] shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
-                  title="Grid View"
-                >
-                  <LayoutGrid size={14} />
-                </button>
-              </div>
+
             </div>
           </div>
 
@@ -1178,7 +1254,7 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
         </div>
 
         {/* Table View (always visible on mobile and desktop if viewMode is table) */}
-        <div className={`${viewMode === 'table' ? 'flex' : 'hidden'} bg-white/40 backdrop-blur-md rounded-xl border border-white/20 shadow-sm overflow-hidden flex-col w-full`} style={{ height: 'calc(100vh - 340px)', minHeight: '320px' }}>
+        <div className={`${viewMode === 'table' ? 'flex' : 'hidden'} bg-white/40 backdrop-blur-md rounded-xl border border-white/20 shadow-sm overflow-hidden flex-col w-full`} style={{ height: 'calc(100vh - 260px)', minHeight: '390px' }}>
           {currentEnquiries.length === 0 ? (
               <div className="p-6 sm:p-12 text-center">
                 <MessageSquare className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
@@ -1200,7 +1276,8 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
                 )}
               </div>
             ) : (
-                <div className="overflow-x-auto flex-1 overflow-y-auto w-full">
+              <>
+                <div className="overflow-x-auto flex-1 overflow-y-auto w-full no-scrollbar">
                   <table className="w-full table-fixed border-collapse border border-slate-300">
                     <thead className="bg-slate-200/50 backdrop-blur-md sticky top-0 z-20">
                       <tr>
@@ -1440,110 +1517,12 @@ const EnquiriesCMS = ({ isSidebarOpen: _isSidebarOpen = false }: EnquiriesCMSPro
                     </tbody>
                   </table>
                 </div>
-              )}
-            </div>
-
-        {/* Pagination Controls */}
-        {filteredEnquiries.length > 0 && (
-          <div className="bg-white/40 backdrop-blur-md rounded-xl border border-white/20 shadow-sm p-4 mt-4 flex items-center justify-between flex-shrink-0 animate-fadeIn">
-            <div className="flex items-center justify-between gap-1 sm:gap-2 w-full">
-              {/* Left side - Showing info compact */}
-              <div className="text-[9px] sm:text-xs text-gray-600 whitespace-nowrap">
-                <span className="hidden sm:inline">Showing </span>
-                <span className="font-semibold text-gray-800">{indexOfFirstItem + 1}</span>
-                <span className="hidden sm:inline"> - </span>
-                <span className="sm:hidden">-</span>
-                <span className="font-semibold text-gray-800">
-                  {Math.min(indexOfLastItem, filteredEnquiries.length)}
-                </span>
-                <span className="hidden sm:inline"> of </span>
-                <span className="sm:hidden">/</span>
-                <span className="font-semibold text-gray-800">{filteredEnquiries.length}</span>
-
-                {/* Filter indicators - compact */}
-                {(filters.search || filters.status !== 'all' || filters.priority !== 'all') && (
-                  <span className="ml-1 text-indigo-600 text-[8px] sm:text-[10px] hidden sm:inline">
-                    {filters.search && `🔍 "${filters.search.slice(0, 8)}${filters.search.length > 8 ? '…' : ''}"`}
-                    {filters.status !== 'all' && ` • ${filters.status === 'in_progress' ? 'In Prog' : filters.status === 'converted' ? 'Conv' : filters.status}`}
-                    {filters.priority !== 'all' && ` • ${filters.priority === 'urgent' ? 'Urg' : filters.priority === 'medium' ? 'Med' : filters.priority === 'high' ? 'High' : filters.priority}`}
-                  </span>
-                )}
-              </div>
-
-              {itemsPerPage !== 'all' && (
-                <div className="flex items-center gap-0.5 sm:gap-1">
-                  {/* Previous button */}
-                  <button
-                    type="button"
-                    onClick={prevPage}
-                    disabled={currentPage === 1}
-                    className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                  >
-                    <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  </button>
-
-                  {/* Page numbers - Desktop */}
-                  <div className="hidden sm:flex items-center gap-0.5 sm:gap-1">
-                    {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-                      let pageNumber;
-                      if (totalPages <= 3) {
-                        pageNumber = i + 1;
-                      } else if (currentPage <= 2) {
-                        pageNumber = i + 1;
-                      } else if (currentPage >= totalPages - 1) {
-                        pageNumber = totalPages - 2 + i;
-                      } else {
-                        pageNumber = currentPage - 1 + i;
-                      }
-
-                      return (
-                        <button
-                          key={pageNumber}
-                          type="button"
-                          onClick={() => goToPage(pageNumber)}
-                          className={`min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs rounded-md transition cursor-pointer ${currentPage === pageNumber
-                            ? 'bg-indigo-650 text-white font-medium shadow-sm'
-                            : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                            }`}
-                        >
-                          {pageNumber}
-                        </button>
-                      );
-                    })}
-
-                    {totalPages > 3 && currentPage < totalPages - 1 && (
-                      <>
-                        <span className="text-gray-400 text-[10px] sm:text-xs px-0.5">...</span>
-                        <button
-                          type="button"
-                          onClick={() => goToPage(totalPages)}
-                          className="min-w-[24px] h-6 sm:min-w-[28px] sm:h-7 flex items-center justify-center text-[11px] sm:text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition cursor-pointer"
-                        >
-                          {totalPages}
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Mobile: Current page indicator */}
-                  <span className="sm:hidden text-[10px] font-medium text-gray-700 px-1">
-                    {currentPage}/{totalPages}
-                  </span>
-
-                  {/* Next button */}
-                  <button
-                    type="button"
-                    onClick={nextPage}
-                    disabled={currentPage === totalPages}
-                    className="p-1 sm:p-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                  >
-                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  </button>
-                </div>
-              )}
-            </div>
+                {renderPagination(true)}
+              </>
+            )}
           </div>
-        )}
+        {/* Pagination Controls (Grid View Mode) */}
+        {viewMode === 'grid' && renderPagination(false)}
       </div>
 
       {/* Enhanced Detail Modal with Tabs */}

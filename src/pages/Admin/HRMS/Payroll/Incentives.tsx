@@ -3,7 +3,6 @@ import { useOutletContext } from "react-router-dom";
 import {
   Clock,
   CheckCircle2,
-  DollarSign,
   TrendingUp,
   Filter,
   Search,
@@ -53,7 +52,7 @@ const StatCard = ({ icon: Icon, label, value, color, subtitle }: any) => {
         <Icon className={`w-4.5 h-4.5 ${textClass}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-semibold text-gray-405 uppercase tracking-wider">{label}</p>
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</p>
         <h3 className="text-base font-bold text-gray-800 mt-0.5">{value}</h3>
         {subtitle && <p className="text-[9px] text-gray-400 font-semibold mt-0.5">{subtitle}</p>}
       </div>
@@ -113,7 +112,7 @@ const StatusDropdownCell = ({ item, onUpdateStatus }: { item: any; onUpdateStatu
   const statusOptions = [
     { key: "Pending", label: "Pending", bg: "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200", icon: Clock },
     { key: "Approved", label: "Approved", bg: "bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200", icon: CheckCircle2 },
-    { key: "Paid", label: "Paid", bg: "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200", icon: DollarSign },
+    { key: "Paid", label: "Paid", bg: "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200", icon: IndianRupee },
     { key: "Rejected", label: "Rejected", bg: "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200", icon: AlertCircle },
   ];
 
@@ -754,8 +753,8 @@ export default function Incentives() {
         {/* Scrollable Table Area */}
         <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
           <table className="w-full border-collapse text-left text-xs">
-            <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm border-b border-gray-200">
-              <tr className="bg-slate-50 text-gray-500 font-semibold select-none">
+            <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm">
+              <tr className="border-b border-gray-250 text-gray-455 font-semibold select-none uppercase tracking-wider text-[10px]">
                 <th className="p-3 pl-6 w-10">
                   <button onClick={toggleAll} className="hover:text-gray-700 cursor-pointer transition-colors">
                     {selectedRows.length === paginatedData.length && paginatedData.length > 0 ? (

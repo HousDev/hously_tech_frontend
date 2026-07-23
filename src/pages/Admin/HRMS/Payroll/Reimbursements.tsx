@@ -88,7 +88,7 @@ const StatCard = ({ icon: Icon, label, value, color, subtitle }: any) => {
         <Icon className={`w-4 h-4 ${textClass}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-semibold text-gray-405 uppercase tracking-wider">{label}</p>
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</p>
         <h3 className="text-sm font-bold text-gray-800 mt-0.5">{value}</h3>
         {subtitle && <p className="text-[9px] text-gray-400 font-semibold mt-0.5">{subtitle}</p>}
       </div>
@@ -753,8 +753,8 @@ export default function Reimbursements() {
         {/* Scrollable Table Area */}
         <div className="overflow-y-auto overflow-x-auto md:overflow-x-hidden scrollbar-thin md:scrollbar-none flex-1 min-h-0">
           <table className="w-full border-collapse text-left text-xs min-w-[850px] md:min-w-0 table-auto md:table-fixed">
-            <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm border-b border-gray-200">
-              <tr className="bg-slate-50 text-gray-500 font-semibold select-none">
+            <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm">
+              <tr className="border-b border-gray-250 text-gray-455 font-semibold select-none uppercase tracking-wider text-[10px]">
                 <th className="p-3 pl-6 w-10">
                   <button onClick={toggleAll} className="hover:text-gray-700 cursor-pointer transition-colors">
                     {selectedRows.length === paginatedData.length && paginatedData.length > 0 ? (

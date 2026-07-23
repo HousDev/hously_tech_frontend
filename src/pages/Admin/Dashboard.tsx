@@ -251,6 +251,9 @@ const AdminDashboard = () => {
   // Task notifications
   const [taskNotifications, setTaskNotifications] = useState<any[]>([]);
 
+  // Advance notifications
+  const [advanceNotifications, setAdvanceNotifications] = useState<any[]>([]);
+
   // Enquiry notifications
   const [enquiryNotifications, setEnquiryNotifications] = useState<EnquiryNotification[]>([]);
   const [unreadEnquiryCount, setUnreadEnquiryCount] = useState(0);
@@ -409,6 +412,16 @@ const AdminDashboard = () => {
     }
   }, []);
 
+  // ─── Fetch advance notifications ─────────────────────────────────────────────────
+  const fetchAdvanceNotifications = useCallback(async () => {
+    try {
+      const data = await apiClient.get<any[]>('/payroll/notifications');
+      setAdvanceNotifications(data ?? []);
+    } catch (error) {
+      console.error('Failed to fetch advance notifications:', error);
+    }
+  }, []);
+
   // ─── Fetch recent enquiries ───────────────────────────────────────────────────
   const fetchRecentEnquiries = async () => {
     try {
@@ -549,6 +562,26 @@ const AdminDashboard = () => {
     }
   };
 
+  // ─── Mark advance notification as read ───────────────────────────────────────
+  const markAdvanceNotificationAsRead = async (id: number) => {
+    try {
+      await apiClient.patch(`/payroll/notifications/${id}/read`);
+      fetchAdvanceNotifications();
+    } catch (error) {
+      console.error('Failed to mark advance notification as read:', error);
+    }
+  };
+
+  // ─── Mark all advance notifications as read ──────────────────────────────────
+  const markAllAdvanceNotificationsAsRead = async () => {
+    try {
+      await apiClient.patch('/payroll/notifications/read-all');
+      fetchAdvanceNotifications();
+    } catch (error) {
+      console.error('Failed to mark all advance notifications as read:', error);
+    }
+  };
+
   // ─── Format date/time ────────────────────────────────────────────────────────
   const formatDateTime = (dateString: string) => {
     if (!dateString) return 'Unknown';
@@ -603,7 +636,10 @@ const AdminDashboard = () => {
   };
 
   // ─── Notification icon ───────────────────────────────────────────────────────
-  const getNotificationIcon = (type: string, isCareer: boolean, isLeave?: boolean, isTicket?: boolean, isExpense?: boolean) => {
+  const getNotificationIcon = (type: string, isCareer: boolean, isLeave?: boolean, isTicket?: boolean, isExpense?: boolean, isAdvance?: boolean) => {
+    if (isAdvance) {
+      return '💸';
+    }
     if (isTicket) {
       return '🎫';
     }
@@ -739,6 +775,13 @@ const AdminDashboard = () => {
       fetchExpenseNotifications();
     });
 
+    socket.on('advance_new', (data) => {
+      console.log('[AdminDashboard Socket] Received advance_new:', data);
+      playNotificationSound();
+      toast.success(`💸 New Advance request from ${data.employeeName || 'Employee'}: ₹${Number(data.amount).toLocaleString('en-IN')}`);
+      fetchAdvanceNotifications();
+    });
+
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
@@ -747,7 +790,7 @@ const AdminDashboard = () => {
       if (careerFetchTimeoutRef.current) clearTimeout(careerFetchTimeoutRef.current);
       if (enquiryFetchTimeoutRef.current) clearTimeout(enquiryFetchTimeoutRef.current);
     };
-  }, [user, fetchLeaveNotifications, fetchTicketNotifications, fetchExpenseNotifications, fetchTaskNotifications]);
+  }, [user, fetchLeaveNotifications, fetchTicketNotifications, fetchExpenseNotifications, fetchTaskNotifications, fetchAdvanceNotifications]);
 
   // ─── Main init effect ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -764,6 +807,7 @@ const AdminDashboard = () => {
     fetchTicketNotifications();
     fetchExpenseNotifications();
     fetchTaskNotifications();
+    fetchAdvanceNotifications();
 
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
@@ -786,7 +830,8 @@ const AdminDashboard = () => {
     ...leaveNotifications.filter(n => !n.is_read),
     ...ticketNotifications.filter(n => !n.is_read),
     ...expenseNotifications.filter(n => !n.is_read),
-    ...taskNotifications.filter(n => !n.is_read || (n.is_read as any) === '0' || (n.is_read as any) === 0)
+    ...taskNotifications.filter(n => !n.is_read || (n.is_read as any) === '0' || (n.is_read as any) === 0),
+    ...advanceNotifications.filter(n => !n.is_read)
   ].length;
 
   // ─── Breadcrumbs ─────────────────────────────────────────────────────────────
@@ -1571,6 +1616,25 @@ const AdminDashboard = () => {
                   )}
                 </div>
 
+                {/* Task Management */}
+                <NavLink
+                  to={tasksItem.path}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
+                  ${isActive
+                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
+                      : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <tasksItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : tasksItem.color}`} />
+                      <span className="text-sm font-semibold tracking-wide">Task Management</span>
+                    </>
+                  )}
+                </NavLink>
+
                 {/* User */}
                 <NavLink
                   to={usersItem.path}
@@ -1609,81 +1673,63 @@ const AdminDashboard = () => {
                   )}
                 </NavLink>
 
-                {/* Task Management */}
-                <NavLink
-                  to={tasksItem.path}
-                  onClick={() => setMobileSidebarOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center rounded-lg transition-all duration-200 group px-3 py-2.5
-                  ${isActive
-                      ? 'bg-gradient-to-r from-[#0D47A1] to-[#1976D2] text-white shadow-md shadow-blue-800/10 font-bold'
-                      : 'text-gray-700 hover:bg-slate-100/80 hover:text-slate-900'}`
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <tasksItem.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : tasksItem.color}`} />
-                      <span className="text-sm font-semibold tracking-wide">Task Management</span>
-                    </>
-                  )}
-                </NavLink>
               </div>
-            ))}        </nav>
+            ))}
+          </nav>
 
-        {/* Visit Website & Logout Buttons - Bottom of Sidebar */}
-        <div className="px-3 pb-4 pt-2 border-t border-slate-100 flex flex-col gap-1">
-          {/* Visit Website */}
-          <button
-            onClick={() => {
-              const baseUrl = window.location.origin;
-              window.open(`${baseUrl}/homes?fromAdmin=true`, "_blank");
-            }}
-            className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-slate-100/80 hover:text-slate-900 transition-all duration-200 group cursor-pointer ${!sidebarOpen ? 'justify-center' : ''}`}
-            title="Visit Website"
-          >
-            <FiExternalLink className="w-4 h-4 flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
-            {sidebarOpen && <span className="text-sm font-semibold tracking-wide">Visit Website</span>}
-          </button>
+          {/* Visit Website & Logout Buttons - Bottom of Sidebar */}
+          <div className="px-3 pb-4 pt-2 border-t border-slate-100 flex flex-col gap-1">
+            {/* Visit Website */}
+            <button
+              onClick={() => {
+                const baseUrl = window.location.origin;
+                window.open(`${baseUrl}/homes?fromAdmin=true`, "_blank");
+              }}
+              className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-slate-100/80 hover:text-slate-900 transition-all duration-200 group cursor-pointer ${!sidebarOpen ? 'justify-center' : ''}`}
+              title="Visit Website"
+            >
+              <FiExternalLink className="w-4 h-4 flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
+              {sidebarOpen && <span className="text-sm font-semibold tracking-wide">Visit Website</span>}
+            </button>
 
-          {/* Logout */}
-          <button
-            onClick={async () => {
-              try {
-                await logout();
-              } catch (err) {
-                // fallback
-              }
-            }}
-            className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 group cursor-pointer ${!sidebarOpen ? 'justify-center' : ''}`}
-            title="Logout"
-          >
-            <LogOut className="w-4 h-4 flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
-            {sidebarOpen && <span className="text-sm font-semibold tracking-wide">Logout</span>}
-          </button>
-        </div>
-      </aside>
+            {/* Logout */}
+            <button
+              onClick={async () => {
+                try {
+                  await logout();
+                } catch (err) {
+                  // fallback
+                }
+              }}
+              className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 group cursor-pointer ${!sidebarOpen ? 'justify-center' : ''}`}
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4 flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
+              {sidebarOpen && <span className="text-sm font-semibold tracking-wide">Logout</span>}
+            </button>
+          </div>
+        </aside>
 
-      {/* Main Content */}
-      <div className={`transition-all duration-300 ease-in-out min-h-screen
-        ${sidebarOpen ? 'lg:ml-54' : 'lg:ml-20'}`}>
+        {/* Main Content */}
+        <div className={`transition-all duration-300 ease-in-out min-h-screen
+          ${sidebarOpen ? 'lg:ml-54' : 'lg:ml-20'}`}>
 
-        {/* Header */}
-        <header className="sticky top-0 z-[50] h-16 bg-white/95 backdrop-blur-md text-gray-900 transition-all duration-300 ease-in-out overflow-visible shadow-[0_4px_24px_rgba(15,23,42,0.06)] border-b border-slate-100">
-          <div className="px-4 h-full">
-            <div className="flex items-center justify-between h-full">
+          {/* Header */}
+          <header className="sticky top-0 z-[50] h-16 bg-white/95 backdrop-blur-md text-gray-900 transition-all duration-300 ease-in-out overflow-visible shadow-[0_4px_24px_rgba(15,23,42,0.06)] border-b border-slate-100">
+            <div className="px-4 h-full">
+              <div className="flex items-center justify-between h-full">
 
-              {/* LEFT */}
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="hidden lg:flex p-2 rounded-lg hover:bg-white/10 transition"
-                >
-                  {sidebarOpen
-                    ? <Menu className="w-5 h-5 text-black" />
-                    : <ChevronRight className="w-5 h-5 text-black" />}
-                </button>
-
-                <button
+                {/* LEFT */}
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    className="hidden lg:flex p-2 rounded-lg hover:bg-white/10 transition"
+                  >
+                    {sidebarOpen
+                      ? <Menu className="w-5 h-5 text-black" />
+                      : <ChevronRight className="w-5 h-5 text-black" />}
+                  </button>
+                   <button
                   onClick={() => setMobileSidebarOpen(true)}
                   className="lg:hidden p-2 rounded-lg hover:bg-gray-200 transition"
                 >
@@ -1713,7 +1759,6 @@ const AdminDashboard = () => {
                     className="p-2 rounded-lg hover:bg-gray-200 transition relative"
                   >
                     <Bell className="w-5 h-5 text-gray-800" />
-                    {/* ✅ Badge uses totalUnread derived from arrays — always accurate */}
                     {totalUnread > 0 && !loadingNotifications && (
                       <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
                         {totalUnread > 99 ? '99+' : totalUnread}
@@ -1740,6 +1785,7 @@ const AdminDashboard = () => {
                               await markAllTicketNotificationsAsRead();
                               await markAllExpenseNotificationsAsRead();
                               await markAllTaskNotificationsAsRead();
+                              await markAllAdvanceNotificationsAsRead();
                             }}
                             className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
                           >
@@ -1755,7 +1801,7 @@ const AdminDashboard = () => {
                       </div>
 
                       <div className="max-h-96 overflow-y-auto">
-                        {enquiryNotifications.length === 0 && careerNotifications.length === 0 && leaveNotifications.length === 0 && ticketNotifications.length === 0 && expenseNotifications.length === 0 && taskNotifications.length === 0 ? (
+                        {enquiryNotifications.length === 0 && careerNotifications.length === 0 && leaveNotifications.length === 0 && ticketNotifications.length === 0 && expenseNotifications.length === 0 && taskNotifications.length === 0 && advanceNotifications.length === 0 ? (
                           <div className="p-4 text-center">
                             <Bell className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                             <p className="text-gray-500 text-sm">No notifications</p>
@@ -1769,7 +1815,8 @@ const AdminDashboard = () => {
                               ...leaveNotifications.map(l => ({ ...l, isLeave: true })),
                               ...ticketNotifications.map(t => ({ ...t, isTicket: true })),
                               ...expenseNotifications.map(e => ({ ...e, isExpense: true })),
-                              ...taskNotifications.map(t => ({ ...t, isTask: true }))
+                              ...taskNotifications.map(t => ({ ...t, isTask: true })),
+                              ...advanceNotifications.map(a => ({ ...a, isAdvance: true }))
                             ]
                               .filter((notification, index, self) => {
                                 const getUniqueKey = (n: any) => {
@@ -1777,6 +1824,7 @@ const AdminDashboard = () => {
                                   if (n.isLeave) return `leave_${n.id}`;
                                   if (n.isExpense) return `expense_${n.id}`;
                                   if (n.isTask) return `task_${n.id}`;
+                                  if (n.isAdvance) return `advance_${n.id}`;
                                   if (n.career_application_id !== null && n.career_application_id !== undefined) return `career_${n.id}`;
                                   if (n.meeting_id !== null && n.meeting_id !== undefined) return `meeting_${n.id}`;
                                   return `enquiry_${n.id}`;
@@ -1790,13 +1838,14 @@ const AdminDashboard = () => {
                                 const isLeave = !isTicket && (notification as any).isLeave === true;
                                 const isExpense = !isTicket && !isLeave && (notification as any).isExpense === true;
                                 const isTask = !isTicket && !isLeave && !isExpense && (notification as any).isTask === true;
-                                const isCareer = !isTicket && !isLeave && !isExpense && !isTask && notification.career_application_id !== null &&
+                                const isAdvance = !isTicket && !isLeave && !isExpense && !isTask && (notification as any).isAdvance === true;
+                                const isCareer = !isTicket && !isLeave && !isExpense && !isTask && !isAdvance && notification.career_application_id !== null &&
                                   notification.career_application_id !== undefined;
-                                const isMeeting = !isTicket && !isLeave && !isExpense && !isTask && notification.meeting_id !== null &&
+                                const isMeeting = !isTicket && !isLeave && !isExpense && !isTask && !isAdvance && notification.meeting_id !== null &&
                                   notification.meeting_id !== undefined;
                                 return (
                                   <div
-                                    key={`${isTicket ? 'ticket' : isLeave ? 'leave' : isExpense ? 'expense' : isTask ? 'task' : isCareer ? 'career' : isMeeting ? 'meeting' : 'enquiry'}_${notification.id}`}
+                                    key={`${isTicket ? 'ticket' : isLeave ? 'leave' : isExpense ? 'expense' : isTask ? 'task' : isAdvance ? 'advance' : isCareer ? 'career' : isMeeting ? 'meeting' : 'enquiry'}_${notification.id}`}
                                     className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition ${!notification.is_read ? 'bg-blue-50' : ''
                                       }`}
                                     onClick={() => {
@@ -1812,6 +1861,9 @@ const AdminDashboard = () => {
                                       } else if (isTask) {
                                         markTaskNotificationAsRead(notification.id);
                                         navigate('/dashboard/tasks');
+                                      } else if (isAdvance) {
+                                        markAdvanceNotificationAsRead(notification.id);
+                                        navigate('/dashboard/hrms/payroll/advances');
                                       } else if (isCareer) {
                                         markCareerNotificationAsRead(notification.id);
                                         navigate('/dashboard/career');
@@ -1826,7 +1878,7 @@ const AdminDashboard = () => {
                                   >
                                     <div className="flex items-start">
                                       <div className="text-lg mr-2">
-                                        {getNotificationIcon(notification.type, isCareer, isLeave, isTicket, isExpense)}
+                                        {getNotificationIcon(notification.type, isCareer, isLeave, isTicket, isExpense, isAdvance)}
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-start justify-between">
@@ -1845,13 +1897,13 @@ const AdminDashboard = () => {
                                 );
                               })}
 
-                            {(enquiryNotifications.length + careerNotifications.length + leaveNotifications.length + ticketNotifications.length + expenseNotifications.length) > 10 && (
+                            {(enquiryNotifications.length + careerNotifications.length + leaveNotifications.length + ticketNotifications.length + expenseNotifications.length + taskNotifications.length + advanceNotifications.length) > 10 && (
                               <div className="p-3 text-center border-t border-gray-200">
                                 <button
                                   onClick={() => { setShowNotifications(false); navigate('/dashboard/notifications'); }}
                                   className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
                                 >
-                                  View {Math.max(0, (enquiryNotifications.length + careerNotifications.length + leaveNotifications.length + ticketNotifications.length + expenseNotifications.length) - 10)} more notifications →
+                                  View {Math.max(0, (enquiryNotifications.length + careerNotifications.length + leaveNotifications.length + ticketNotifications.length + expenseNotifications.length + taskNotifications.length + advanceNotifications.length) - 10)} more notifications →
                                 </button>
                               </div>
                             )}

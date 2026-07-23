@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Eye, EyeOff, Mail, Lock, LogIn, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toast, ToastContainer } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import houslyLogo from '../../assets/images/hously-logo.png';
+import loginBgTablet from '../../assets/images/login_bg_tablet.png';
 
 const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,6 +16,40 @@ const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [tiltStyle, setTiltStyle] = useState<React.CSSProperties>({});
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Track cursor globally across the window and update login card tilt/drift
+  useEffect(() => {
+    const handleGlobalTilt = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      const dx = e.clientX - centerX;
+      const dy = e.clientY - centerY;
+      
+      const maxDim = Math.max(window.innerWidth, window.innerHeight);
+      const rotateX = -(dy / maxDim) * 6; // max 6 degrees
+      const rotateY = (dx / maxDim) * 6;
+      const translateX = (dx / maxDim) * 15; // max 15px
+      const translateY = (dy / maxDim) * 15;
+
+      setTiltStyle({
+        transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translate3d(${translateX}px, ${translateY}px, 0)`,
+        transition: 'transform 0.15s ease-out',
+      });
+    };
+
+    window.addEventListener('mousemove', handleGlobalTilt);
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalTilt);
+    };
+  }, []);
+
   // Load remembered credentials on mount
   useEffect(() => {
     const remembered = localStorage.getItem('rememberMe');
@@ -23,6 +58,148 @@ const LoginPage: React.FC = () => {
       setEmail(rememberedEmail);
       setRememberMe(true);
     }
+  }, []);
+
+  // Full-screen interactive particle constellation background animation
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+
+    interface Particle {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      radius: number;
+    }
+
+    const particles: Particle[] = [];
+    const particleCount = 85;
+    const connectionDistance = 115;
+    const mouse = { x: null as number | null, y: null as number | null, radius: 140 };
+
+    // Initialize particles
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.7,
+        vy: (Math.random() - 0.5) * 0.7,
+        radius: Math.random() * 2 + 1.2,
+      });
+    }
+
+    // Handle resize
+    const handleResize = () => {
+      if (!canvas) return;
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', handleResize);
+
+    // Track mouse coordinates across the entire document
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = e.clientX - rect.left;
+      mouse.y = e.clientY - rect.top;
+    };
+
+    const handleGlobalMouseLeave = () => {
+      mouse.x = null;
+      mouse.y = null;
+    };
+
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    document.addEventListener('mouseleave', handleGlobalMouseLeave);
+
+    // Draw loop
+    const animate = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      // Update and draw particles
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Bounce boundaries
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
+
+        // Mouse attraction physics
+        if (mouse.x !== null && mouse.y !== null) {
+          const dx = mouse.x - p.x;
+          const dy = mouse.y - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < mouse.radius) {
+            const force = (mouse.radius - dist) / mouse.radius;
+            p.x += (dx / dist) * force * 0.6;
+            p.y += (dy / dist) * force * 0.6;
+          }
+        }
+
+        // Render dot
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.4)'; // bright blue/sky dot
+        ctx.fill();
+      });
+
+      // Draw constellation lines
+      for (let i = 0; i < particles.length; i++) {
+        const p1 = particles[i];
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < connectionDistance) {
+            const alpha = (1 - dist / connectionDistance) * 0.18;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(56, 189, 248, ${alpha})`;
+            ctx.lineWidth = 0.6;
+            ctx.stroke();
+          }
+        }
+
+        // Draw line from cursor to nearby particles
+        if (mouse.x !== null && mouse.y !== null) {
+          const dx = mouse.x - p1.x;
+          const dy = mouse.y - p1.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < mouse.radius) {
+            const alpha = (1 - dist / mouse.radius) * 0.3;
+            ctx.beginPath();
+            ctx.moveTo(mouse.x, mouse.y);
+            ctx.lineTo(p1.x, p1.y);
+            ctx.strokeStyle = `rgba(56, 189, 248, ${alpha})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          }
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseleave', handleGlobalMouseLeave);
+      cancelAnimationFrame(animationFrameId);
+    };
   }, []);
 
   const validateEmail = (val: string): boolean => {
@@ -105,238 +282,45 @@ const LoginPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-r from-slate-50 via-blue-50 to-[#1378d1] overflow-hidden font-sans relative">
-      <ToastContainer position="top-right" autoClose={3000} />
-
-      {/* MNC Light Theme CSS Configurations */}
-      <style>{`
-        @keyframes float3D {
-          0% { transform: translateY(0px) rotateX(4deg) rotateY(6deg); }
-          50% { transform: translateY(-15px) rotateX(8deg) rotateY(-4deg); }
-          100% { transform: translateY(0px) rotateX(4deg) rotateY(6deg); }
-        }
-        @keyframes blobMovement1 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -40px) scale(1.08); }
-          66% { transform: translate(-20px, 20px) scale(0.95); }
-        }
-        @keyframes floatUpParticle {
-          0% { transform: translateY(120px) scale(0); opacity: 0; }
-          30% { opacity: 0.6; }
-          100% { transform: translateY(-300px) scale(1); opacity: 0; }
-        }
-        @keyframes spinSlow {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        @keyframes spinReverse {
-          0% { transform: rotate(360deg); }
-          100% { transform: rotate(0deg); }
-        }
-        
-        /* Realistic Water Drop / Liquid Morphing keyframes */
-        @keyframes morphWaterDrop {
-          0%, 100% { border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%; }
-          33% { border-radius: 40% 60% 50% 50% / 50% 40% 60% 50%; }
-          66% { border-radius: 50% 40% 60% 40% / 40% 60% 40% 60%; }
-        }
-        @keyframes floatWaterDrop {
-          0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
-          50% { transform: translateY(25px) scale(0.95) rotate(10deg); }
-        }
-        
-        /* Fly-out animation from right logo to left center landing */
-        @keyframes flyOutLetter {
-          0% {
-            transform: translate3d(50vw, -120px, 0) scale(0.1) rotate(45deg);
-            opacity: 0;
-            filter: blur(5px);
-          }
-          75% {
-            opacity: 0.9;
-          }
-          100% {
-            transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
-            opacity: 1;
-            filter: blur(0px);
-          }
-        }
-        
-        .animate-float-3d { animation: float3D 9s ease-in-out infinite; }
-        .animate-particle { animation: floatUpParticle var(--duration) linear infinite; animation-delay: var(--delay); }
-        .animate-spin-slow { animation: spinSlow 30s linear infinite; }
-        .animate-spin-reverse { animation: spinReverse 20s linear infinite; }
-        
-        /* Sequential flight animations */
-        .fly-letter {
-          opacity: 0;
-          animation: flyOutLetter 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
-
-        .liquid-blob-1 {
-          position: absolute;
-          top: 15%;
-          left: 10%;
-          width: 450px;
-          height: 450px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(19, 120, 209, 0.12) 0%, transparent 70%);
-          filter: blur(80px);
-          animation: blobMovement1 16s ease-in-out infinite;
-        }
-        
-        /* Realistic CSS Water Droplets */
-        .water-droplet {
-          position: absolute;
-          background: transparent;
-          border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
-          box-shadow: 
-            inset 2px 2px 4px rgba(19, 120, 209, 0.05),
-            3px 4px 6px rgba(19, 120, 209, 0.08),
-            inset -2px -2px 4px rgba(255, 255, 255, 0.95),
-            inset 2px 2px 4px rgba(19, 120, 209, 0.15);
-          filter: drop-shadow(0 4px 6px rgba(19, 120, 209, 0.1));
-          animation: morphWaterDrop 8s ease-in-out infinite, floatWaterDrop 9s ease-in-out infinite;
-        }
-
-        /* 3D Typography Extrusion Shadows */
-        .text-3d-blue {
-          color: #1378d1 !important;
-          text-shadow: 
-            1px 1px 0px #0a5697,
-            2px 2px 0px #08477d,
-            3px 3px 0px #063863,
-            4px 4px 0px #04294a,
-            5px 5px 0px #021a30,
-            6px 6px 12px rgba(19, 120, 209, 0.35),
-            0px 0px 20px rgba(19, 120, 209, 0.45);
-        }
-
-        .text-3d-gold {
-          color: #ffd100 !important;
-          text-shadow: 
-            1px 1px 0px #cca700,
-            2px 2px 0px #997e00,
-            3px 3px 0px #665400,
-            4px 4px 0px #332a00,
-            5px 5px 0px rgba(0,0,0,0.2),
-            6px 6px 12px rgba(255, 209, 0, 0.35),
-            0px 0px 25px rgba(255, 209, 0, 0.55);
-        }
-      `}</style>
-
-      {/* Left Column - Minimalist MNC Light panel */}
-      <div className="hidden lg:flex w-[55%] relative items-center justify-center p-12 overflow-hidden border-r border-slate-200/40 bg-transparent">
-        
-        {/* Soft Ambient Pastels Blobs */}
-        <div className="liquid-blob-1 pointer-events-none" />
-
-        {/* Floating Particles */}
-        <div className="absolute inset-0 pointer-events-none">
-          {particles.map((style, idx) => (
-            <div
-              key={idx}
-              className="absolute animate-particle rounded-full bg-blue-500/10"
-              style={{
-                left: style.left,
-                top: style.top,
-                width: style.size,
-                height: style.size,
-                '--duration': style.duration,
-                '--delay': style.delay,
-              } as React.CSSProperties}
-            />
-          ))}
-        </div>
-
-        {/* Floating 3D Water Droplets in the Background (Scattered dew design) */}
-        <div className="water-droplet w-12 h-12 top-20 left-20" style={{ animationDelay: '0s' }} />
-        <div className="water-droplet w-8 h-8 bottom-24 left-36" style={{ animationDelay: '-3s' }} />
-        <div className="water-droplet w-10 h-10 top-1/2 right-12" style={{ animationDelay: '-6s' }} />
-        
-        {/* Additional Small Water Drops */}
-        <div className="water-droplet w-5 h-5 top-12 right-28" style={{ animationDelay: '-2s' }} />
-        <div className="water-droplet w-4 h-4 bottom-36 right-36" style={{ animationDelay: '-4.5s' }} />
-        <div className="water-droplet w-6 h-6 bottom-12 left-1/3" style={{ animationDelay: '-1s' }} />
-        <div className="water-droplet w-3 h-3 top-1/3 left-1/4" style={{ animationDelay: '-5s' }} />
-        <div className="water-droplet w-4 h-4 top-1/4 right-1/3" style={{ animationDelay: '-3.5s' }} />
-        <div className="water-droplet w-3 h-3 top-1/4 left-10" style={{ animationDelay: '-1.5s' }} />
-        <div className="water-droplet w-5 h-5 bottom-1/3 right-1/4" style={{ animationDelay: '-5.5s' }} />
-        <div className="water-droplet w-4 h-4 top-10 right-1/2" style={{ animationDelay: '-2.5s' }} />
-
-        {/* Dynamic Holographic Typography (Letters fly here & stop) */}
-        <div className="absolute flex flex-col items-center justify-center z-10 select-none animate-float-3d">
-          
-          {/* Rotating HUD circle behind the logo */}
-          <div className="absolute w-[360px] h-[360px] rounded-full border border-blue-500/10 border-dashed animate-spin-slow pointer-events-none flex items-center justify-center">
-            <div className="w-[300px] h-[300px] rounded-full border border-yellow-500/10 border-dashed animate-spin-reverse pointer-events-none" />
-          </div>
-
-          {/* 3D Holographic typography structure (No wrapping containers/divs around L or Y) */}
-          <div className="flex items-center gap-4 relative transform-style-3d select-none" style={{ transformStyle: 'preserve-3d', transform: 'rotateY(10deg)' }}>
-            
-            {/* Raw letters (H, O, U, S) flying in sequence - Colored Royal Blue with 3D shadow */}
-            <div className="flex gap-1.5 text-7xl md:text-8xl font-black italic tracking-tighter text-3d-blue font-sans">
-              <span className="fly-letter" style={{ animationDelay: '0.3s' }}>h</span>
-              <span className="fly-letter" style={{ animationDelay: '0.6s' }}>o</span>
-              <span className="fly-letter" style={{ animationDelay: '0.9s' }}>u</span>
-              <span className="fly-letter" style={{ animationDelay: '1.2s' }}>s</span>
-            </div>
-
-            {/* Raw letters (L, Y) flying in sequence - Colored Hously Gold with 3D shadow (No wrapping divs) */}
-            <div className="flex gap-1.5 text-7xl md:text-8xl font-black italic tracking-tighter text-3d-gold font-sans">
-              <span className="fly-letter" style={{ animationDelay: '1.5s' }}>l</span>
-              <span className="fly-letter" style={{ animationDelay: '1.8s' }}>y</span>
-            </div>
-
-          </div>
-
-          {/* Subtitles flying in sequentially (No wrapper divs/cards) */}
-          <div className="mt-10 flex items-center justify-center select-none font-sans font-bold text-[10px] md:text-xs tracking-[0.2em] text-slate-500">
-            <span className="fly-letter uppercase text-slate-550" style={{ animationDelay: '2.2s' }}>IT Services</span>
-            <span className="fly-letter mx-2.5 text-slate-400 font-black" style={{ animationDelay: '2.4s' }}>•</span>
-            <span className="fly-letter uppercase text-slate-550" style={{ animationDelay: '2.6s' }}>Real Estate</span>
-            <span className="fly-letter mx-2.5 text-slate-400 font-black" style={{ animationDelay: '2.8s' }}>•</span>
-            <span className="fly-letter uppercase text-slate-550" style={{ animationDelay: '3.0s' }}>Finance</span>
-          </div>
-
-        </div>
-
-        {/* Back Link bottom-left corner */}
-        <button
-          onClick={() => navigate('/')}
-          className="absolute bottom-8 left-8 flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-all cursor-pointer bg-white hover:bg-slate-50 px-4 py-2 rounded-xl border border-slate-200/50 shadow-sm"
-        >
-          <ArrowLeft size={14} /> Back to main site
-        </button>
+    <div 
+      className="min-h-screen flex items-center justify-center overflow-hidden font-sans relative"
+      style={{
+        backgroundImage: `url(${loginBgTablet})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* Top-Left Corner Logo */}
+      <div className="absolute top-6 left-8 z-20">
+        <img
+          src={houslyLogo}
+          alt="Hously Fintech Realty"
+          className="h-16 w-auto object-contain filter drop-shadow-[0_0_15px_rgba(0,0,0,0.3)] brightness-110"
+        />
       </div>
 
-      {/* Right Column - Sleek Login Card Panel */}
-      <div className="w-full lg:w-[45%] flex flex-col justify-center px-6 sm:px-12 md:px-20 lg:px-16 xl:px-24 bg-transparent relative z-10">
-        
-        {/* Back button for mobile */}
-        <button
-          onClick={() => navigate('/')}
-          className="lg:hidden absolute top-6 left-6 flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 transition cursor-pointer"
-        >
-          <ArrowLeft size={14} /> Back
-        </button>
+      {/* Interactive Connecting Lines Background Canvas */}
+      <canvas 
+        ref={canvasRef} 
+        className="absolute inset-0 pointer-events-none z-0" 
+      />
+      <ToastContainer position="top-right" autoClose={3000} />
 
-        {/* Glass Card Container (MNC Level white glassmorphism overlay on steel-blue gradient) */}
-        <div className="max-w-[400px] w-full mx-auto bg-white/90 backdrop-blur-xl border border-white/80 p-8 rounded-3xl shadow-[0_20px_50px_rgba(15,23,42,0.15)] space-y-6">
+      {/* Centered Login Card Panel */}
+      <div className="w-full min-h-screen flex items-center justify-center p-6 relative z-10 bg-black/35 backdrop-blur-[2px]">
+        {/* Glass Card Container (Ultra-Transparent dark glassmorphism) */}
+        <div 
+          ref={containerRef}
+          style={tiltStyle}
+          className="max-w-[400px] w-full bg-slate-950/45 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl shadow-[0_25px_60px_rgba(0,0,0,0.5)] space-y-6 transition-transform duration-100 ease-out text-white"
+        >
           
-          {/* Header & Logo */}
+          {/* Header */}
           <div className="flex flex-col items-center text-center">
-            {/* Logo Bada Kiya on Right Side */}
-            <img
-              src={houslyLogo}
-              alt="Hously Fintech Realty"
-              className="h-20 w-auto mb-4 object-contain filter drop-shadow-[0_0_12px_rgba(19,120,209,0.25)]"
-            />
-            <h2 className="text-xl font-black text-slate-800 tracking-tight">
+            <h2 className="text-xl font-black text-white tracking-tight">
               Sign In to Portal
             </h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+            <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mt-1">
               Authorized Personnel Portal Access
             </p>
           </div>
@@ -346,17 +330,17 @@ const LoginPage: React.FC = () => {
             
             {/* Email field */}
             <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              <label className="block text-[10px] font-bold text-white/70 uppercase tracking-wider">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Mail className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-white/50 w-4 h-4" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@houslytech.com"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#1378d1] focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/30 outline-none focus:border-[#1378d1] focus:bg-white/10 focus:ring-4 focus:ring-blue-500/20 transition-all"
                   disabled={loading}
                 />
               </div>
@@ -365,32 +349,32 @@ const LoginPage: React.FC = () => {
             {/* Password field */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <label className="block text-[10px] font-bold text-white/60 uppercase tracking-wider">
                   Password
                 </label>
                 <button
                   type="button"
                   onClick={() => toast.info('Please contact administration to reset password')}
-                  className="text-[10px] font-bold text-[#1378d1] hover:text-[#0c66ca] transition"
+                  className="text-[10px] font-bold text-blue-400 hover:text-blue-300 transition"
                   disabled={loading}
                 >
                   Forgot password?
                 </button>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Lock className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-white/50 w-4 h-4" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#1378d1] focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all"
+                  className="w-full pl-10 pr-10 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/30 outline-none focus:border-[#1378d1] focus:bg-white/10 focus:ring-4 focus:ring-blue-500/20 transition-all"
                   disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-600 transition"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white transition"
                   disabled={loading}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -405,10 +389,10 @@ const LoginPage: React.FC = () => {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 bg-slate-100 border-slate-200 rounded text-[#1378d1] focus:ring-blue-500 focus:ring-offset-white"
+                  className="h-4 w-4 bg-white/5 border-white/10 rounded text-[#1378d1] focus:ring-blue-500 focus:ring-offset-slate-900"
                   disabled={loading}
                 />
-                <span className="ml-2 text-xs font-semibold text-slate-500 hover:text-slate-700 transition">
+                <span className="ml-2 text-xs font-semibold text-white/60 hover:text-white/80 transition">
                   Keep me logged in
                 </span>
               </label>
@@ -416,7 +400,7 @@ const LoginPage: React.FC = () => {
 
             {/* Display Error Message */}
             {error && (
-              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-500 font-semibold leading-relaxed animate-pulse">
+              <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-400 font-semibold leading-relaxed animate-pulse">
                 {error}
               </div>
             )}
@@ -425,7 +409,7 @@ const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#1378d1] hover:bg-[#0c66ca] text-white py-3 px-4 rounded-xl text-xs font-bold transition-all shadow-[0_4px_15px_rgba(19,120,209,0.25)] hover:shadow-[0_6px_20px_rgba(19,120,209,0.35)] disabled:opacity-50 flex items-center justify-center cursor-pointer"
+              className="w-full bg-[#1378d1] hover:bg-[#0c66ca] text-white py-3 px-4 rounded-xl text-xs font-bold transition-all shadow-[0_4px_15px_rgba(19,120,209,0.25)] hover:shadow-[0_6px_20px_rgba(19,120,209,0.35)] disabled:opacity-50 flex items-center justify-pointer flex items-center justify-center cursor-pointer"
             >
               {loading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
@@ -438,8 +422,19 @@ const LoginPage: React.FC = () => {
             </button>
           </form>
 
+          {/* Back to main site button */}
+          <div className="text-center pt-2">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="inline-flex items-center justify-center gap-2 text-xs font-semibold text-white/70 hover:text-white transition-all cursor-pointer w-full bg-white/5 hover:bg-white/10 py-2.5 rounded-xl border border-white/10 shadow-sm"
+            >
+              <ArrowLeft size={14} /> Back to main site
+            </button>
+          </div>
+
           {/* Footer branding */}
-          <div className="text-center pt-8 border-t border-slate-100 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+          <div className="text-center pt-8 border-t border-white/10 text-[9px] font-bold text-white/40 uppercase tracking-widest">
             © 2026 Hously Fintech Realty Ltd. All rights reserved.
           </div>
         </div>

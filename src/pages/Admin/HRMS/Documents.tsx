@@ -39,9 +39,13 @@ import {
 
 import { documentApi } from '../../../lib/documentApi';
 import { employeeApi } from '../../../lib/employeeApi';
+import type { EmployeeRecord } from '../../../lib/employeeApi';
 import { uploadFile } from '../../../lib/api';
 import { masterDataAPI } from '../../../lib/masterApi';
+import { settingsApi } from '../../../lib/settingsApi';
 import toast, { Toaster } from 'react-hot-toast';
+
+let globalNavbarLogo: string | null = null;
 
 const offerLetterHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -76,7 +80,7 @@ const offerLetterHtml = `<!DOCTYPE html>
 </head>
 <body style="margin: 0; padding: 0; background-color: #ffffff;">
 
-  <div class="a4-page" style="background-color: #ffffff; width: 210mm; height: 297mm; max-width: 100%; font-family: 'Inter', sans-serif; color: #334155; line-height: 1.8; font-size: 13px; position: relative; overflow: hidden; padding: 25mm 20mm; box-sizing: border-box; margin: 0 auto; border: 1px solid #f1f5f9; border-radius: 8px; display: flex; flex-direction: column; justify-content: flex-start;">
+  <div class="a4-page" style="background-color: #ffffff; width: 210mm; min-height: 297mm; height: auto; max-width: 100%; font-family: 'Inter', sans-serif; color: #334155; line-height: 1.8; font-size: 13px; position: relative; overflow: visible; padding: 25mm 20mm; box-sizing: border-box; margin: 0 auto; border: 1px solid #f1f5f9; border-radius: 8px; display: flex; flex-direction: column; justify-content: flex-start;">
     
     <div style="position: absolute; top: 0; right: 0; width: 250px; height: 96px; overflow: hidden; pointer-events: none; z-index: 0;">
       <svg style="width: 100%; height: 100%;" viewBox="0 0 300 100" preserveAspectRatio="none">
@@ -201,7 +205,7 @@ const paySlipHtml = `<!DOCTYPE html>
 </head>
 <body style="margin: 0; padding: 0; background-color: #ffffff;">
 
-  <div style="background-color: #ffffff; width: 100%; height: auto; min-height: 840px; font-family: 'Inter', sans-serif; color: #334155; line-height: 1.5; font-size: 10px; position: relative; overflow: hidden; padding: 40px; box-sizing: border-box; aspect-ratio: 1/1.41;">
+  <div style="background-color: #ffffff; width: 100%; height: auto; min-height: 840px; font-family: 'Inter', sans-serif; color: #334155; line-height: 1.5; font-size: 10px; position: relative; overflow: visible; padding: 40px; box-sizing: border-box; aspect-ratio: 1/1.41;">
     
     <div style="text-align: center; border-bottom: 2px solid #0076D8; padding-bottom: 12px; margin-bottom: 16px;">
       <h1 style="font-size: 16px; font-weight: 800; color: #0076D8; text-transform: uppercase; margin: 0;">
@@ -341,7 +345,7 @@ const contractHtml = `<!DOCTYPE html>
 </head>
 <body style="margin: 0; padding: 0; background-color: #ffffff;">
 
-  <div style="background-color: #ffffff; width: 100%; height: auto; min-height: 840px; font-family: 'Inter', sans-serif; color: #334155; line-height: 1.6; font-size: 10px; position: relative; overflow: hidden; padding: 40px; box-sizing: border-box; aspect-ratio: 1/1.41;">
+  <div style="background-color: #ffffff; width: 100%; height: auto; min-height: 840px; font-family: 'Inter', sans-serif; color: #334155; line-height: 1.6; font-size: 10px; position: relative; overflow: visible; padding: 40px; box-sizing: border-box; aspect-ratio: 1/1.41;">
     
     <div style="text-align: center; border-bottom: 2px solid #334155; padding-bottom: 12px; margin-bottom: 20px;">
       <h1 style="font-size: 16px; font-weight: 800; color: #1e293b; text-transform: uppercase; margin: 0; letter-spacing: 0.5px;">
@@ -420,7 +424,7 @@ const agreementHtml = `<!DOCTYPE html>
 </head>
 <body style="margin: 0; padding: 0; background-color: #ffffff;">
 
-  <div style="background-color: #ffffff; width: 100%; height: auto; min-height: 840px; font-family: 'Inter', sans-serif; color: #334155; line-height: 1.6; font-size: 10px; position: relative; overflow: hidden; padding: 40px; box-sizing: border-box; aspect-ratio: 1/1.41;">
+  <div style="background-color: #ffffff; width: 100%; height: auto; min-height: 840px; font-family: 'Inter', sans-serif; color: #334155; line-height: 1.6; font-size: 10px; position: relative; overflow: visible; padding: 40px; box-sizing: border-box; aspect-ratio: 1/1.41;">
     
     <div style="text-align: center; border-bottom: 2px solid #0076D8; padding-bottom: 12px; margin-bottom: 20px;">
       <h1 style="font-size: 16px; font-weight: 800; color: #0076D8; text-transform: uppercase; margin: 0; letter-spacing: 0.5px;">
@@ -482,7 +486,7 @@ const blankTemplateHtml = `<div style="font-family: 'Inter', sans-serif; font-si
 
 // ─── TYPES & DATA ────────────────────────────────────────────────────────────
 
-interface Employee {
+interface Employee extends Omit<Partial<EmployeeRecord>, 'salaryType'> {
   id: string;
   name: string;
   email: string;
@@ -558,10 +562,23 @@ export const getPercentWidth = (val: number | undefined | null, defaultValue: nu
 
 // Static seed data removed — templates and documents are now loaded from the database API
 
-export const renderTemplateContent = (htmlString: string, logo: string | null, _seal: string | null, _sig: string | null) => {
+export const renderTemplateContent = (htmlString: string, logo: string | null, seal: string | null, sig: string | null, isIframe = false) => {
   let html = htmlString || '';
-  if (logo) {
-    const logoPath = getFullImageUrl(logo);
+
+  // Resolve fallback logos dynamically from settings if not set
+  const resolvedLogo = logo || globalNavbarLogo || '/uploads/documents/1783684445841-hously-logo-d3eddff1.png';
+  const logoPath = getFullImageUrl(resolvedLogo);
+  const logoHtml = logoPath ? `<img class="template-logo-img" src="${logoPath}" style="height: 52px; width: auto; object-fit: contain;" />` : '';
+
+  // Replace company logo placeholder strings
+  html = html.replace(/{{\s*company_logo\s*}}/gi, logoHtml);
+  html = html.replace(/{\s*company_logo\s*}/gi, logoHtml);
+  html = html.replace(/{{\s*navbar_logo\s*}}/gi, logoHtml);
+  html = html.replace(/{\s*navbar_logo\s*}/gi, logoHtml);
+  html = html.replace(/{{\s*logo\s*}}/gi, logoHtml);
+  html = html.replace(/{\s*logo\s*}/gi, logoHtml);
+
+  if (logo || logoPath) {
     // Matches fallback logo div container OR previously replaced logo image tag (with class or specific dimensions/styles)
     const logoRegex = /<div style="[^"]*background-color:\s*(?:#0076d8|#0076D8|rgb\(\s*0,\s*118,\s*216\s*\))[^"]*">\s*H\s*<\/div>|<img[^>]*class="template-logo-img"[^>]*>|<img[^>]*style="[^"]*height:\s*(?:52px|40px)[^"]*object-fit:\s*contain[^"]*"[^>]*>/gi;
     html = html.replace(logoRegex, (match) => {
@@ -571,6 +588,32 @@ export const renderTemplateContent = (htmlString: string, logo: string | null, _
     });
   }
 
+  // Handle Seal
+  const sealPath = seal ? getFullImageUrl(seal) : '';
+  const sealHtml = sealPath ? `<img class="seal-placeholder" src="${sealPath}" style="width: 80px; height: auto; mix-blend-mode: multiply; position: absolute; cursor: move; z-index: 10; opacity: 0.85;" data-placeholder="{company_seal}" />` : '';
+
+  if (sealPath) {
+    html = html.replace(/(<img[^>]*class="[^"]*seal-placeholder[^"]*"[^>]*src=")[^"]*("[^>]*>)/gi, `$1${sealPath}$2`);
+  }
+
+  html = html.replace(/{{\s*company_seal\s*}}/gi, sealHtml);
+  html = html.replace(/{\s*company_seal\s*}/gi, sealHtml);
+  html = html.replace(/{{\s*seal\s*}}/gi, sealHtml);
+  html = html.replace(/{\s*seal\s*}/gi, sealHtml);
+
+  // Handle Signature
+  const sigPath = sig ? getFullImageUrl(sig) : '';
+  const sigHtml = sigPath ? `<img class="sig-placeholder" src="${sigPath}" style="width: 100px; height: auto; mix-blend-mode: multiply; position: absolute; cursor: move; z-index: 10;" data-placeholder="{brand_signature}" />` : '';
+
+  if (sigPath) {
+    html = html.replace(/(<img[^>]*class="[^"]*sig-placeholder[^"]*"[^>]*src=")[^"]*("[^>]*>)/gi, `$1${sigPath}$2`);
+  }
+
+  html = html.replace(/{{\s*brand_signature\s*}}/gi, sigHtml);
+  html = html.replace(/{\s*brand_signature\s*}/gi, sigHtml);
+  html = html.replace(/{{\s*signature\s*}}/gi, sigHtml);
+  html = html.replace(/{\s*signature\s*}/gi, sigHtml);
+
   // Always strip old dashed placeholders if they exist
   const sealFallback = /<div style="[^"]*border:\s*1px\s*dashed\s*#cbd5e1[^"]*">\s*Seal\s*<\/div>/gi;
   html = html.replace(sealFallback, '');
@@ -578,15 +621,20 @@ export const renderTemplateContent = (htmlString: string, logo: string | null, _
   const sigFallback = /<div style="[^"]*border:\s*1px\s*dashed\s*#cbd5e1[^"]*">\s*Signature\s*<\/div>/gi;
   html = html.replace(sigFallback, '');
 
+  if (!isIframe) {
+    // Prevent style tags containing body selector from leaking and styling the main application body
+    html = html.replace(/body(?=\s*[\{,])/gi, '.template-body-preview');
+  }
   return html;
 };
 
 
-interface EmployeeData {
+interface EmployeeData extends Omit<Partial<EmployeeRecord>, 'salary' | 'salaryType'> {
   name?: string;
   department?: string;
   jobTitle?: string;
   salary?: string;
+  salaryType?: string;
   joinDate?: string;
   address?: string;
   city?: string;
@@ -597,12 +645,14 @@ interface EmployeeData {
   dateOfLeaving?: string;
 }
 
-const getRenderedHtml = (type: string, empData: EmployeeData, templatesList: DocumentTemplate[] = []) => {
+const getRenderedHtml = (type: string, empData: EmployeeData, templatesList: DocumentTemplate[] = [], isIframe = false) => {
   let html = '';
   const customTpl = templatesList.find(t => t.name === type || t.category === type);
   if (customTpl && customTpl.content) {
     let rawContent = customTpl.content;
-    if (!rawContent.toLowerCase().includes('class="a4-page"') && !rawContent.toLowerCase().includes("class='a4-page'")) {
+    const hasA4Page = rawContent.toLowerCase().includes('class="a4-page"') || rawContent.toLowerCase().includes("class='a4-page'");
+    const hasPage = rawContent.toLowerCase().includes('class="page"') || rawContent.toLowerCase().includes("class='page'");
+    if (!hasA4Page && !hasPage) {
       // Wrap in standard A4 document wrapper so layout and overlays render identically to template editor
       rawContent = `<!DOCTYPE html>
 <html lang="en">
@@ -636,7 +686,7 @@ const getRenderedHtml = (type: string, empData: EmployeeData, templatesList: Doc
   </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: #ffffff;">
-  <div class="a4-page" style="background-color: #ffffff; width: 210mm; height: 297mm; max-width: 100%; font-family: 'Inter', sans-serif; color: #334155; line-height: 1.8; font-size: 13px; position: relative; overflow: hidden; padding: 25mm 20mm; box-sizing: border-box; margin: 0 auto; border: 1px solid #f1f5f9; border-radius: 8px; display: flex; flex-direction: column; justify-content: flex-start;">
+  <div class="a4-page" style="background-color: #ffffff; width: 210mm; min-height: 297mm; height: auto; max-width: 100%; font-family: 'Inter', sans-serif; color: #334155; line-height: 1.8; font-size: 13px; position: relative; overflow: visible; padding: 25mm 20mm; box-sizing: border-box; margin: 0 auto; border: 1px solid #f1f5f9; border-radius: 8px; display: flex; flex-direction: column; justify-content: flex-start;">
     ${rawContent}
   </div>
 </body>
@@ -658,9 +708,9 @@ const getRenderedHtml = (type: string, empData: EmployeeData, templatesList: Doc
   const dynamicAddress = parts.length > 0 ? parts.join(', ') : 'Rahatani, Pune, Maharashtra - 411017';
 
   // Format salary
-  const salaryDisplay = empData.salary
-    ? `₹${Number(empData.salary).toLocaleString('en-IN')}.00`
-    : '₹80,000.00';
+  const annualCtcValue = empData.ctc || (empData.salary ? Number(empData.salary) * 12 : 960000);
+  const monthlyGrossValue = annualCtcValue / 12;
+  const salaryDisplay = `₹${monthlyGrossValue.toLocaleString('en-IN')}.00`;
 
   // Format joining date
   const joinDateDisplay = empData.joinDate
@@ -677,22 +727,31 @@ const getRenderedHtml = (type: string, empData: EmployeeData, templatesList: Doc
 
   const defaults: Record<string, string> = {
     employee_name: empData.name || 'Employee Name',
+    full_name: empData.name || 'Employee Name',
+    fullName: empData.name || 'Employee Name',
     employee_address: dynamicAddress,
-    designation: empData.jobTitle || (empData.department === 'HR' ? 'HR Recruiter' : empData.department === 'STORE' ? 'Store Assistant' : 'Finance Manager'),
-    job_title: empData.jobTitle || (empData.department === 'HR' ? 'HR Recruiter' : empData.department === 'STORE' ? 'Store Assistant' : 'Finance Manager'),
+    designation: empData.jobTitle || empData.designationRole || (empData.department === 'HR' ? 'HR Recruiter' : empData.department === 'STORE' ? 'Store Assistant' : 'Finance Manager'),
+    job_title: empData.jobTitle || empData.designationRole || (empData.department === 'HR' ? 'HR Recruiter' : empData.department === 'STORE' ? 'Store Assistant' : 'Finance Manager'),
+    designation_role: empData.jobTitle || empData.designationRole || (empData.department === 'HR' ? 'HR Recruiter' : empData.department === 'STORE' ? 'Store Assistant' : 'Finance Manager'),
+    designationRole: empData.jobTitle || empData.designationRole || (empData.department === 'HR' ? 'HR Recruiter' : empData.department === 'STORE' ? 'Store Assistant' : 'Finance Manager'),
     department: empData.department || 'Operations',
     joining_date: joinDateDisplay,
     start_date: joinDateDisplay,
+    date_of_joining: joinDateDisplay,
+    dateOfJoining: joinDateDisplay,
     work_location: 'Main Office, Pune',
     salary: salaryDisplay,
-    probation_period: '3 Months',
+    salary_type: empData.salaryType || 'Monthly',
+    salaryType: empData.salaryType || 'Monthly',
+    probation_period: empData.probationPeriod !== undefined ? `${empData.probationPeriod} Months` : '3 Months',
+    _probation_period: empData.probationPeriod !== undefined ? `${empData.probationPeriod} Months` : '3 Months',
     hr_name: 'Maria Aguado',
     hr_designation: 'HRD Hously Finntech Realty',
     company_name: 'Hously Finntech Realty',
     website: 'www.hously.in',
-    phone: '+91 9371 00 9381',
-    email: 'careers@hously.in',
-    address: 'First Floor, Tamara Uprise Rahatani, Pune',
+    phone: empData.phone || '+91 9371 00 9381',
+    email: empData.email || 'careers@hously.in',
+    address: empData.address || 'First Floor, Tamara Uprise Rahatani, Pune',
     hiring_manager: 'Maria Aguado',
     hiring_manager_title: 'HRD Hously Finntech Realty',
     date: empData.joinDate || 'June 10, 2026',
@@ -700,8 +759,62 @@ const getRenderedHtml = (type: string, empData: EmployeeData, templatesList: Doc
     employee_id: empData.employeeId || 'EMP001',
     month_year: empData.joinDate ? new Date(empData.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'June 2026',
     issue_date: currentDateDisplay,
+    current_date: currentDateDisplay,
+    currentDate: currentDateDisplay,
     date_of_leaving: leavingDateDisplay,
-    ctc: empData.salary ? `₹${(Number(empData.salary) * 12).toLocaleString('en-IN')}.00 Per Annum` : '₹9,60,000.00 Per Annum'
+    ctc: `₹${annualCtcValue.toLocaleString('en-IN')}.00 Per Annum`,
+    _ctc: `₹${annualCtcValue.toLocaleString('en-IN')}.00`,
+
+    // New calculated components based on CTC
+    basic_salary: `₹${(monthlyGrossValue * 0.5).toLocaleString('en-IN')}.00`,
+    hra_salary: `₹${(monthlyGrossValue * 0.4).toLocaleString('en-IN')}.00`,
+    special_allowance_salary: `₹${(monthlyGrossValue * 0.1).toLocaleString('en-IN')}.00`,
+    basic_salary_annual: `₹${(annualCtcValue * 0.5).toLocaleString('en-IN')}.00`,
+    hra_salary_annual: `₹${(annualCtcValue * 0.4).toLocaleString('en-IN')}.00`,
+    special_allowance_salary_annual: `₹${(annualCtcValue * 0.1).toLocaleString('en-IN')}.00`,
+
+    first_name: empData.firstName || '',
+    firstName: empData.firstName || '',
+    middle_name: empData.middleName || '',
+    middleName: empData.middleName || '',
+    last_name: empData.lastName || '',
+    lastName: empData.lastName || '',
+    role: empData.role || '',
+    status: empData.status || '',
+    gender: empData.gender || '',
+    date_of_birth: empData.dateOfBirth || '',
+    dateOfBirth: empData.dateOfBirth || '',
+    emergency_contact: empData.emergencyContact || '',
+    emergencyContact: empData.emergencyContact || '',
+    emergency_contact_name: empData.emergencyContactName || '',
+    emergencyContactName: empData.emergencyContactName || '',
+    blood_group: empData.bloodGroup || '',
+    bloodGroup: empData.bloodGroup || '',
+    marital_status: empData.maritalStatus || '',
+    maritalStatus: empData.maritalStatus || '',
+    nationality: empData.nationality || '',
+    aadhar_number: empData.aadharNumber || '',
+    aadharNumber: empData.aadharNumber || '',
+    pan_number: empData.panNumber || '',
+    panNumber: empData.panNumber || '',
+    permanent_address: empData.permanentAddress || '',
+    permanentAddress: empData.permanentAddress || '',
+    current_address: empData.currentAddress || '',
+    currentAddress: empData.currentAddress || '',
+    employee_type: empData.employeeType || '',
+    employeeType: empData.employeeType || '',
+    work_mode: empData.workMode || '',
+    workMode: empData.workMode || '',
+    notice_period: empData.noticePeriod !== undefined ? `${empData.noticePeriod} Days` : '',
+    noticePeriod: empData.noticePeriod !== undefined ? `${empData.noticePeriod} Days` : '',
+    bank_name: empData.bankName || '',
+    bankName: empData.bankName || '',
+    account_number: empData.accountNumber || '',
+    accountNumber: empData.accountNumber || '',
+    ifsc_code: empData.ifscCode || '',
+    ifscCode: empData.ifscCode || '',
+    upi_id: empData.upiId || '',
+    upiId: empData.upiId || '',
   };
 
   // Format acceptance date for offer letter (8 days after join date)
@@ -717,55 +830,91 @@ const getRenderedHtml = (type: string, empData: EmployeeData, templatesList: Doc
   const allVars = { ...defaults, acceptance_date: acceptanceDate };
 
   Object.entries(allVars).forEach(([key, val]) => {
-    const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-    html = html.replace(regex, val);
+    const doubleRegex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+    html = html.replace(doubleRegex, val);
+
+    const singleRegex = new RegExp(`{\\s*${key}\\s*}`, 'g');
+    html = html.replace(singleRegex, val);
   });
 
   if (customTpl) {
+    // Pass null for seal and signature to clear the default inline placeholders from flow, preventing double rendering
     html = renderTemplateContent(html, customTpl.logoUrl || null, null, null);
 
     let overlays = '';
-    if (customTpl.sealUrl) {
-      const sealX = getPercentX(customTpl.sealX, 15);
-      const sealY = getPercentY(customTpl.sealY, 75);
-      const sealW = getPercentWidth(customTpl.sealWidth, 10);
-      overlays += `
-        <div style="position: absolute; left: ${sealX}%; top: ${sealY}%; z-index: 50; mix-blend-mode: multiply; pointer-events: none; width: ${sealW}%;">
-          <img src="${getFullImageUrl(customTpl.sealUrl)}" style="width: 100%; height: auto; object-fit: contain;" />
-        </div>
-      `;
+
+    // ── Parse all instances from embedded HTML comment (new multi-instance format) ──
+    const metaMatch = html.match(/<!--\s*OVERLAY_INSTANCES:([\s\S]*?)-->/);
+    if (metaMatch) {
+      try {
+        const meta = JSON.parse(metaMatch[1]);
+        if (meta.version === 2) {
+          // Version 2: Coordinates are already saved as clean percentages
+          (meta.sealInstances || []).forEach((inst: { x: number; y: number; width: number }) => {
+            overlays += `<div style="position:absolute;left:${inst.x}%;top:${inst.y}%;width:${inst.width}%;z-index:50;mix-blend-mode:multiply;pointer-events:none;">
+              <img src="${getFullImageUrl(customTpl.sealUrl!)}" style="width:100%;height:auto;object-fit:contain;" />
+            </div>`;
+          });
+
+          (meta.sigInstances || []).forEach((inst: { x: number; y: number; width: number }) => {
+            overlays += `<div style="position:absolute;left:${inst.x}%;top:${inst.y}%;width:${inst.width}%;z-index:50;mix-blend-mode:multiply;pointer-events:none;">
+              <img src="${getFullImageUrl(customTpl.sigUrl!)}" style="width:100%;height:auto;object-fit:contain;" />
+            </div>`;
+          });
+        } else {
+          // Fall through to legacy parsing
+          throw new Error("legacy comment format");
+        }
+      } catch {
+        // Parsing failed or legacy comment format — fall through to legacy fallback
+      }
     }
-    if (customTpl.sigUrl) {
-      const sigX = getPercentX(customTpl.sigX, 50);
-      const sigY = getPercentY(customTpl.sigY, 75);
-      const sigW = getPercentWidth(customTpl.sigWidth, 15);
-      overlays += `
-        <div style="position: absolute; left: ${sigX}%; top: ${sigY}%; z-index: 50; mix-blend-mode: multiply; pointer-events: none; width: ${sigW}%;">
-          <img src="${getFullImageUrl(customTpl.sigUrl)}" style="width: 100%; height: auto; object-fit: contain;" />
-        </div>
-      `;
+
+    // ── Legacy fallback: use sealX/sealY/sigX/sigY from DB if no comment ─────
+    if (!metaMatch || !overlays) {
+      if (customTpl.sealUrl) {
+        const sealX = getPercentX(customTpl.sealX, 15);
+        const sealY = getPercentY(customTpl.sealY, 75);
+        const sealW = getPercentWidth(customTpl.sealWidth, 10);
+        overlays += `<div style="position:absolute;left:${sealX}%;top:${sealY}%;width:${sealW}%;z-index:50;mix-blend-mode:multiply;pointer-events:none;">
+          <img src="${getFullImageUrl(customTpl.sealUrl)}" style="width:100%;height:auto;object-fit:contain;" />
+        </div>`;
+      }
+      if (customTpl.sigUrl) {
+        const sigX = getPercentX(customTpl.sigX, 50);
+        const sigY = getPercentY(customTpl.sigY, 75);
+        const sigW = getPercentWidth(customTpl.sigWidth, 15);
+        overlays += `<div style="position:absolute;left:${sigX}%;top:${sigY}%;width:${sigW}%;z-index:50;mix-blend-mode:multiply;pointer-events:none;">
+          <img src="${getFullImageUrl(customTpl.sigUrl)}" style="width:100%;height:auto;object-fit:contain;" />
+        </div>`;
+      }
     }
+
+    // ── Inject overlays just before last </div> inside <body> ─────────────────
     if (overlays) {
+      // Remove the metadata comment from rendered output (it's invisible anyway, but cleaner)
+      html = html.replace(/<!--\s*OVERLAY_INSTANCES:[\s\S]*?-->/g, '');
+
       const bodyCloseIndex = html.toLowerCase().lastIndexOf('</body>');
       if (bodyCloseIndex !== -1) {
-        const preBodyHtml = html.substring(0, bodyCloseIndex);
-        const lastDivIndex = preBodyHtml.lastIndexOf('</div>');
-        if (lastDivIndex !== -1) {
-          html = preBodyHtml.substring(0, lastDivIndex) + overlays + preBodyHtml.substring(lastDivIndex) + html.substring(bodyCloseIndex);
-        } else {
-          html = preBodyHtml + overlays + html.substring(bodyCloseIndex);
-        }
+        const preBody = html.substring(0, bodyCloseIndex);
+        const lastDiv = preBody.lastIndexOf('</div>');
+        html = lastDiv !== -1
+          ? preBody.substring(0, lastDiv) + overlays + preBody.substring(lastDiv) + html.substring(bodyCloseIndex)
+          : preBody + overlays + html.substring(bodyCloseIndex);
       } else {
-        const lastDivIndex = html.lastIndexOf('</div>');
-        if (lastDivIndex !== -1) {
-          html = html.substring(0, lastDivIndex) + overlays + html.substring(lastDivIndex);
-        } else {
-          html = html + overlays;
-        }
+        const lastDiv = html.lastIndexOf('</div>');
+        html = lastDiv !== -1
+          ? html.substring(0, lastDiv) + overlays + html.substring(lastDiv)
+          : html + overlays;
       }
     }
   }
 
+  if (!isIframe) {
+    // Prevent style tags containing body selector from leaking and styling the main application body
+    html = html.replace(/body(?=\s*[\{,])/gi, '.template-body-preview');
+  }
   return html;
 };
 
@@ -924,9 +1073,8 @@ export default function HRMSDocuments() {
       )}
 
       {/* Main Content View (fills the remaining height cleanly down to the bottom) */}
-      <div className={`md:flex-1 h-auto md:overflow-hidden overflow-visible pb-0 flex flex-col ${
-        templateViewState === 'list' ? 'px-4 md:px-6' : 'px-0'
-      }`}>
+      <div className={`md:flex-1 h-auto md:overflow-hidden overflow-visible pb-0 flex flex-col ${templateViewState === 'list' ? 'px-4 md:px-6' : 'px-0'
+        }`}>
         {activeTab === 'dashboard' ? (
           <DocumentDashboard
             documents={documents}
@@ -1017,7 +1165,8 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
         employeeId: emp?.id || undefined,
         dateOfLeaving: emp?.dateOfLeaving || undefined
       },
-      templates
+      templates,
+      true
     );
 
     const iframe = document.createElement('iframe');
@@ -1325,7 +1474,8 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
         employeeId: emp?.id || undefined,
         dateOfLeaving: emp?.dateOfLeaving || undefined
       },
-      templates
+      templates,
+      true
     );
 
     // Create an isolated iframe to parse HTML safely (avoids nested html/body tag bugs in html2canvas)
@@ -1519,31 +1669,38 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
                   layoutId={`doc-card-${doc.id}`}
                   className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col justify-between transition hover:shadow-md"
                 >
-                  {/* Card top half: A scrollable document preview (Optimized scaling to eliminate horizontal scrollbar) */}
-                  <div className="bg-slate-50/50 rounded-xl p-2.5 h-36 overflow-y-auto overflow-x-hidden scrollbar-none mb-3 border border-slate-100/50 relative">
-                    <div className="w-[170%] origin-top-left scale-[0.58] select-none pointer-events-none">
+                  {/* Card top half: A4 preview — scaled + vertically scrollable */}
+                  {/* scale(0.40): 793px→317px wide, 1122px→449px tall. Spacer sets scroll area. */}
+                  <div className="rounded-xl h-36 overflow-hidden overflow-y-auto mb-3 border border-slate-100 bg-white scrollbar-thin">
+                    {/* Spacer: exact visual size after scale so scrollbar knows total height, centered for equal gaps */}
+                    <div style={{ width: '317px', height: '449px', position: 'relative', flexShrink: 0, margin: '0 auto' }}>
+                      {/* Actual document scaled and overlaid on the spacer */}
                       <div
-                        className="w-full h-full"
-                        dangerouslySetInnerHTML={{
-                          __html: getRenderedHtml(
-                            doc.type,
-                            {
-                              name: matchingEmp?.name || '',
-                              department: matchingEmp?.department || '',
-                              jobTitle: matchingEmp?.designationRole || undefined,
-                              salary: matchingEmp?.salary !== undefined ? String(matchingEmp.salary) : undefined,
-                              joinDate: matchingEmp?.joinDate || doc.date,
-                              city: matchingEmp?.city || undefined,
-                              state: matchingEmp?.state || undefined,
-                              pincode: matchingEmp?.pincode || undefined,
-                              email: matchingEmp?.email || undefined,
-                              employeeId: matchingEmp?.id || undefined,
-                              dateOfLeaving: matchingEmp?.dateOfLeaving || undefined
-                            },
-                            templates
-                          )
-                        }}
-                      />
+                        style={{ width: '793px', transformOrigin: 'top left', transform: 'scale(0.40)', position: 'absolute', top: 0, left: 0 }}
+                        className="select-none pointer-events-none"
+                      >
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: getRenderedHtml(
+                              doc.type,
+                              {
+                                name: matchingEmp?.name || '',
+                                department: matchingEmp?.department || '',
+                                jobTitle: matchingEmp?.designationRole || undefined,
+                                salary: matchingEmp?.salary !== undefined ? String(matchingEmp.salary) : undefined,
+                                joinDate: matchingEmp?.joinDate || doc.date,
+                                city: matchingEmp?.city || undefined,
+                                state: matchingEmp?.state || undefined,
+                                pincode: matchingEmp?.pincode || undefined,
+                                email: matchingEmp?.email || undefined,
+                                employeeId: matchingEmp?.id || undefined,
+                                dateOfLeaving: matchingEmp?.dateOfLeaving || undefined
+                              },
+                              templates
+                            )
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -1659,7 +1816,7 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
               initial={{ opacity: 0, scale: 0.96, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 10 }}
-              className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh] z-10 border border-slate-100"
+              className="relative bg-white rounded-2xl shadow-xl w-full max-w-[660px] overflow-hidden flex flex-col max-h-[90vh] z-10 border border-slate-100"
             >
               <div className="px-5 py-3.5 bg-gradient-to-r from-blue-700 to-blue-800 text-white flex justify-between items-center">
                 <div className="flex items-center gap-2">
@@ -1671,33 +1828,42 @@ function DocumentDashboard({ documents, setDocuments, triggerToast, templates }:
                 </button>
               </div>
 
-              <div className="p-5 bg-slate-50 flex-1 overflow-y-auto border-b border-slate-100">
-                <div className="bg-white p-3 rounded-xl border border-slate-150 shadow-inner">
-                  <div
-                    className="w-full h-full"
-                    dangerouslySetInnerHTML={{
-                      __html: (() => {
-                        const emp = employees.find(e => e.id === viewDoc.employeeId);
-                        return getRenderedHtml(
-                          viewDoc.type,
-                          {
-                            name: emp?.name || '',
-                            department: emp?.department || '',
-                            jobTitle: emp?.designationRole || undefined,
-                            salary: emp?.salary !== undefined ? String(emp.salary) : undefined,
-                            joinDate: emp?.joinDate || viewDoc.date,
-                            city: emp?.city || undefined,
-                            state: emp?.state || undefined,
-                            pincode: emp?.pincode || undefined,
-                            email: emp?.email || undefined,
-                            employeeId: emp?.id || undefined,
-                            dateOfLeaving: emp?.dateOfLeaving || undefined
-                          },
-                          templates
-                        );
-                      })()
-                    }}
-                  />
+              <div className="flex-1 overflow-y-auto border-b border-slate-100 bg-slate-100 p-3 scrollbar-thin">
+                {/* zoom:0.78 scales A4 (793px) → ~618px layout width, fits in 660-24=636px modal area.
+                    CSS zoom (unlike transform:scale) affects layout so scroll height is also correct. */}
+                <div className="mx-auto" style={{ width: 'fit-content' }}>
+                  <div style={{ zoom: 0.78 }}>
+                    <div
+                      className="bg-white shadow-sm border border-slate-200 rounded-lg overflow-hidden"
+                      style={{ width: '793px' }}
+                    >
+                      <div
+                        className="w-full"
+                        dangerouslySetInnerHTML={{
+                          __html: (() => {
+                            const emp = employees.find(e => e.id === viewDoc.employeeId);
+                            return getRenderedHtml(
+                              viewDoc.type,
+                              {
+                                name: emp?.name || '',
+                                department: emp?.department || '',
+                                jobTitle: emp?.designationRole || undefined,
+                                salary: emp?.salary !== undefined ? String(emp.salary) : undefined,
+                                joinDate: emp?.joinDate || viewDoc.date,
+                                city: emp?.city || undefined,
+                                state: emp?.state || undefined,
+                                pincode: emp?.pincode || undefined,
+                                email: emp?.email || undefined,
+                                employeeId: emp?.id || undefined,
+                                dateOfLeaving: emp?.dateOfLeaving || undefined
+                              },
+                              templates
+                            );
+                          })()
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -2001,6 +2167,49 @@ interface TemplatesProps {
 function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, setViewState }: TemplatesProps) {
   const [editingTemplate, setEditingTemplate] = useState<DocumentTemplate | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+
+  // ── MULTIPLE OVERLAY INSTANCES ────────────────────────────────────────────
+  // Each instance: { id: string, x: number, y: number, width: number }
+  type OverlayInstance = { id: string; x: number; y: number; width: number };
+  const [sealInstances, setSealInstances] = useState<OverlayInstance[]>([]);
+  const [sigInstances, setSigInstances]   = useState<OverlayInstance[]>([]);
+
+  // Keep refs in sync for drag handlers (avoids stale closures)
+  const sealInstancesRef = useRef<OverlayInstance[]>([]);
+  const sigInstancesRef  = useRef<OverlayInstance[]>([]);
+  useEffect(() => { sealInstancesRef.current = sealInstances; }, [sealInstances]);
+  useEffect(() => { sigInstancesRef.current  = sigInstances;  }, [sigInstances]);
+
+  const addSealInstance = () => {
+    if (!sealUrl) return;
+    const canvas = document.getElementById('a4-editor-canvas');
+    const cw = canvas?.clientWidth || 672;
+    const ch = canvas?.clientHeight || 840;
+    setSealInstances(prev => [...prev, {
+      id: `seal-${Date.now()}`,
+      x: Number((0.15 * cw).toFixed(2)),
+      y: Number((0.75 * ch).toFixed(2)),
+      width: Number((0.12 * cw).toFixed(2))
+    }]);
+  };
+  const addSigInstance = () => {
+    if (!sigUrl) return;
+    const canvas = document.getElementById('a4-editor-canvas');
+    const cw = canvas?.clientWidth || 672;
+    const ch = canvas?.clientHeight || 840;
+    setSigInstances(prev => [...prev, {
+      id: `sig-${Date.now()}`,
+      x: Number((0.50 * cw).toFixed(2)),
+      y: Number((0.75 * ch).toFixed(2)),
+      width: Number((0.18 * cw).toFixed(2))
+    }]);
+  };
+  const removeOverlayInstance = (type: 'seal' | 'sig', id: string) => {
+    if (type === 'seal') setSealInstances(prev => prev.filter(i => i.id !== id));
+    else setSigInstances(prev => prev.filter(i => i.id !== id));
+  };
+
+  // Legacy single-pos state kept only for backward-compat save/load (first instance)
   const [showSealOnPage, setShowSealOnPage] = useState(false);
   const [showSigOnPage, setShowSigOnPage] = useState(false);
   const [documentVariables, setDocumentVariables] = useState<any[]>([]);
@@ -2132,31 +2341,30 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
     }
   }, [viewState, editorMode, logoUrl]);
 
+  // Convert percentages to pixels once the canvas size is available
   useEffect(() => {
     if ((viewState === 'edit' || viewState === 'create') && canvasRef.current) {
       const canvas = canvasRef.current;
       const canvasWidth = canvas.clientWidth || 672;
       const canvasHeight = canvas.clientHeight || 840;
 
-      if (viewState === 'edit' && editingTemplate) {
-        setSealPos({
-          x: (getPercentX(editingTemplate.sealX, 15) * canvasWidth) / 100,
-          y: (getPercentY(editingTemplate.sealY, 75) * canvasHeight) / 100
-        });
-        setSigPos({
-          x: (getPercentX(editingTemplate.sigX, 50) * canvasWidth) / 100,
-          y: (getPercentY(editingTemplate.sigY, 75) * canvasHeight) / 100
-        });
-        setSealWidth((getPercentWidth(editingTemplate.sealWidth, 10) * canvasWidth) / 100);
-        setSigWidth((getPercentWidth(editingTemplate.sigWidth, 15) * canvasWidth) / 100);
-      } else if (viewState === 'create') {
-        setSealPos({ x: 0.15 * canvasWidth, y: 0.75 * canvasHeight });
-        setSigPos({ x: 0.50 * canvasWidth, y: 0.75 * canvasHeight });
-        setSealWidth(0.10 * canvasWidth);
-        setSigWidth(0.15 * canvasWidth);
-      }
+      setSealInstances(prev => prev.map(inst => ({
+        ...inst,
+        x: inst.x <= 100 ? Number(((inst.x * canvasWidth) / 100).toFixed(2)) : inst.x,
+        y: inst.y <= 100 ? Number(((inst.y * canvasHeight) / 100).toFixed(2)) : inst.y,
+        width: inst.width <= 100 ? Number(((inst.width * canvasWidth) / 100).toFixed(2)) : inst.width
+      })));
+
+      setSigInstances(prev => prev.map(inst => ({
+        ...inst,
+        x: inst.x <= 100 ? Number(((inst.x * canvasWidth) / 100).toFixed(2)) : inst.x,
+        y: inst.y <= 100 ? Number(((inst.y * canvasHeight) / 100).toFixed(2)) : inst.y,
+        width: inst.width <= 100 ? Number(((inst.width * canvasWidth) / 100).toFixed(2)) : inst.width
+      })));
     }
-  }, [viewState, editingTemplate, canvasRef.current]);
+  }, [viewState, canvasRef.current]);
+
+
 
   const handleSigUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSigError('');
@@ -2170,61 +2378,27 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
         setSigUrl(null);
       } else {
         setSigFile(file);
-        setSigUrl(URL.createObjectURL(file));
+        const blobUrl = URL.createObjectURL(file);
+        setSigUrl(blobUrl);
         setShowSigOnPage(true);
+        const canvas = document.getElementById('a4-editor-canvas');
+        const cw = canvas?.clientWidth || 672;
+        const ch = canvas?.clientHeight || 840;
+        // Auto-place first instance so it appears on canvas immediately
+        setSigInstances(prev =>
+          prev.length > 0 ? prev : [{ id: `sig-${Date.now()}`, x: Number((0.50 * cw).toFixed(2)), y: Number((0.75 * ch).toFixed(2)), width: Number((0.18 * cw).toFixed(2)) }]
+        );
         triggerToast('Signature uploaded.');
       }
     }
   };
 
-  const [sealPos, setSealPos] = useState<{ x: number, y: number }>({ x: 100, y: 700 });
-  const [sigPos, setSigPos] = useState<{ x: number, y: number }>({ x: 350, y: 700 });
-  const [sealWidth, setSealWidth] = useState<number>(80);
-  const [sigWidth, setSigWidth] = useState<number>(120);
 
-  const handleResizeStart = (e: React.MouseEvent, type: 'seal' | 'sig') => {
-    e.stopPropagation();
-    e.preventDefault();
-
-    const canvas = document.getElementById('a4-editor-canvas');
-    if (!canvas) return;
-
-    const startX = e.clientX;
-    const startWidth = type === 'seal' ? sealWidth : sigWidth;
-
-    const handleMouseMove = (moveEvt: MouseEvent) => {
-      const dx = moveEvt.clientX - startX;
-
-      const canvasStyle = window.getComputedStyle(canvas);
-      const transform = canvasStyle.transform;
-      let scale = 1;
-      if (transform && transform !== 'none') {
-        const matrix = transform.match(/^matrix\((.+)\)$/);
-        if (matrix) {
-          scale = parseFloat(matrix[1].split(',')[0]);
-        }
-      }
-
-      const newWidth = Math.max(20, startWidth + (dx / scale));
-      if (type === 'seal') {
-        setSealWidth(newWidth);
-      } else {
-        setSigWidth(newWidth);
-      }
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const handleDragStart = (e: React.MouseEvent, type: 'seal' | 'sig') => {
+  // ── DRAG HANDLER (per-instance, works multiple times) ──────────────────────
+  const handleDragStart = (e: React.MouseEvent, type: 'seal' | 'sig', instanceId: string) => {
     if (e.button !== 0) return;
     e.preventDefault();
+    e.stopPropagation();
 
     const canvas = document.getElementById('a4-editor-canvas');
     if (!canvas) return;
@@ -2232,39 +2406,84 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
     const startX = e.clientX;
     const startY = e.clientY;
 
-    const initialPos = type === 'seal' ? sealPos : sigPos;
+    // Read current instance from ref (never stale)
+    const instances = type === 'seal' ? sealInstancesRef.current : sigInstancesRef.current;
+    const inst = instances.find(i => i.id === instanceId);
+    if (!inst) return;
+    const initialX = inst.x; // stored as pixels
+    const initialY = inst.y; // stored as pixels
 
-    const handleMouseMove = (moveEvt: MouseEvent) => {
-      const dx = moveEvt.clientX - startX;
-      const dy = moveEvt.clientY - startY;
-
-      const canvasStyle = window.getComputedStyle(canvas);
-      const transform = canvasStyle.transform;
-      let scale = 1;
-      if (transform && transform !== 'none') {
-        const matrix = transform.match(/^matrix\((.+)\)$/);
-        if (matrix) {
-          scale = parseFloat(matrix[1].split(',')[0]);
-        }
+    const getScale = () => {
+      const s = window.getComputedStyle(canvas).transform;
+      if (s && s !== 'none') {
+        const m = s.match(/^matrix\((.+)\)$/);
+        if (m) return parseFloat(m[1].split(',')[0]);
       }
+      return 1;
+    };
 
-      const newX = initialPos.x + (dx / scale);
-      const newY = initialPos.y + (dy / scale);
+    const onMove = (mv: MouseEvent) => {
+      const scale = getScale();
+      const dx = (mv.clientX - startX) / scale;
+      const dy = (mv.clientY - startY) / scale;
+      
+      const nx = Number((initialX + dx).toFixed(2));
+      const ny = Number((initialY + dy).toFixed(2));
 
       if (type === 'seal') {
-        setSealPos({ x: newX, y: newY });
+        setSealInstances(prev => prev.map(i => i.id === instanceId ? { ...i, x: nx, y: ny } : i));
       } else {
-        setSigPos({ x: newX, y: newY });
+        setSigInstances(prev => prev.map(i => i.id === instanceId ? { ...i, x: nx, y: ny } : i));
       }
     };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
 
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+  // ── RESIZE HANDLER (per-instance) ──────────────────────────────────────────
+  const handleResizeStart = (e: React.MouseEvent, type: 'seal' | 'sig', instanceId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const canvas = document.getElementById('a4-editor-canvas');
+    if (!canvas) return;
+
+    const startX = e.clientX;
+    const instances = type === 'seal' ? sealInstancesRef.current : sigInstancesRef.current;
+    const inst = instances.find(i => i.id === instanceId);
+    if (!inst) return;
+    const startWidth = inst.width; // stored as pixels
+
+    const getScale = () => {
+      const s = window.getComputedStyle(canvas).transform;
+      if (s && s !== 'none') {
+        const m = s.match(/^matrix\((.+)\)$/);
+        if (m) return parseFloat(m[1].split(',')[0]);
+      }
+      return 1;
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    const onMove = (mv: MouseEvent) => {
+      const scale = getScale();
+      const dx = (mv.clientX - startX) / scale;
+      const nw = Number(Math.max(10, startWidth + dx).toFixed(2));
+
+      if (type === 'seal') {
+        setSealInstances(prev => prev.map(i => i.id === instanceId ? { ...i, width: nw } : i));
+      } else {
+        setSigInstances(prev => prev.map(i => i.id === instanceId ? { ...i, width: nw } : i));
+      }
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2297,8 +2516,16 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
         setSealUrl(null);
       } else {
         setSealFile(file);
-        setSealUrl(URL.createObjectURL(file));
+        const blobUrl = URL.createObjectURL(file);
+        setSealUrl(blobUrl);
         setShowSealOnPage(true);
+        const canvas = document.getElementById('a4-editor-canvas');
+        const cw = canvas?.clientWidth || 672;
+        const ch = canvas?.clientHeight || 840;
+        // Auto-place first instance so it appears on canvas immediately
+        setSealInstances(prev =>
+          prev.length > 0 ? prev : [{ id: `seal-${Date.now()}`, x: Number((0.15 * cw).toFixed(2)), y: Number((0.75 * ch).toFixed(2)), width: Number((0.12 * cw).toFixed(2)) }]
+        );
         triggerToast('Seal uploaded.');
       }
     }
@@ -2317,10 +2544,8 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
     setLogoError('');
     setSealError('');
     setSigError('');
-    setSealPos({ x: 15, y: 75 });
-    setSigPos({ x: 50, y: 75 });
-    setSealWidth(10);
-    setSigWidth(15);
+    setSealInstances([]);
+    setSigInstances([]);
     setShowSealOnPage(false);
     setShowSigOnPage(false);
     setTemplateHtml(blankTemplateHtml);
@@ -2342,23 +2567,58 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
     setLogoError('');
     setSealError('');
     setSigError('');
-    setSealPos({
-      x: getPercentX(tpl.sealX, 15),
-      y: getPercentY(tpl.sealY, 75)
-    });
-    setSigPos({
-      x: getPercentX(tpl.sigX, 50),
-      y: getPercentY(tpl.sigY, 75)
-    });
-    setSealWidth(getPercentWidth(tpl.sealWidth, 10));
-    setSigWidth(getPercentWidth(tpl.sigWidth, 15));
+    // Restore saved instances from first saved position (legacy compat)
+    if (tpl.sealUrl) {
+      const sx = getPercentX(tpl.sealX, 15);
+      const sy = getPercentY(tpl.sealY, 75);
+      const sw = getPercentWidth(tpl.sealWidth, 10);
+      setSealInstances([{ id: `seal-0`, x: sx, y: sy, width: sw }]);
+    } else {
+      setSealInstances([]);
+    }
+    if (tpl.sigUrl) {
+      const sgx = getPercentX(tpl.sigX, 50);
+      const sgy = getPercentY(tpl.sigY, 75);
+      const sgw = getPercentWidth(tpl.sigWidth, 15);
+      setSigInstances([{ id: `sig-0`, x: sgx, y: sgy, width: sgw }]);
+    } else {
+      setSigInstances([]);
+    }
     setShowSealOnPage(!!tpl.sealUrl);
     setShowSigOnPage(!!tpl.sigUrl);
+
     const defaultHtml = tpl.content || (tpl.category === 'Offer Letter' ? offerLetterHtml
       : tpl.category === 'Pay Slip' ? paySlipHtml
         : tpl.category === 'Contract' ? contractHtml
           : tpl.category === 'Agreement' ? agreementHtml
             : blankTemplateHtml);
+
+    // ── Restore overlay instances ───────────────────────────────────────────
+    // Primary: read full instances JSON from embedded HTML comment
+    const metaMatch = defaultHtml.match(/<!--\s*OVERLAY_INSTANCES:([\s\S]*?)-->/);
+    if (metaMatch) {
+      try {
+        const meta = JSON.parse(metaMatch[1]);
+        
+        if (meta.version === 2) {
+          // Version 2: Coordinates are already saved as clean percentages
+          setSealInstances(meta.sealInstances || []);
+          setSigInstances(meta.sigInstances  || []);
+        } else {
+          // Fallback to first-instance from legacy DB fields if comment has no version
+          throw new Error("legacy comment format");
+        }
+      } catch {
+        // Fallback to first-instance from legacy DB fields
+        setSealInstances(tpl.sealUrl ? [{ id: 'seal-0', x: getPercentX(tpl.sealX, 15), y: getPercentY(tpl.sealY, 75), width: getPercentWidth(tpl.sealWidth, 10) }] : []);
+        setSigInstances(tpl.sigUrl  ? [{ id: 'sig-0',  x: getPercentX(tpl.sigX,  50), y: getPercentY(tpl.sigY,  75), width: getPercentWidth(tpl.sigWidth,  15) }] : []);
+      }
+    } else {
+      // Legacy: no comment found, restore from sealX/sigX DB fields
+      setSealInstances(tpl.sealUrl ? [{ id: 'seal-0', x: getPercentX(tpl.sealX, 15), y: getPercentY(tpl.sealY, 75), width: getPercentWidth(tpl.sealWidth, 10) }] : []);
+      setSigInstances(tpl.sigUrl  ? [{ id: 'sig-0',  x: getPercentX(tpl.sigX,  50), y: getPercentY(tpl.sigY,  75), width: getPercentWidth(tpl.sigWidth,  15) }] : []);
+    }
+
     setTemplateHtml(defaultHtml);
     setEditorMode('preview');
     setViewState('edit');
@@ -2390,6 +2650,7 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
   const handlePrintTemplate = () => {
     if (!templateHtml) return;
 
+    // Pass null for seal and signature to clear the default inline placeholders from flow, preventing double rendering
     let baseHtml = renderTemplateContent(templateHtml, logoUrl, null, null);
 
     const canvas = document.getElementById('a4-editor-canvas');
@@ -2397,25 +2658,29 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
     const canvasHeight = canvas?.clientHeight || 840;
 
     let overlays = '';
-    if (sealUrl && showSealOnPage) {
-      const sealX = Number(((sealPos.x / canvasWidth) * 100).toFixed(2));
-      const sealY = Number(((sealPos.y / canvasHeight) * 100).toFixed(2));
-      const sealW = Number(((sealWidth / canvasWidth) * 100).toFixed(2));
-      overlays += `
-        <div style="position: absolute; left: ${sealX}%; top: ${sealY}%; z-index: 50; mix-blend-mode: multiply; pointer-events: none; width: ${sealW}%;">
-          <img src="${getFullImageUrl(sealUrl)}" style="width: 100%; height: auto; object-fit: contain;" />
-        </div>
-      `;
+    if (sealUrl && sealInstances.length > 0) {
+      sealInstances.forEach(inst => {
+        const x = Number(((inst.x / canvasWidth) * 100).toFixed(2));
+        const y = Number(((inst.y / canvasHeight) * 100).toFixed(2));
+        const w = Number(((inst.width / canvasWidth) * 100).toFixed(2));
+        overlays += `
+          <div style="position: absolute; left: ${x}%; top: ${y}%; z-index: 50; mix-blend-mode: multiply; pointer-events: none; width: ${w}%;">
+            <img src="${getFullImageUrl(sealUrl)}" style="width: 100%; height: auto; object-fit: contain;" />
+          </div>
+        `;
+      });
     }
-    if (sigUrl && showSigOnPage) {
-      const sigX = Number(((sigPos.x / canvasWidth) * 100).toFixed(2));
-      const sigY = Number(((sigPos.y / canvasHeight) * 100).toFixed(2));
-      const sigW = Number(((sigWidth / canvasWidth) * 100).toFixed(2));
-      overlays += `
-        <div style="position: absolute; left: ${sigX}%; top: ${sigY}%; z-index: 50; mix-blend-mode: multiply; pointer-events: none; width: ${sigW}%;">
-          <img src="${getFullImageUrl(sigUrl)}" style="width: 100%; height: auto; object-fit: contain;" />
-        </div>
-      `;
+    if (sigUrl && sigInstances.length > 0) {
+      sigInstances.forEach(inst => {
+        const x = Number(((inst.x / canvasWidth) * 100).toFixed(2));
+        const y = Number(((inst.y / canvasHeight) * 100).toFixed(2));
+        const w = Number(((inst.width / canvasWidth) * 100).toFixed(2));
+        overlays += `
+          <div style="position: absolute; left: ${x}%; top: ${y}%; z-index: 50; mix-blend-mode: multiply; pointer-events: none; width: ${w}%;">
+            <img src="${getFullImageUrl(sigUrl)}" style="width: 100%; height: auto; object-fit: contain;" />
+          </div>
+        `;
+      });
     }
 
     let printedHtml = baseHtml;
@@ -2509,22 +2774,44 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
       const canvasWidth = canvas?.clientWidth || 672;
       const canvasHeight = canvas?.clientHeight || 840;
 
+      // Convert pixel-based instance state coordinates to percentages for storage
+      const sealsPct = sealInstances.map(inst => ({
+        id: inst.id,
+        x: Number(((inst.x / canvasWidth) * 100).toFixed(2)),
+        y: Number(((inst.y / canvasHeight) * 100).toFixed(2)),
+        width: Number(((inst.width / canvasWidth) * 100).toFixed(2))
+      }));
+      const sigsPct = sigInstances.map(inst => ({
+        id: inst.id,
+        x: Number(((inst.x / canvasWidth) * 100).toFixed(2)),
+        y: Number(((inst.y / canvasHeight) * 100).toFixed(2)),
+        width: Number(((inst.width / canvasWidth) * 100).toFixed(2))
+      }));
+
+      // Embed all instances as an invisible HTML comment in content
+      let contentHtml = canvasRef.current ? canvasRef.current.innerHTML : templateHtml;
+      contentHtml = contentHtml.replace(/<!--\s*OVERLAY_INSTANCES:[\s\S]*?-->/g, ''); // strip old
+      contentHtml += `<!-- OVERLAY_INSTANCES:${JSON.stringify({ version: 2, sealInstances: sealsPct, sigInstances: sigsPct })} -->`;
+
+      const firstSeal = sealInstances[0];
+      const firstSig  = sigInstances[0];
+
       const payload = {
         name: formName,
         category: formCategory,
         variables: formCategory === 'Offer Letter' ? 21 : formCategory === 'Pay Slip' ? 18 : formCategory === 'Contract' ? 25 : 12,
         updated: new Date().toLocaleDateString('en-US'),
         status: 'Pending Approval' as const,
-        content: canvasRef.current ? canvasRef.current.innerHTML : templateHtml,
+        content: contentHtml,
         logoUrl: finalLogoUrl || null,
-        sealUrl: showSealOnPage ? finalSealUrl : null,
-        sigUrl: showSigOnPage ? finalSigUrl : null,
-        sealX: Number(((sealPos.x / canvasWidth) * 100).toFixed(2)),
-        sealY: Number(((sealPos.y / canvasHeight) * 100).toFixed(2)),
-        sealWidth: Number(((sealWidth / canvasWidth) * 100).toFixed(2)),
-        sigX: Number(((sigPos.x / canvasWidth) * 100).toFixed(2)),
-        sigY: Number(((sigPos.y / canvasHeight) * 100).toFixed(2)),
-        sigWidth: Number(((sigWidth / canvasWidth) * 100).toFixed(2))
+        sealUrl: finalSealUrl || null,
+        sigUrl:  finalSigUrl  || null,
+        sealX:     firstSeal ? Number(((firstSeal.x     / canvasWidth)  * 100).toFixed(2)) : 0,
+        sealY:     firstSeal ? Number(((firstSeal.y     / canvasHeight) * 100).toFixed(2)) : 0,
+        sealWidth: firstSeal ? Number(((firstSeal.width / canvasWidth)  * 100).toFixed(2)) : 0,
+        sigX:      firstSig  ? Number(((firstSig.x      / canvasWidth)  * 100).toFixed(2)) : 0,
+        sigY:      firstSig  ? Number(((firstSig.y      / canvasHeight) * 100).toFixed(2)) : 0,
+        sigWidth:  firstSig  ? Number(((firstSig.width  / canvasWidth)  * 100).toFixed(2)) : 0,
       };
 
       const saved = await documentApi.createTemplate(payload as any);
@@ -2553,20 +2840,42 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
       const canvasWidth = canvas?.clientWidth || 672;
       const canvasHeight = canvas?.clientHeight || 840;
 
+      // Convert pixel-based instance state coordinates to percentages for storage
+      const sealsPct = sealInstances.map(inst => ({
+        id: inst.id,
+        x: Number(((inst.x / canvasWidth) * 100).toFixed(2)),
+        y: Number(((inst.y / canvasHeight) * 100).toFixed(2)),
+        width: Number(((inst.width / canvasWidth) * 100).toFixed(2))
+      }));
+      const sigsPct = sigInstances.map(inst => ({
+        id: inst.id,
+        x: Number(((inst.x / canvasWidth) * 100).toFixed(2)),
+        y: Number(((inst.y / canvasHeight) * 100).toFixed(2)),
+        width: Number(((inst.width / canvasWidth) * 100).toFixed(2))
+      }));
+
+      // Embed all instances as an invisible HTML comment in content
+      let contentHtml = canvasRef.current ? canvasRef.current.innerHTML : templateHtml;
+      contentHtml = contentHtml.replace(/<!--\s*OVERLAY_INSTANCES:[\s\S]*?-->/g, ''); // strip old
+      contentHtml += `<!-- OVERLAY_INSTANCES:${JSON.stringify({ version: 2, sealInstances: sealsPct, sigInstances: sigsPct })} -->`;
+
+      const firstSeal = sealInstances[0];
+      const firstSig  = sigInstances[0];
+
       const payload = {
         name: formName,
         category: formCategory,
         updated: new Date().toLocaleDateString('en-US'),
-        content: canvasRef.current ? canvasRef.current.innerHTML : templateHtml,
+        content: contentHtml,
         logoUrl: finalLogoUrl || null,
-        sealUrl: showSealOnPage ? finalSealUrl : null,
-        sigUrl: showSigOnPage ? finalSigUrl : null,
-        sealX: Number(((sealPos.x / canvasWidth) * 100).toFixed(2)),
-        sealY: Number(((sealPos.y / canvasHeight) * 100).toFixed(2)),
-        sealWidth: Number(((sealWidth / canvasWidth) * 100).toFixed(2)),
-        sigX: Number(((sigPos.x / canvasWidth) * 100).toFixed(2)),
-        sigY: Number(((sigPos.y / canvasHeight) * 100).toFixed(2)),
-        sigWidth: Number(((sigWidth / canvasWidth) * 100).toFixed(2))
+        sealUrl: finalSealUrl || null,
+        sigUrl:  finalSigUrl  || null,
+        sealX:     firstSeal ? Number(((firstSeal.x     / canvasWidth)  * 100).toFixed(2)) : 0,
+        sealY:     firstSeal ? Number(((firstSeal.y     / canvasHeight) * 100).toFixed(2)) : 0,
+        sealWidth: firstSeal ? Number(((firstSeal.width / canvasWidth)  * 100).toFixed(2)) : 0,
+        sigX:      firstSig  ? Number(((firstSig.x      / canvasWidth)  * 100).toFixed(2)) : 0,
+        sigY:      firstSig  ? Number(((firstSig.y      / canvasHeight) * 100).toFixed(2)) : 0,
+        sigWidth:  firstSig  ? Number(((firstSig.width  / canvasWidth)  * 100).toFixed(2)) : 0,
       };
 
       await documentApi.updateTemplate(editingTemplate.id as number, payload as any);
@@ -2941,7 +3250,7 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
                         <div className="flex gap-2.5 mt-0.5">
                           <button
                             type="button"
-                            onClick={() => { setSealFile(null); setSealUrl(null); setShowSealOnPage(false); }}
+                            onClick={() => { setSealFile(null); setSealUrl(null); setShowSealOnPage(false); setSealInstances([]); }}
                             className="text-[9px] font-bold text-rose-500 hover:text-rose-600 transition cursor-pointer"
                           >
                             Remove
@@ -2951,7 +3260,14 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
                             onClick={() => setShowSealOnPage(!showSealOnPage)}
                             className={`text-[9px] font-bold transition cursor-pointer ${showSealOnPage ? 'text-amber-500 hover:text-amber-600' : 'text-blue-500 hover:text-blue-600'}`}
                           >
-                            {showSealOnPage ? 'Hide from Page' : 'Place on Page'}
+                            {sealInstances.length > 0 ? `${sealInstances.length} placed` : 'None placed'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={addSealInstance}
+                            className="text-[9px] font-bold text-blue-600 hover:text-blue-700 transition cursor-pointer"
+                          >
+                            + Add
                           </button>
                         </div>
                       </div>
@@ -2990,7 +3306,7 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
                         <div className="flex gap-2.5 mt-0.5">
                           <button
                             type="button"
-                            onClick={() => { setSigFile(null); setSigUrl(null); setShowSigOnPage(false); }}
+                            onClick={() => { setSigFile(null); setSigUrl(null); setShowSigOnPage(false); setSigInstances([]); }}
                             className="text-[9px] font-bold text-rose-500 hover:text-rose-600 transition cursor-pointer"
                           >
                             Remove
@@ -2998,9 +3314,16 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
                           <button
                             type="button"
                             onClick={() => setShowSigOnPage(!showSigOnPage)}
-                            className={`text-[9px] font-bold transition coursor-pointer ${showSigOnPage ? 'text-amber-500 hover:text-amber-600' : 'text-blue-500 hover:text-blue-600'}`}
+                            className={`text-[9px] font-bold transition cursor-pointer ${showSigOnPage ? 'text-amber-500 hover:text-amber-600' : 'text-blue-500 hover:text-blue-600'}`}
                           >
-                            {showSigOnPage ? 'Hide from Page' : 'Place on Page'}
+                            {sigInstances.length > 0 ? `${sigInstances.length} placed` : 'None placed'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={addSigInstance}
+                            className="text-[9px] font-bold text-blue-600 hover:text-blue-700 transition cursor-pointer"
+                          >
+                            + Add
                           </button>
                         </div>
                       </div>
@@ -3221,15 +3544,16 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
                         className="w-full h-auto min-h-[840px] animate-[fadeIn_0.15s_ease-out] outline-none bg-white"
                       />
 
-                      {/* Render Draggable Seal Overlay */}
-                      {sealUrl && showSealOnPage && (
+                      {/* Multiple Seal Instances */}
+                      {sealUrl && sealInstances.map(inst => (
                         <div
-                          onMouseDown={(e) => handleDragStart(e, 'seal')}
+                          key={inst.id}
+                          onMouseDown={(e) => handleDragStart(e, 'seal', inst.id)}
                           style={{
                             position: 'absolute',
-                            left: `${sealPos.x}px`,
-                            top: `${sealPos.y}px`,
-                            width: `${sealWidth}px`,
+                            left: `${inst.x}px`,
+                            top: `${inst.y}px`,
+                            width: `${inst.width}px`,
                             height: 'auto',
                             cursor: 'move',
                             zIndex: 50,
@@ -3237,26 +3561,34 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
                             userSelect: 'none'
                           }}
                           className="group"
-                          title="Drag to place seal"
+                          title="Drag to reposition seal"
                         >
                           <img src={getFullImageUrl(sealUrl)} style={{ width: '100%', height: 'auto', objectFit: 'contain' }} className="pointer-events-none select-none" />
                           <div
-                            onMouseDown={(e) => handleResizeStart(e, 'seal')}
+                            onMouseDown={(e) => handleResizeStart(e, 'seal', inst.id)}
                             className="hidden group-hover:block absolute -right-1.5 -bottom-1.5 w-3 h-3 bg-blue-600 border border-white rounded-full cursor-se-resize shadow-sm"
-                            title="Drag to resize seal"
+                            title="Drag to resize"
                           />
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={() => removeOverlayInstance('seal', inst.id)}
+                            className="hidden group-hover:flex absolute -top-2 -right-2 w-4 h-4 bg-rose-500 text-white rounded-full items-center justify-center text-[8px] font-bold shadow cursor-pointer z-10"
+                            title="Remove this seal"
+                          >×</button>
                         </div>
-                      )}
+                      ))}
 
-                      {/* Render Draggable Signature Overlay */}
-                      {sigUrl && showSigOnPage && (
+                      {/* Multiple Signature Instances */}
+                      {sigUrl && sigInstances.map(inst => (
                         <div
-                          onMouseDown={(e) => handleDragStart(e, 'sig')}
+                          key={inst.id}
+                          onMouseDown={(e) => handleDragStart(e, 'sig', inst.id)}
                           style={{
                             position: 'absolute',
-                            left: `${sigPos.x}px`,
-                            top: `${sigPos.y}px`,
-                            width: `${sigWidth}px`,
+                            left: `${inst.x}px`,
+                            top: `${inst.y}px`,
+                            width: `${inst.width}px`,
                             height: 'auto',
                             cursor: 'move',
                             zIndex: 50,
@@ -3264,16 +3596,23 @@ function DocumentTemplates({ templates, setTemplates, triggerToast, viewState, s
                             userSelect: 'none'
                           }}
                           className="group"
-                          title="Drag to place signature"
+                          title="Drag to reposition signature"
                         >
                           <img src={getFullImageUrl(sigUrl)} style={{ width: '100%', height: 'auto', objectFit: 'contain' }} className="pointer-events-none select-none" />
                           <div
-                            onMouseDown={(e) => handleResizeStart(e, 'sig')}
+                            onMouseDown={(e) => handleResizeStart(e, 'sig', inst.id)}
                             className="hidden group-hover:block absolute -right-1.5 -bottom-1.5 w-3 h-3 bg-blue-600 border border-white rounded-full cursor-se-resize shadow-sm"
-                            title="Drag to resize signature"
+                            title="Drag to resize"
                           />
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={() => removeOverlayInstance('sig', inst.id)}
+                            className="hidden group-hover:flex absolute -top-2 -right-2 w-4 h-4 bg-rose-500 text-white rounded-full items-center justify-center text-[8px] font-bold shadow cursor-pointer z-10"
+                            title="Remove this signature"
+                          >×</button>
                         </div>
-                      )}
+                      ))}
                     </div>
                   </div>
                 </div>

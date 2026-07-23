@@ -20,7 +20,8 @@ import {
   CheckSquare,
   Square,
   TrendingUp,
-  Pencil
+  Pencil,
+  IndianRupee
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -38,11 +39,11 @@ const StatCard = ({ icon: Icon, label, value, color, subtitle }: any) => {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4 flex items-center gap-3.5 transition-all duration-300 hover:shadow-md hover:border-blue-500/20 group flex-1">
-      <div className={`p-2.5 rounded-lg border ${bgClass} ${borderClass} group-hover:scale-105 transition-transform duration-300`}>
+      <div className={`p-2.5 rounded-lg  ${bgClass} ${borderClass} group-hover:scale-105 transition-transform duration-300`}>
         <Icon className={`w-4.5 h-4.5 ${textClass}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-semibold text-gray-405 uppercase tracking-wider">{label}</p>
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</p>
         <h3 className="text-base font-bold text-gray-800 mt-0.5">{value}</h3>
         {subtitle && <p className="text-[9px] text-gray-400 font-semibold mt-0.5">{subtitle}</p>}
       </div>
@@ -418,7 +419,7 @@ export default function PaymentHistory() {
       {/* Payment metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
         <StatCard
-          icon={DollarSign}
+          icon={IndianRupee}
           label="Total Paid Out YTD"
           value={formatCurrency(stats.totalNetDisbursed)}
           color="bg-emerald-500"
@@ -495,8 +496,8 @@ export default function PaymentHistory() {
         {/* Scrollable table container */}
         <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
           <table className="w-full border-collapse text-left text-xs">
-            <thead className="sticky top-0 bg-slate-105 z-10 shadow-sm border-b border-gray-200">
-              <tr className="bg-slate-50 text-gray-500 font-semibold select-none">
+            <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm">
+              <tr className="border-b border-gray-250 text-gray-455 font-semibold select-none uppercase tracking-wider text-[10px]">
                 <th className="p-3 pl-6 w-10">
                   <button onClick={toggleAll} className="hover:text-gray-700 cursor-pointer transition-colors">
                     {selectedRows.length === paginatedPayments.length && paginatedPayments.length > 0 ? (

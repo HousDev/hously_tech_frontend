@@ -128,6 +128,7 @@ export default function HRMSLeaves() {
   const [editItem,    setEditItem]    = useState<LeaveRequest | null>(null);
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
   const [submitting,  setSubmitting]  = useState(false);
+  const [activeStatusRowId, setActiveStatusRowId] = useState<string | null>(null);
 
   const [editForm, setEditForm] = useState({
     leaveType: "", fromDate: "", toDate: "", reason: "",
@@ -343,6 +344,17 @@ export default function HRMSLeaves() {
     } catch (err: any) { toast.error(err.message || 'Failed to reject'); }
   };
 
+  const handleUpdateStatus = async (id: string, newStatus: 'Approved' | 'Rejected' | 'Pending') => {
+    try {
+      const updated = await apiClient.patch<LeaveRequest>(`/leaves/${id}/status`, { status: newStatus });
+      setLeaveRequests(prev => prev.map(r => r.id === id ? { ...r, ...updated } : r));
+      setViewItem(prev => prev && prev.id === id ? { ...prev, ...updated } : prev);
+      toast.success(`Leave request status updated to ${newStatus} successfully!`);
+    } catch (err: any) {
+      toast.error(err.message || `Failed to update status to ${newStatus}`);
+    }
+  };
+
   // Helper date format: "3/5/2026"
   const formatDateString = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -544,12 +556,13 @@ export default function HRMSLeaves() {
                   return (
                     <tr
                       key={req.id}
-                      className={`hover:bg-slate-50/50 transition border-b border-slate-100 last:border-b-0 ${
+                      onClick={() => openViewModal(req)}
+                      className={`hover:bg-slate-50/50 transition border-b border-slate-100 last:border-b-0 cursor-pointer ${
                         isChecked ? "bg-blue-50/10" : ""
                       }`}
                     >
                       {/* Checkbox */}
-                      <td className="px-3 py-3 text-center border-r border-slate-100">
+                      <td className="px-3 py-3 text-center border-r border-slate-100" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isChecked}
@@ -609,29 +622,76 @@ export default function HRMSLeaves() {
                       </td>
 
                       {/* Status */}
-                      <td className="px-4 py-3 border-r border-slate-100">
-                        {req.status === "Approved" && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            Approved
-                          </span>
-                        )}
-                        {req.status === "Pending" && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                            Pending
-                          </span>
-                        )}
-                        {req.status === "Rejected" && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700">
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                            Rejected
-                          </span>
+                      <td className="px-4 py-3 border-r border-slate-100 relative" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveStatusRowId(activeStatusRowId === req.id ? null : req.id);
+                          }}
+                          className="transition hover:scale-[1.03] text-left cursor-pointer"
+                        >
+                          {req.status === "Approved" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Approved
+                            </span>
+                          )}
+                          {req.status === "Pending" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              Pending
+                            </span>
+                          )}
+                          {req.status === "Rejected" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700">
+                              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                              Rejected
+                            </span>
+                          )}
+                        </button>
+
+                        {activeStatusRowId === req.id && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-30"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveStatusRowId(null);
+                              }}
+                            />
+                            <div className="absolute right-4 top-10 mt-1 w-32 bg-white border border-slate-100 rounded-xl shadow-xl z-40 p-1.5 space-y-0.5">
+                              {(["Pending", "Approved", "Rejected"] as const).map((status) => {
+                                const isCurrent = req.status === status;
+                                const dotColor = status === "Approved" ? "bg-emerald-500" : status === "Pending" ? "bg-amber-500" : "bg-red-500";
+                                return (
+                                  <button
+                                    key={status}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (!isCurrent) {
+                                        handleUpdateStatus(req.id, status);
+                                      }
+                                      setActiveStatusRowId(null);
+                                    }}
+                                    disabled={isCurrent}
+                                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-[10px] font-bold transition-colors ${
+                                      isCurrent
+                                        ? "bg-slate-50 text-slate-400 cursor-not-allowed"
+                                        : "hover:bg-slate-50 text-slate-700 cursor-pointer"
+                                    }`}
+                                  >
+                                    <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                                    <span>{status}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
                         )}
                       </td>
 
                       {/* Actions (identical toolbar style to Employees.tsx table) */}
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => openViewModal(req)}

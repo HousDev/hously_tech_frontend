@@ -73,7 +73,7 @@ export default function MasterDataPage() {
   const [isValuesLoading, setIsValuesLoading] = useState(false);
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<{ type: "master" | "value"; id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "master" | "value" | "bulk_value"; id: string; name: string } | null>(null);
 
   const [currentView, setCurrentView] = useState<"list" | "values">("list");
   const [selectedMaster, setSelectedMaster] = useState<MasterItem | null>(null);
@@ -178,48 +178,14 @@ export default function MasterDataPage() {
     setSelectedValueIds(prev => prev.includes(id) ? prev.filter(valId => valId !== id) : [...prev, id]);
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (!selectedMaster || selectedValueIds.length === 0) return;
-
-    toast.info(
-      (props: ToastContentProps) => (
-        <div>
-          <p className="text-sm mb-2">Delete {selectedValueIds.length} selected values?</p>
-          <div className="flex gap-2">
-            <button
-              onClick={async () => {
-                try {
-                  await Promise.all(selectedValueIds.map(id => masterDataAPI.deleteMasterValue(id)));
-                  const updatedValues = selectedMaster.values.filter(v => !selectedValueIds.includes(v.id));
-
-                  setItems(prev => prev.map(item =>
-                    item.id === selectedMaster.id
-                      ? { ...item, values: updatedValues, valueCount: updatedValues.length }
-                      : item
-                  ));
-
-                  setSelectedMaster(prev => prev ? { ...prev, values: updatedValues } : null);
-                  setSelectedValueIds([]);
-                  toast.success("Values deleted successfully 🗑️");
-                  props.closeToast();
-                } catch (error) {
-                  console.error("Error deleting values:", error);
-                  toast.error("Error deleting values ❌");
-                  props.closeToast();
-                }
-              }}
-              className="px-3 py-1 bg-red-600 text-white rounded text-xs"
-            >
-              Yes
-            </button>
-            <button onClick={props.closeToast} className="px-3 py-1 bg-gray-300 rounded text-xs">
-              No
-            </button>
-          </div>
-        </div>
-      ),
-      { autoClose: false, draggable: false, position: "top-center" }
-    );
+    setDeleteTarget({
+      type: "bulk_value",
+      id: "",
+      name: `${selectedValueIds.length} selected values`
+    });
+    setDeleteConfirmOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -365,7 +331,7 @@ export default function MasterDataPage() {
           setSelectedValueIds([]);
         }
         toast.success("Master type deleted successfully 🗑️");
-      } else {
+      } else if (deleteTarget.type === "value") {
         await masterDataAPI.deleteMasterValue(deleteTarget.id);
         if (selectedMaster) {
           const updatedValues = selectedMaster.values.filter(v => v.id !== deleteTarget.id);
@@ -378,6 +344,19 @@ export default function MasterDataPage() {
           setSelectedValueIds(prev => prev.filter(id => id !== deleteTarget.id));
         }
         toast.success("Option value deleted successfully 🗑️");
+      } else if (deleteTarget.type === "bulk_value") {
+        await Promise.all(selectedValueIds.map(id => masterDataAPI.deleteMasterValue(id)));
+        if (selectedMaster) {
+          const updatedValues = selectedMaster.values.filter(v => !selectedValueIds.includes(v.id));
+          setItems(prev => prev.map(item =>
+            item.id === selectedMaster.id
+              ? { ...item, values: updatedValues, valueCount: updatedValues.length }
+              : item
+          ));
+          setSelectedMaster(prev => prev ? { ...prev, values: updatedValues } : prev);
+        }
+        setSelectedValueIds([]);
+        toast.success("Values deleted successfully 🗑️");
       }
     } catch (error) {
       console.error(`Error deleting ${deleteTarget.type}:`, error);
@@ -985,7 +964,13 @@ export default function MasterDataPage() {
             <div>
               <h4 className="font-semibold mb-0.5 text-red-950">Warning: This action is permanent!</h4>
               <p className="text-[11px] leading-relaxed text-red-900">
-                Are you sure you want to delete the {deleteTarget?.type === "master" ? "master type" : "option value"}{" "}
+                Are you sure you want to delete the {
+                  deleteTarget?.type === "master"
+                    ? "master type"
+                    : deleteTarget?.type === "bulk_value"
+                      ? "selected option values"
+                      : "option value"
+                }{" "}
                 <strong className="font-bold text-red-950">"{deleteTarget?.name}"</strong>? All associated records will be permanently deleted.
               </p>
             </div>

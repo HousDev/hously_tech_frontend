@@ -3,7 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import {
   Clock,
   CheckCircle2,
-  DollarSign,
+  IndianRupee,
   TrendingUp,
   Filter,
   Search,
@@ -26,6 +26,8 @@ import {
   AlertTriangle
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
+import api from "../../../../lib/api";
+import { useAdvanceSocket } from "../../../../hooks/useAdvanceSocket";
 
 // --- Custom Component: Stat Card ---
 const StatCard = ({ icon: Icon, label, value, color }: any) => {
@@ -51,15 +53,102 @@ const StatCard = ({ icon: Icon, label, value, color }: any) => {
   );
 };
 
-// --- Mock Searchable Employees Database ---
-const availableEmployeesDb = [
-  { name: "Suraj Kumar", id: "EMP0019", dept: "Engineering", designation: "MTS-2", email: "suraj@hously.co" },
-  { name: "Anjali Sharma", id: "EMP0020", dept: "Marketing", designation: "Design Lead", email: "anjali@hously.co" },
-  { name: "Vikram Patel", id: "EMP0021", dept: "Sales", designation: "Account Executive", email: "vikram@hously.co" },
-  { name: "Kunal Sen", id: "EMP0022", dept: "HR", designation: "Recruiter Manager", email: "kunal@hously.co" },
-  { name: "Priya Mehta", id: "EMP0023", dept: "Design", designation: "Product Designer", email: "priya@hously.co" },
-  { name: "Rahul Verma", id: "EMP0024", dept: "Engineering", designation: "Staff Engineer", email: "rahul@hously.co" }
-];
+// --- User Avatar Component ---
+const UserAvatar = ({ name, avatarUrl, size = "w-8 h-8", textSize = "text-[10px]" }: { name: string; avatarUrl?: string; size?: string; textSize?: string }) => {
+  const [imageError, setImageError] = useState(false);
+  const BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+
+  const getFullUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      return url;
+    }
+    return `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const fullAvatarUrl = getFullUrl(avatarUrl || '');
+  const initials = (name || 'Employee').trim().split(/\s+/).map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+  if (fullAvatarUrl && !imageError) {
+    return (
+      <img
+        src={fullAvatarUrl}
+        alt={name}
+        onError={() => setImageError(true)}
+        className={`${size} rounded-full object-cover border border-gray-200 shadow-xs flex-shrink-0`}
+      />
+    );
+  }
+
+  return (
+    <div className={`${size} rounded-full bg-[#155dfc] flex items-center justify-center text-white ${textSize} font-bold border border-gray-200 shadow-xs flex-shrink-0`}>
+      {initials}
+    </div>
+  );
+};
+
+// --- Interactive Status Dropdown Cell ---
+const StatusDropdownCell = ({ item, onUpdateStatus }: { item: any; onUpdateStatus: (id: string, status: string) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const options = [
+    { key: "Pending", label: "Pending", style: "bg-amber-50 border-amber-100 text-amber-700" },
+    { key: "Approved", label: "Approved", style: "bg-blue-50 border-blue-100 text-blue-700" },
+    { key: "Disbursed", label: "Disbursed", style: "bg-emerald-50 border-emerald-100 text-emerald-700" },
+    { key: "Recovering", label: "Recovering", style: "bg-blue-50 border-blue-100 text-blue-700" },
+    { key: "Recoverd", label: "Recoverd", style: "bg-emerald-50 border-emerald-100 text-emerald-700" },
+    { key: "Rejected", label: "Rejected", style: "bg-rose-50 border-rose-100 text-rose-700" }
+  ];
+
+  const currentOpt = options.find(o => o.key === item.status) || options[0];
+
+  return (
+    <div className="relative inline-block" ref={containerRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold border cursor-pointer hover:opacity-85 transition-opacity select-none ${currentOpt.style}`}
+      >
+        <span>{item.status}</span>
+        <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 mt-1 w-32 bg-white rounded-xl shadow-xl border border-gray-150 py-1 z-50 text-left">
+          <div className="px-2 py-0.5 border-b border-gray-100 text-[8px] font-bold uppercase text-gray-400 tracking-wider">
+            Status
+          </div>
+          {options.map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => {
+                if (item.status !== opt.key) {
+                  onUpdateStatus(item.id, opt.key);
+                }
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-2 py-1 text-[10px] font-semibold hover:bg-slate-50 transition-colors flex items-center justify-between cursor-pointer ${item.status === opt.key ? "text-blue-600 bg-blue-50/40" : "text-gray-655"
+                }`}
+            >
+              <span>{opt.label}</span>
+              {item.status === opt.key && <span className="w-1 h-1 rounded-full bg-blue-600" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // --- Main Salary Advance & Repayment Request Dashboard ---
 export default function Advance() {
@@ -75,13 +164,10 @@ export default function Advance() {
     }
   }, [setHeaderTitle, setHeaderSubtitle]);
 
-  // Initial advances list (containing disbursementDate and department for drawer filters)
-  const [advancesList, setAdvancesList] = useState([
-    { id: "ADV-001", employeeName: "Suraj Kumar", empId: "EMP0019", designation: "MTS-2", amount: 150000, balance: 125000, installments: 12, reason: "Home Loan Advance", requestDate: "2026-06-15", disbursementDate: "2026-06-20", status: "Pending", department: "Engineering" },
-    { id: "ADV-002", employeeName: "Anjali Sharma", empId: "EMP0020", designation: "Design Lead", amount: 75000, balance: 62500, installments: 6, reason: "Medical Emergency", requestDate: "2026-06-14", disbursementDate: "2026-06-18", status: "Approved", department: "Marketing" },
-    { id: "ADV-003", employeeName: "Vikram Patel", empId: "EMP0021", designation: "Account Executive", amount: 200000, balance: 183333, installments: 24, reason: "Vehicle Purchase", requestDate: "2026-06-12", disbursementDate: "2026-06-15", status: "Disbursed", department: "Sales" },
-    { id: "ADV-004", employeeName: "Kunal Sen", empId: "EMP0022", designation: "Recruiter Manager", amount: 50000, balance: 50000, installments: 5, reason: "Education Advance", requestDate: "2026-06-10", disbursementDate: "2026-06-14", status: "Rejected", department: "HR" }
-  ]);
+  // Database advances list
+  const [advancesList, setAdvancesList] = useState<any[]>([]);
+  const [availableEmployeesDb, setAvailableEmployeesDb] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Selection states
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -92,6 +178,7 @@ export default function Advance() {
     amount: "",
     reason: "",
     installments: "",
+    monthlyEMI: "",
     requestDate: "",
     disbursementDate: "",
     balance: "",
@@ -133,7 +220,7 @@ export default function Advance() {
     isOpen: false,
     title: "",
     message: "",
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 
   // Searchable employee selection states (Record Modal)
@@ -143,6 +230,7 @@ export default function Advance() {
   // Record Advance form fields
   const [assignEmpName, setAssignEmpName] = useState("");
   const [assignEmpId, setAssignEmpId] = useState("");
+  const [assignUserId, setAssignUserId] = useState("");
   const [assignDesignation, setAssignDesignation] = useState("");
   const [assignAmount, setAssignAmount] = useState("");
   const [assignTenure, setAssignTenure] = useState(12);
@@ -156,12 +244,111 @@ export default function Advance() {
     return "₹" + val.toLocaleString('en-IN');
   };
 
+  const mapStatusToFrontend = (status: string, _amount: number, paidAmount: number) => {
+    if (!status) return "Pending";
+    const s = status.toLowerCase();
+    if (s === "pending") return "Pending";
+    if (s === "approved") return "Approved";
+    if (s === "disbursed") {
+      return paidAmount > 0 ? "Recovering" : "Disbursed";
+    }
+    if (s === "rejected") return "Rejected";
+    if (s === "completed") return "Recoverd";
+    return status;
+  };
+
+  const mapAdvanceFromBackend = (item: any) => {
+    const requestDate = item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : "TBD";
+    const nameParts = [item.first_name, item.middle_name, item.last_name].filter(Boolean);
+    const employeeName = nameParts.join(' ') || item.email || "Employee";
+    const amt = Number(item.amount);
+    const paidAmt = Number(item.paid_amount || 0);
+    const status = mapStatusToFrontend(item.status, amt, paidAmt);
+
+    let disbursementDate = "-";
+    if (status === "Disbursed" || status === "Recovering" || status === "Recoverd") {
+      disbursementDate = item.disbursed_at ? new Date(item.disbursed_at).toISOString().split('T')[0] : "-";
+    }
+
+    let balance: number | string = "N/A";
+    if (status === "Disbursed") {
+      balance = amt;
+    } else if (status === "Recovering") {
+      balance = Math.max(0, amt - paidAmt);
+    } else if (status === "Recoverd") {
+      balance = 0;
+    }
+
+    return {
+      id: String(item.id),
+      employeeName,
+      empId: item.employee_id || `EMP-${item.user_id}`,
+      designation: item.designation || item.role || "MTS",
+      amount: amt,
+      balance: balance,
+      monthlyEMI: Number(item.monthly_emi || 0),
+      installments: Number(item.total_tenor_months),
+      reason: item.reason || "Personal Advance",
+      requestDate,
+      disbursementDate,
+      status,
+      department: item.department || "Operations",
+      avatarUrl: item.avatar_url || ''
+    };
+  };
+
+  const fetchAdvances = async () => {
+    try {
+      setIsLoading(true);
+      const res = await api.get("/payroll/advances");
+      if (res.data && res.data.success) {
+        const mapped = (res.data.data || []).map(mapAdvanceFromBackend);
+        setAdvancesList(mapped);
+      }
+    } catch (err) {
+      console.error("Error fetching advances:", err);
+      toast.error("Failed to load advances");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await api.get("/payroll/employees");
+      if (res.data && res.data.success) {
+        setAvailableEmployeesDb(res.data.data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching employees:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdvances();
+    fetchEmployees();
+  }, []);
+
+  useAdvanceSocket((event, data) => {
+    console.log(`[AdminAdvanceSocket] Event: ${event}`, data);
+    if (event === 'advance_new') {
+      toast.success(`New Advance Request from ${data.employeeName || 'Employee'}: ${formatCurrency(data.amount)}`, {
+        icon: '📨',
+        duration: 5000
+      });
+      fetchAdvances();
+    } else if (event === 'advance_status_changed' || event === 'advance_deleted') {
+      fetchAdvances();
+    }
+  });
+
   const handleClearFilters = () => {
     setColumnFilters({
       employee: "",
       amount: "",
       reason: "",
       installments: "",
+      monthlyEMI: "",
       requestDate: "",
       disbursementDate: "",
       balance: "",
@@ -188,11 +375,19 @@ export default function Advance() {
       isOpen: true,
       title: "Confirm Deletion",
       message: "Are you sure you want to delete this salary advance request? This action cannot be undone.",
-      onConfirm: () => {
-        setAdvancesList(prev => prev.filter(a => a.id !== id));
-        setSelectedRows(prev => prev.filter(r => r !== id));
-        setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
-        toast.success("Advance request deleted");
+      onConfirm: async () => {
+        try {
+          const res = await api.delete(`/payroll/advances/${id}`);
+          if (res.data && res.data.success) {
+            toast.success("Advance request deleted");
+            fetchAdvances();
+            setSelectedRows(prev => prev.filter(r => r !== id));
+            setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error("Failed to delete request");
+        }
       }
     });
   };
@@ -202,16 +397,24 @@ export default function Advance() {
       isOpen: true,
       title: "Confirm Bulk Deletion",
       message: `Are you sure you want to delete the ${selectedRows.length} selected advance requests? This action cannot be undone.`,
-      onConfirm: () => {
-        setAdvancesList(prev => prev.filter(a => !selectedRows.includes(a.id)));
-        setSelectedRows([]);
-        setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
-        toast.success("Selected requests deleted");
+      onConfirm: async () => {
+        try {
+          const res = await api.delete(`/payroll/advances/${selectedRows.join(',')}`);
+          if (res.data && res.data.success) {
+            toast.success("Selected requests deleted");
+            fetchAdvances();
+            setSelectedRows([]);
+            setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error("Failed to delete selected requests");
+        }
       }
     });
   };
 
-  const handleCreateRequest = () => {
+  const handleCreateRequest = async () => {
     if (!assignEmpName.trim()) {
       toast.error("Please select an employee");
       return;
@@ -222,36 +425,64 @@ export default function Advance() {
       return;
     }
 
-    const newReq = {
-      id: `ADV-00${advancesList.length + 1}`,
-      employeeName: assignEmpName,
-      empId: assignEmpId,
-      designation: assignDesignation,
-      amount: amt,
-      balance: amt,
-      installments: Number(assignTenure),
-      reason: assignReason || "Personal Advance Request",
-      requestDate: assignRequestDate ? new Date(assignRequestDate).toLocaleDateString() : new Date().toLocaleDateString(),
-      disbursementDate: "TBD",
-      status: "Pending",
-      department: "Operations"
-    };
-
-    setAdvancesList([newReq, ...advancesList]);
-    setAssignEmpName("");
-    setAssignEmpId("");
-    setAssignDesignation("");
-    setAssignAmount("");
-    setAssignReason("");
-    setShowRecordAdvance(false);
-    toast.success("Salary advance request logged successfully!");
+    try {
+      const res = await api.post('/payroll/advances', {
+        userId: assignUserId,
+        amount: amt,
+        totalTenorMonths: Number(assignTenure),
+        reason: assignReason || "Personal Advance Request",
+        status: "Pending"
+      });
+      if (res.data && res.data.success) {
+        toast.success("Salary advance request logged successfully!");
+        fetchAdvances();
+        setAssignEmpName("");
+        setAssignEmpId("");
+        setAssignUserId("");
+        setAssignDesignation("");
+        setAssignAmount("");
+        setAssignReason("");
+        setShowRecordAdvance(false);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to create advance request");
+    }
   };
 
-  const handleUpdateStatus = () => {
+  const handleUpdateStatus = async () => {
     if (!showReviewModal) return;
-    setAdvancesList(prev => prev.map(a => a.id === showReviewModal.id ? { ...a, status: reviewStatus } : a));
-    setShowReviewModal(null);
-    toast.success("Request status successfully updated!");
+    try {
+      let finalStatus = reviewStatus.toLowerCase();
+      if (finalStatus === 'recoverd') finalStatus = 'completed';
+
+      const res = await api.patch(`/payroll/advances/${showReviewModal.id}/status`, { status: finalStatus });
+      if (res.data && res.data.success) {
+        toast.success("Request status successfully updated!");
+        fetchAdvances();
+        setShowReviewModal(null);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update status");
+    }
+  };
+
+  const handleUpdateStatusFromCell = async (id: string, newStatus: string) => {
+    try {
+      let finalStatus = newStatus.toLowerCase();
+      if (finalStatus === 'recoverd') finalStatus = 'completed';
+      if (finalStatus === 'recovering') finalStatus = 'disbursed';
+
+      const res = await api.patch(`/payroll/advances/${id}/status`, { status: finalStatus });
+      if (res.data && res.data.success) {
+        toast.success("Request status successfully updated!");
+        fetchAdvances();
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update status");
+    }
   };
 
   // Filtered requests list combining both column search and drawer variables
@@ -267,6 +498,9 @@ export default function Advance() {
       return false;
     }
     if (columnFilters.installments && !String(item.installments).includes(columnFilters.installments)) {
+      return false;
+    }
+    if (columnFilters.monthlyEMI && !String(item.monthlyEMI).includes(columnFilters.monthlyEMI)) {
       return false;
     }
     if (columnFilters.requestDate && item.requestDate !== columnFilters.requestDate) {
@@ -331,9 +565,10 @@ export default function Advance() {
     if (employeeSearchQuery.trim() === "") return true;
     const q = employeeSearchQuery.toLowerCase();
     return (
-      emp.name.toLowerCase().includes(q) ||
-      emp.id.toLowerCase().includes(q) ||
-      emp.email.toLowerCase().includes(q)
+      (emp.name && emp.name.toLowerCase().includes(q)) ||
+      (emp.empId && emp.empId.toLowerCase().includes(q)) ||
+      (emp.email && emp.email.toLowerCase().includes(q)) ||
+      String(emp.id).includes(q)
     );
   }).slice(0, 5);
 
@@ -363,14 +598,14 @@ export default function Advance() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
         <StatCard icon={Clock} label="Pending Reviews" value={advancesList.filter(a => a.status === "Pending").length} color="bg-amber-500" />
         <StatCard icon={CheckCircle2} label="Approved Requests" value={advancesList.filter(a => a.status === "Approved").length} color="bg-blue-500" />
-        <StatCard icon={DollarSign} label="Active Recoveries" value={advancesList.filter(a => a.status === "Disbursed").length} color="bg-emerald-500" />
+        <StatCard icon={IndianRupee} label="Active Recoveries" value={advancesList.filter(a => a.status === "Disbursed").length} color="bg-emerald-500" />
         <StatCard icon={TrendingUp} label="Total Outstanding" value={formatCurrency(advancesList.reduce((sum, a) => sum + (a.status === "Disbursed" ? a.balance : 0), 0))} color="bg-purple-500" />
       </div>
 
       {/* Main Single Column Table Layout */}
       <div className="w-full flex-1 lg:overflow-hidden flex flex-col min-h-0">
         <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
-          
+
           {/* Action Header */}
           <div className="p-4 border-b border-gray-200 bg-slate-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 rounded-t-2xl flex-shrink-0">
             <div className="flex items-center gap-2">
@@ -380,7 +615,7 @@ export default function Advance() {
 
             {/* Operations buttons wrapper */}
             <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end">
-              
+
               {/* Delete Selected Button */}
               {selectedRows.length > 0 && (
                 <button
@@ -415,7 +650,7 @@ export default function Advance() {
           {/* DATA TABLE (Scrollable, fills remaining space) */}
           <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
             <table className="w-full border-collapse text-left text-xs">
-              
+
               {/* STICKY COLUMN-WISE SEARCH HEADER */}
               <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm">
                 <tr className="border-b border-gray-250 text-gray-455 font-semibold select-none uppercase tracking-wider text-[10px]">
@@ -494,6 +729,20 @@ export default function Advance() {
                     </div>
                   </th>
 
+                  {/* 4b. Monthly EMI Column Search */}
+                  <th className="p-3 min-w-[110px]">
+                    <div className="space-y-1">
+                      <div>Monthly EMI</div>
+                      <input
+                        type="text"
+                        placeholder="Search..."
+                        value={columnFilters.monthlyEMI}
+                        onChange={(e) => setColumnFilters({ ...columnFilters, monthlyEMI: e.target.value })}
+                        className="w-full px-2 py-1 text-[9px] font-normal border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 bg-white text-gray-700"
+                      />
+                    </div>
+                  </th>
+
                   {/* 5. Request Date Column Search */}
                   <th className="p-3 min-w-[115px]">
                     <div className="space-y-1">
@@ -556,12 +805,10 @@ export default function Advance() {
 
                   {/* 9. Actions Reset controls */}
                   <th className="p-3 pr-6 text-right">
-                    <button
-                      onClick={handleClearFilters}
-                      className="text-[9px] px-2 py-1 border border-gray-200 bg-white hover:bg-slate-50 text-gray-550 rounded-lg shadow-xs cursor-pointer"
-                    >
-                      ✕ Clear
-                    </button>
+                    <div className="space-y-1">
+                      <div>Actions</div>
+                      <div className="h-[21px]" />
+                    </div>
                   </th>
                 </tr>
               </thead>
@@ -583,31 +830,26 @@ export default function Advance() {
                         )}
                       </button>
                     </td>
-                    <td className="p-4">
-                      <div>
-                        <p className="font-bold text-gray-805 text-xs">{req.employeeName}</p>
-                        <p className="text-[9px] text-gray-400 font-semibold">{req.empId}</p>
+                    <td className="p-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3 whitespace-nowrap">
+                        <UserAvatar name={req.employeeName} avatarUrl={req.avatarUrl} />
+                        <div className="whitespace-nowrap">
+                          <p className="font-bold text-gray-855 text-xs whitespace-nowrap">{req.employeeName}</p>
+                          <p className="text-[9px] text-gray-400 font-semibold whitespace-nowrap">{req.empId}</p>
+                        </div>
                       </div>
                     </td>
                     <td className="p-4 text-gray-805 font-bold">{formatCurrency(req.amount)}</td>
                     <td className="p-4 text-gray-500 font-normal">{req.reason}</td>
                     <td className="p-4 text-slate-700 font-bold">{req.installments}</td>
-                    <td className="p-4 text-gray-450 font-normal">{req.requestDate}</td>
-                    <td className="p-4 text-gray-450 font-normal">{req.disbursementDate}</td>
+                    <td className="p-4 text-slate-700 font-bold">{formatCurrency(req.monthlyEMI)}</td>
+                    <td className="p-4 text-gray-455 font-normal">{req.requestDate}</td>
+                    <td className="p-4 text-gray-455 font-normal">{req.disbursementDate}</td>
                     <td className="p-4 text-slate-700 font-bold">
-                      {req.status === "Disbursed" || req.status === "Recovering" || req.status === "Recoverd" ? formatCurrency(req.balance) : formatCurrency(0)}
+                      {typeof req.balance === 'number' ? formatCurrency(req.balance) : req.balance}
                     </td>
                     <td className="p-4">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${
-                        req.status === "Pending" ? "bg-amber-50 border-amber-100 text-amber-700" :
-                        req.status === "Approved" ? "bg-blue-50 border-blue-100 text-blue-700" :
-                        req.status === "Disbursed" ? "bg-emerald-50 border-emerald-100 text-emerald-700" :
-                        req.status === "Recovering" ? "bg-blue-50 border-blue-100 text-blue-700" :
-                        req.status === "Recoverd" ? "bg-emerald-50 border-emerald-100 text-emerald-700" :
-                        "bg-rose-50 border-rose-100 text-rose-700"
-                      }`}>
-                        {req.status}
-                      </span>
+                      <StatusDropdownCell item={req} onUpdateStatus={handleUpdateStatusFromCell} />
                     </td>
                     <td className="p-4 pr-6 text-right">
                       <div className="flex justify-end gap-2 text-gray-400">
@@ -618,18 +860,6 @@ export default function Advance() {
                           title="View EMI Repayment Schedule"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                        </button>
-                        
-                        {/* Action 2: Review / Change status */}
-                        <button
-                          onClick={() => {
-                            setReviewStatus(req.status);
-                            setShowReviewModal(req);
-                          }}
-                          className="p-1.5 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg border border-gray-100 transition-all shadow-xs cursor-pointer"
-                          title="Review / Approve request"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
                         </button>
 
                         {/* Action 3: Delete request */}
@@ -646,7 +876,7 @@ export default function Advance() {
                 ))}
                 {filteredRequests.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="p-12 text-center text-gray-405 font-bold italic bg-white">
+                    <td colSpan={11} className="p-12 text-center text-gray-405 font-bold italic bg-white">
                       No matching advance requests logged.
                     </td>
                   </tr>
@@ -713,7 +943,7 @@ export default function Advance() {
       <div className={`fixed inset-0 z-[100] flex justify-end transition-opacity duration-300 ${isFilterDrawerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setIsFilterDrawerOpen(false)} />
         <div className={`relative w-80 bg-white h-full shadow-2xl border-l border-slate-200 p-6 flex flex-col justify-between z-10 transition-transform duration-300 ease-out transform ${isFilterDrawerOpen ? "translate-x-0" : "translate-x-full"}`}>
-          
+
           <div className="flex justify-between items-center pb-4 border-b border-gray-150">
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-blue-600" />
@@ -788,7 +1018,7 @@ export default function Advance() {
                 <option value="8">8 Months</option>
                 <option value="10">10 Months</option>
                 <option value="12">12 Months</option>
-              
+
               </select>
             </div>
 
@@ -854,173 +1084,174 @@ export default function Advance() {
       {/* --- MODAL 1: Record Advance Request --- */}
       <div className={`fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 ${showRecordAdvance ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
         <div className={`bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-md overflow-visible flex flex-col transition-all duration-300 transform ${showRecordAdvance ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
-            
-            <div className="bg-slate-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center">
-              <div className="flex items-center gap-2.5">
-                <div className="bg-blue-500/10 p-2 rounded-lg text-blue-600">
-                  <DollarSign className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-800">Record Advance Request</h3>
-                  <p className="text-[10px] text-gray-400 font-semibold">Configure interest-free loan deductions parameters</p>
-                </div>
+
+          <div className="bg-slate-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-2.5">
+              <div className="bg-blue-500/10 p-2 rounded-lg text-blue-600">
+                <IndianRupee className="w-4 h-4" />
               </div>
-              <button onClick={() => { setShowRecordAdvance(false); setShowEmployeeDropdown(false); }} className="text-gray-450 hover:text-gray-700 p-1.5 rounded-lg transition-colors cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
+              <div>
+                <h3 className="font-semibold text-sm text-gray-800">Record Advance Request</h3>
+                <p className="text-[10px] text-gray-400 font-semibold">Configure interest-free loan deductions parameters</p>
+              </div>
+            </div>
+            <button onClick={() => { setShowRecordAdvance(false); setShowEmployeeDropdown(false); }} className="text-gray-450 hover:text-gray-700 p-1.5 rounded-lg transition-colors cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-4 flex-1 text-xs overflow-visible">
+
+            {/* Custom Searchable Employee Selector Dropdown */}
+            <div className="space-y-1.5 relative">
+              <label className="text-[10px] font-bold text-gray-400 uppercase block">Select Employee <span className="text-red-500">*</span></label>
+              <div
+                onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
+                className="w-full bg-slate-50 border border-gray-205 rounded-xl p-2.5 text-xs font-semibold flex justify-between items-center cursor-pointer hover:bg-slate-100/50"
+              >
+                <span className={assignEmpName ? "text-gray-800" : "text-gray-400"}>
+                  {assignEmpName ? `${assignEmpName} (${assignEmpId})` : "Choose an employee..."}
+                </span>
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              </div>
+
+              {showEmployeeDropdown && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowEmployeeDropdown(false)} />
+                  <div className="absolute top-[60px] left-0 right-0 bg-white border border-gray-250 rounded-xl shadow-xl z-50 p-2 space-y-2">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Search by ID, name, email..."
+                        value={employeeSearchQuery}
+                        onChange={(e) => setEmployeeSearchQuery(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-[11px] focus:outline-none focus:border-blue-500 bg-slate-50 font-semibold"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="max-h-[180px] overflow-y-auto divide-y divide-gray-100">
+                      {filteredAvailableEmployees.map((emp) => (
+                        <div
+                          key={emp.id}
+                          onClick={() => {
+                            setAssignEmpName(emp.name);
+                            setAssignEmpId(emp.empId);
+                            setAssignUserId(emp.id);
+                            setAssignDesignation(emp.designation || 'Employee');
+                            setShowEmployeeDropdown(false);
+                            setEmployeeSearchQuery("");
+                          }}
+                          className="p-2 hover:bg-slate-55 cursor-pointer text-[11px] flex justify-between items-center transition-colors font-medium"
+                        >
+                          <div>
+                            <p className="font-bold text-gray-850">{emp.name}</p>
+                            <p className="text-[9px] text-gray-400 font-semibold">{emp.id} • {emp.email}</p>
+                          </div>
+                          <span className="text-[9px] text-slate-400 italic font-bold">{emp.designation}</span>
+                        </div>
+                      ))}
+                      {filteredAvailableEmployees.length === 0 && (
+                        <p className="p-3 text-center text-gray-450 italic text-[11px]">No matching employees found.</p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
-            <div className="p-6 space-y-4 flex-1 text-xs overflow-visible">
-              
-              {/* Custom Searchable Employee Selector Dropdown */}
-              <div className="space-y-1.5 relative">
-                <label className="text-[10px] font-bold text-gray-400 uppercase block">Select Employee <span className="text-red-500">*</span></label>
-                <div
-                  onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
-                  className="w-full bg-slate-50 border border-gray-205 rounded-xl p-2.5 text-xs font-semibold flex justify-between items-center cursor-pointer hover:bg-slate-100/50"
-                >
-                  <span className={assignEmpName ? "text-gray-800" : "text-gray-400"}>
-                    {assignEmpName ? `${assignEmpName} (${assignEmpId})` : "Choose an employee..."}
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
-                </div>
-
-                {showEmployeeDropdown && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowEmployeeDropdown(false)} />
-                    <div className="absolute top-[60px] left-0 right-0 bg-white border border-gray-250 rounded-xl shadow-xl z-50 p-2 space-y-2">
-                      <div className="relative">
-                        <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          placeholder="Search by ID, name, email..."
-                          value={employeeSearchQuery}
-                          onChange={(e) => setEmployeeSearchQuery(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-[11px] focus:outline-none focus:border-blue-500 bg-slate-50 font-semibold"
-                          autoFocus
-                        />
-                      </div>
-                      <div className="max-h-[180px] overflow-y-auto divide-y divide-gray-100">
-                        {filteredAvailableEmployees.map((emp) => (
-                          <div
-                            key={emp.id}
-                            onClick={() => {
-                              setAssignEmpName(emp.name);
-                              setAssignEmpId(emp.id);
-                              setAssignDesignation(emp.designation);
-                              setShowEmployeeDropdown(false);
-                              setEmployeeSearchQuery("");
-                            }}
-                            className="p-2 hover:bg-slate-55 cursor-pointer text-[11px] flex justify-between items-center transition-colors font-medium"
-                          >
-                            <div>
-                              <p className="font-bold text-gray-850">{emp.name}</p>
-                              <p className="text-[9px] text-gray-400 font-semibold">{emp.id} • {emp.email}</p>
-                            </div>
-                            <span className="text-[9px] text-slate-400 italic font-bold">{emp.designation}</span>
-                          </div>
-                        ))}
-                        {filteredAvailableEmployees.length === 0 && (
-                          <p className="p-3 text-center text-gray-450 italic text-[11px]">No matching employees found.</p>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Amount and Tenure inputs */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block">Requested Amount (₹) <span className="text-red-500">*</span></label>
-                  <input
-                    type="number"
-                    placeholder="e.g. 50000"
-                    value={assignAmount}
-                    onChange={(e) => setAssignAmount(e.target.value)}
-                    className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block">Tenure (Months) *</label>
-                  <select
-                    value={assignTenure}
-                    onChange={(e) => setAssignTenure(Number(e.target.value))}
-                    className="w-full text-xs border border-gray-200 rounded-xl p-2.5 bg-slate-50 focus:outline-none font-semibold text-gray-750 cursor-pointer"
-                  > 
-                   
-                    <option value={1}>1 Months</option>
-                    <option value={2}>2 Months</option>
-                    <option value={3}>3 Months</option>
-                    <option value={4}>4 Months</option>
-                    <option value={5}>5 Months</option>
-                    <option value={6}>6 Months</option>
-                    <option value={7}>7 Months</option>
-                    <option value={8}>8 Months</option>
-                    <option value={9}>9 Months</option>
-                    <option value={10}>10 Months</option>
-                    <option value={11}>11 Months</option>
-                    <option value={12}>12 Months</option>
-                  </select>
-                </div>
-              </div>
-
+            {/* Amount and Tenure inputs */}
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase block">Request Date *</label>
+                <label className="text-[10px] font-bold text-gray-400 uppercase block">Requested Amount (₹) <span className="text-red-500">*</span></label>
                 <input
-                  type="date"
-                  value={assignRequestDate}
-                  onChange={(e) => setAssignRequestDate(e.target.value)}
-                  className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase block">Reason for Advance</label>
-                <textarea
-                  placeholder="Explain justification for advance (e.g. medical costs, rent advance...)"
-                  value={assignReason}
-                  onChange={(e) => setAssignReason(e.target.value)}
-                  rows={2}
+                  type="number"
+                  placeholder="e.g. 50000"
+                  value={assignAmount}
+                  onChange={(e) => setAssignAmount(e.target.value)}
                   className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
                 />
               </div>
 
-              {/* Dynamic EMI Calculator box */}
-              {assignAmount && !isNaN(parseFloat(assignAmount)) && parseFloat(assignAmount) > 0 && (
-                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex justify-between items-center shadow-inner">
-                  <div>
-                    <p className="text-[10px] text-blue-800 font-bold uppercase tracking-wider">Estimated EMI Recoup</p>
-                    <p className="text-[9px] text-blue-500 font-semibold mt-0.5">Deducted from monthly payroll payout</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-blue-800">{formatCurrency(Math.round(parseFloat(assignAmount) / assignTenure))}/mo</p>
-                    <p className="text-[9px] text-blue-600 font-bold mt-0.5">For {assignTenure} Months</p>
-                  </div>
-                </div>
-              )}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase block">Tenure (Months) *</label>
+                <select
+                  value={assignTenure}
+                  onChange={(e) => setAssignTenure(Number(e.target.value))}
+                  className="w-full text-xs border border-gray-200 rounded-xl p-2.5 bg-slate-50 focus:outline-none font-semibold text-gray-750 cursor-pointer"
+                >
+
+                  <option value={1}>1 Months</option>
+                  <option value={2}>2 Months</option>
+                  <option value={3}>3 Months</option>
+                  <option value={4}>4 Months</option>
+                  <option value={5}>5 Months</option>
+                  <option value={6}>6 Months</option>
+                  <option value={7}>7 Months</option>
+                  <option value={8}>8 Months</option>
+                  <option value={9}>9 Months</option>
+                  <option value={10}>10 Months</option>
+                  <option value={11}>11 Months</option>
+                  <option value={12}>12 Months</option>
+                </select>
+              </div>
             </div>
 
-            <div className="bg-slate-50 border-t border-gray-100 px-6 py-4 flex justify-between items-center flex-shrink-0">
-              <button
-                onClick={() => { setShowRecordAdvance(false); setShowEmployeeDropdown(false); }}
-                className="px-4 py-2 border border-gray-200 bg-white hover:bg-slate-55 rounded-xl text-xs font-semibold text-gray-500 shadow-sm cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateRequest}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm px-5 py-2 inline-flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                <Plus size={14} />
-                <span>Request Advance</span>
-              </button>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-gray-400 uppercase block">Request Date *</label>
+              <input
+                type="date"
+                value={assignRequestDate}
+                onChange={(e) => setAssignRequestDate(e.target.value)}
+                className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
+              />
             </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-gray-400 uppercase block">Reason for Advance</label>
+              <textarea
+                placeholder="Explain justification for advance (e.g. medical costs, rent advance...)"
+                value={assignReason}
+                onChange={(e) => setAssignReason(e.target.value)}
+                rows={2}
+                className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            {/* Dynamic EMI Calculator box */}
+            {assignAmount && !isNaN(parseFloat(assignAmount)) && parseFloat(assignAmount) > 0 && (
+              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex justify-between items-center shadow-inner">
+                <div>
+                  <p className="text-[10px] text-blue-800 font-bold uppercase tracking-wider">Estimated EMI Recoup</p>
+                  <p className="text-[9px] text-blue-500 font-semibold mt-0.5">Deducted from monthly payroll payout</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-blue-800">{formatCurrency(Math.round(parseFloat(assignAmount) / assignTenure))}/mo</p>
+                  <p className="text-[9px] text-blue-600 font-bold mt-0.5">For {assignTenure} Months</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-slate-50 border-t border-gray-100 px-6 py-4 flex justify-between items-center flex-shrink-0">
+            <button
+              onClick={() => { setShowRecordAdvance(false); setShowEmployeeDropdown(false); }}
+              className="px-4 py-2 border border-gray-200 bg-white hover:bg-slate-55 rounded-xl text-xs font-semibold text-gray-500 shadow-sm cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateRequest}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm px-5 py-2 inline-flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>Request Advance</span>
+            </button>
           </div>
         </div>
-          {/* --- MODAL 2: EMI Repayment Ledger Schedule --- */}
+      </div>
+      {/* --- MODAL 2: EMI Repayment Ledger Schedule --- */}
       <div className={`fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 ${showScheduleModal ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
         <div className={`bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-lg overflow-hidden flex flex-col transition-all duration-300 transform ${showScheduleModal ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
           {showScheduleModal && (
@@ -1071,12 +1302,12 @@ export default function Advance() {
                       {Array.from({ length: showScheduleModal.installments }, (_, i) => {
                         const instNo = i + 1;
                         const emi = Math.round(showScheduleModal.amount / showScheduleModal.installments);
-                        
+
                         // Calculate mock due dates
                         const baseDate = new Date(showScheduleModal.requestDate);
                         baseDate.setMonth(baseDate.getMonth() + instNo);
                         const dueStr = baseDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-                        
+
                         const isPaid = showScheduleModal.status === "Disbursed" && instNo <= Math.round(showScheduleModal.installments * 0.2);
 
                         return (
@@ -1085,9 +1316,8 @@ export default function Advance() {
                             <td className="p-2 font-normal">{dueStr}</td>
                             <td className="p-2">{formatCurrency(emi)}</td>
                             <td className="p-2 pr-4 text-right">
-                              <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold border ${
-                                isPaid ? "bg-emerald-50 border-emerald-100 text-emerald-700" : "bg-slate-100 border-slate-200 text-slate-500"
-                              }`}>
+                              <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold border ${isPaid ? "bg-emerald-50 border-emerald-100 text-emerald-700" : "bg-slate-100 border-slate-200 text-slate-500"
+                                }`}>
                                 {isPaid ? "Settled" : "Remaining"}
                               </span>
                             </td>
@@ -1155,6 +1385,8 @@ export default function Advance() {
                     <option value="Pending">Pending</option>
                     <option value="Approved">Approved</option>
                     <option value="Disbursed">Disbursed</option>
+                    <option value="Recovering">Recovering</option>
+                    <option value="Recoverd">Recoverd</option>
                     <option value="Rejected">Rejected</option>
                   </select>
                 </div>

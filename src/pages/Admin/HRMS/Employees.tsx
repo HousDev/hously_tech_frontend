@@ -4441,89 +4441,7 @@ const EmployeeProfile = ({
 
 // ─── Status Change Modal ─────────────────────────────────────────────────────
 
-const StatusChangeModal = ({
-  employee,
-  onClose,
-  onConfirm,
-}: {
-  employee: EmployeeRecord;
-  onClose: () => void;
-  onConfirm: () => void;
-}) => {
-  const [visible, setVisible] = useState(false);
 
-  useEffect(() => {
-    requestAnimationFrame(() => setVisible(true));
-  }, []);
-
-  const handleClose = () => {
-    setVisible(false);
-    setTimeout(onClose, 250);
-  };
-
-  const fullName = `${employee.firstName}${employee.middleName ? " " + employee.middleName : ""} ${employee.lastName}`;
-  const isActive = employee.status === "active";
-
-  return (
-    <>
-      <div
-        onClick={handleClose}
-        className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm transition-opacity duration-300"
-        style={{ opacity: visible ? 1 : 0 }}
-      />
-      <div className="fixed inset-0 z-[71] flex items-center justify-center p-4 pointer-events-none">
-        <div
-          className="w-full max-w-md bg-white rounded-2xl shadow-2xl pointer-events-auto transition-all duration-300"
-          style={{
-            opacity: visible ? 1 : 0,
-            transform: visible ? "translateY(0) scale(1)" : "translateY(18px) scale(0.96)",
-          }}
-        >
-          <div className="p-6">
-            <div
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${isActive ? "bg-amber-50" : "bg-emerald-50"
-                }`}
-            >
-              {isActive ? (
-                <UserMinus size={22} className="text-amber-600" />
-              ) : (
-                <UserPlus size={22} className="text-emerald-600" />
-              )}
-            </div>
-
-            <h3 className="text-lg font-extrabold text-slate-800">
-              {isActive ? "Deactivate Employee?" : "Activate Employee?"}
-            </h3>
-
-            <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-              {isActive
-                ? `Are you sure you want to deactivate ${fullName}? This employee will not be able to access the system.`
-                : `Are you sure you want to activate ${fullName}? This employee will be able to access the system again.`}
-            </p>
-
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={handleClose}
-                className="flex-1 py-2.5 text-sm font-bold border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={onConfirm}
-                className={`flex-1 py-2.5 text-sm font-bold text-white rounded-xl transition ${isActive
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90"
-                  : "bg-gradient-to-r from-emerald-500 to-green-600 hover:opacity-90"
-                  }`}
-              >
-                {isActive ? "Yes, Deactivate" : "Yes, Activate"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
 
 // ─── Delete Confirm Modal ────────────────────────────────────────────────────
 
@@ -5001,13 +4919,12 @@ export default function EmployeesPage() {
     setPage(1);
   };
 
-  const handleStatusChange = async () => {
+  const handleStatusChange = async (nextStatus: EmployeeStatus) => {
     if (!statusEmployee) return;
     try {
-      const nextStatus: EmployeeStatus = statusEmployee.status === "active" ? "inactive" : "active";
       await employeeApi.updateStatus(statusEmployee.id, nextStatus);
       setStatusEmployee(null);
-      toast.success(`Employee status updated successfully!`);
+      toast.success(`Employee status updated to ${STATUS_CONFIG[nextStatus].label} successfully!`);
       fetchEmployees();
     } catch (err: any) {
       toast.error(err.message || "Failed to update employee status");
@@ -5330,15 +5247,56 @@ export default function EmployeesPage() {
                         {employee.role}
                       </span>
                     </td>
-                    <td className="px-4 py-3 border-r border-slate-100">
+                    <td className="px-4 py-3 border-r border-slate-100 relative">
                       <button
-                        onClick={() => setStatusEmployee(employee)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStatusEmployee(statusEmployee?.id === employee.id ? null : employee);
+                        }}
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition hover:scale-[1.03] ${statusCfg.bg} ${statusCfg.color}`}
                         title="Change Status"
                       >
                         <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
                         {statusCfg.label}
                       </button>
+
+                      {statusEmployee?.id === employee.id && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-30" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setStatusEmployee(null);
+                            }}
+                          />
+                          <div className="absolute right-4 top-10 mt-1 w-36 bg-white border border-slate-100 rounded-xl shadow-xl z-40 p-1.5 space-y-0.5">
+                            {(Object.keys(STATUS_CONFIG) as EmployeeStatus[]).map((status) => {
+                              const isCurrent = employee.status === status;
+                              const cfg = STATUS_CONFIG[status];
+                              return (
+                                <button
+                                  key={status}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!isCurrent) {
+                                      handleStatusChange(status);
+                                    }
+                                  }}
+                                  disabled={isCurrent}
+                                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-[10px] font-bold transition-colors ${
+                                    isCurrent
+                                      ? "bg-slate-50 text-slate-400 cursor-not-allowed"
+                                      : "hover:bg-slate-50 text-slate-700 cursor-pointer"
+                                  }`}
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                  <span>{cfg.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
@@ -5480,13 +5438,56 @@ export default function EmployeesPage() {
                     <h3 className="font-extrabold text-slate-800 text-xs truncate">{fullName}</h3>
                     <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{employee.employeeId}</p>
                   </div>
-                  <button
-                    onClick={() => setStatusEmployee(employee)}
-                    className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold transition hover:scale-[1.03] ${statusCfg.bg} ${statusCfg.color}`}
-                  >
-                    <span className={`w-1 h-1 rounded-full ${statusCfg.dot}`} />
-                    {statusCfg.label}
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setStatusEmployee(statusEmployee?.id === employee.id ? null : employee);
+                      }}
+                      className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold transition hover:scale-[1.03] ${statusCfg.bg} ${statusCfg.color}`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+                      {statusCfg.label}
+                    </button>
+
+                    {statusEmployee?.id === employee.id && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-30" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setStatusEmployee(null);
+                          }}
+                        />
+                        <div className="absolute right-0 top-6 mt-1 w-32 bg-white border border-slate-100 rounded-xl shadow-xl z-40 p-1.5 space-y-0.5">
+                          {(Object.keys(STATUS_CONFIG) as EmployeeStatus[]).map((status) => {
+                            const isCurrent = employee.status === status;
+                            const cfg = STATUS_CONFIG[status];
+                            return (
+                              <button
+                                key={status}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!isCurrent) {
+                                    handleStatusChange(status);
+                                  }
+                                }}
+                                disabled={isCurrent}
+                                className={`w-full flex items-center gap-2 px-2 py-1 rounded-lg text-left text-[9px] font-extrabold transition-colors ${
+                                  isCurrent
+                                    ? "bg-slate-50 text-slate-400 cursor-not-allowed"
+                                    : "hover:bg-slate-50 text-slate-700 cursor-pointer"
+                                }`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                <span>{cfg.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <hr className="border-t border-slate-100" />
@@ -5592,14 +5593,7 @@ export default function EmployeesPage() {
         )}
       </div>
 
-      {/* Modals */}
-      {statusEmployee && (
-        <StatusChangeModal
-          employee={statusEmployee}
-          onClose={() => setStatusEmployee(null)}
-          onConfirm={handleStatusChange}
-        />
-      )}
+
 
       {deleteEmployee && (
         <DeleteConfirmModal

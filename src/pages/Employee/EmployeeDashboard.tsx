@@ -41,6 +41,7 @@ import { useLeaveSocket } from '../../hooks/useLeaveSocket';
 import { useTicketSocket } from '../../hooks/useTicketSocket';
 import { useExpenseSocket } from '../../hooks/useExpenseSocket';
 import { useTaskSocket } from '../../hooks/useTaskSocket';
+import { useAdvanceSocket } from '../../hooks/useAdvanceSocket';
 import { playNotificationSound } from '../../lib/sound';
 
 interface NotificationItem {
@@ -152,6 +153,7 @@ const EmployeeDashboard = () => {
   const [ticketNotifications, setTicketNotifications] = useState<any[]>([]);
   const [expenseNotifications, setExpenseNotifications] = useState<any[]>([]);
   const [taskNotifications, setTaskNotifications] = useState<any[]>([]);
+  const [advanceNotifications, setAdvanceNotifications] = useState<any[]>([]);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -194,12 +196,22 @@ const EmployeeDashboard = () => {
     }
   }, []);
 
+  const fetchAdvanceNotifications = useCallback(async () => {
+    try {
+      const data = await apiClient.get<any[]>('/payroll/notifications');
+      setAdvanceNotifications(data ?? []);
+    } catch (err) {
+      console.error('Failed to fetch employee advance notifications:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchNotifications();
     fetchTicketNotifications();
     fetchExpenseNotifications();
     fetchTaskNotifications();
-  }, [fetchNotifications, fetchTicketNotifications, fetchExpenseNotifications, fetchTaskNotifications]);
+    fetchAdvanceNotifications();
+  }, [fetchNotifications, fetchTicketNotifications, fetchExpenseNotifications, fetchTaskNotifications, fetchAdvanceNotifications]);
 
   useLeaveSocket((event, data) => {
     console.log(`[EmployeeDashboard] useLeaveSocket callback: event="${event}"`, data);
@@ -243,6 +255,15 @@ const EmployeeDashboard = () => {
       toast.success(` Task status updated!`);
     } else if (event === 'task_comment_added') {
       playNotificationSound();
+    }
+  });
+
+  useAdvanceSocket((event, data) => {
+    console.log(`[EmployeeDashboard] useAdvanceSocket callback: event="${event}"`, data);
+    if (event === 'advance_status_changed') {
+      playNotificationSound();
+      toast.success(`💸 Advance Request status updated to ${data.status}`);
+      fetchAdvanceNotifications();
     }
   });
 
@@ -340,6 +361,24 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const markAdvanceNotificationRead = async (id: number) => {
+    try {
+      await apiClient.patch(`/payroll/notifications/${id}/read`);
+      fetchAdvanceNotifications();
+    } catch (err) {
+      console.error('Failed to mark advance notification read:', err);
+    }
+  };
+
+  const markAllAdvanceNotificationsRead = async () => {
+    try {
+      await apiClient.patch('/payroll/notifications/read-all');
+      fetchAdvanceNotifications();
+    } catch (err) {
+      console.error('Failed to mark all advance notifications read:', err);
+    }
+  };
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'text-blue-500' },
     { id: 'attendance', label: 'Attendance', icon: Calendar, color: 'text-amber-500' },
@@ -352,7 +391,8 @@ const EmployeeDashboard = () => {
   const unreadCount = notifications.filter(n => !n.is_read || (n.is_read as any) === '0').length +
     ticketNotifications.filter(n => !n.is_read || (n.is_read as any) === '0').length +
     expenseNotifications.filter(n => !n.is_read || (n.is_read as any) === '0').length +
-    taskNotifications.filter(n => !n.is_read || (n.is_read as any) === '0').length;
+    taskNotifications.filter(n => !n.is_read || (n.is_read as any) === '0').length +
+    advanceNotifications.filter(n => !n.is_read || (n.is_read as any) === '0').length;
 
   // KPI Cards
   const kpiCards = [
@@ -611,6 +651,7 @@ const EmployeeDashboard = () => {
                             await markAllTicketNotificationsRead();
                             await markAllExpenseNotificationsRead();
                             await markAllTaskNotificationsRead();
+                            await markAllAdvanceNotificationsRead();
                           }}
                           className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer bg-transparent border-0"
                         >
@@ -619,7 +660,7 @@ const EmployeeDashboard = () => {
                       )}
                     </div>
                     <div className="max-h-72 overflow-y-auto">
-                      {notifications.length === 0 && ticketNotifications.length === 0 && expenseNotifications.length === 0 && taskNotifications.length === 0 ? (
+                      {notifications.length === 0 && ticketNotifications.length === 0 && expenseNotifications.length === 0 && taskNotifications.length === 0 && advanceNotifications.length === 0 ? (
                         <div className="p-8 text-center text-slate-400">
                           <Bell size={24} className="mx-auto text-slate-300 mb-2" />
                           <p className="text-xs font-semibold">No notifications yet</p>
@@ -629,7 +670,8 @@ const EmployeeDashboard = () => {
                           ...notifications,
                           ...ticketNotifications.map(t => ({ ...t, isTicket: true })),
                           ...expenseNotifications.map(e => ({ ...e, isExpense: true })),
-                          ...taskNotifications.map(t => ({ ...t, isTask: true }))
+                          ...taskNotifications.map(t => ({ ...t, isTask: true })),
+                          ...advanceNotifications.map(a => ({ ...a, isAdvance: true }))
                         ]
                           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                           .map((n) => {
@@ -637,9 +679,10 @@ const EmployeeDashboard = () => {
                             const isTicket = (n as any).isTicket === true;
                             const isExpense = (n as any).isExpense === true;
                             const isTask = (n as any).isTask === true;
+                            const isAdvance = (n as any).isAdvance === true;
                             return (
                               <div
-                                key={isTicket ? `ticket_${n.id}` : isExpense ? `expense_${n.id}` : isTask ? `task_${n.id}` : `leave_${n.id}`}
+                                key={isTicket ? `ticket_${n.id}` : isExpense ? `expense_${n.id}` : isTask ? `task_${n.id}` : isAdvance ? `advance_${n.id}` : `leave_${n.id}`}
                                 onClick={() => {
                                   if (isTicket) {
                                     markTicketNotificationRead(n.id);
@@ -650,6 +693,9 @@ const EmployeeDashboard = () => {
                                   } else if (isTask) {
                                     markTaskNotificationRead(n.id);
                                     setActiveTab('tasks');
+                                  } else if (isAdvance) {
+                                    markAdvanceNotificationRead(n.id);
+                                    setActiveTab('payroll-advance' as any);
                                   } else {
                                     markNotificationRead(n.id);
                                     setActiveTab('leave');
@@ -659,10 +705,10 @@ const EmployeeDashboard = () => {
                                 className={`p-3 border-b border-gray-50 hover:bg-slate-50 transition cursor-pointer select-none ${(!n.is_read || (n.is_read as any) === '0') ? 'bg-blue-50/25 border-l-2 border-blue-500' : ''}`}
                               >
                                 <div className="flex items-start gap-2">
-                                  <span className="text-sm mt-0.5">{isTicket ? '🎫' : isExpense ? '💵' : isTask ? '📋' : '🔔'}</span>
+                                  <span className="text-sm mt-0.5">{isTicket ? '🎫' : isExpense ? '💵' : isTask ? '📋' : isAdvance ? '💸' : '🔔'}</span>
                                   <div className="min-w-0 flex-1">
                                     <p className="text-xs font-bold text-slate-800">
-                                      {n.title.replace(/^[🎫📅📋📥🔄📝👤💼📢🔔❌?\s]+/, '').trim()}
+                                      {(n.title || '').replace(/^[🎫📅📋📥🔄📝👤💼📢🔔❌?\s]+/, '').trim()}
                                     </p>
                                     <p className="text-[11px] text-slate-550 mt-0.5 leading-relaxed">{n.message}</p>
                                     <p className="text-[9px] text-slate-400 mt-1 font-semibold">{fmtTime}</p>
